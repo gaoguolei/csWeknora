@@ -52,6 +52,21 @@ func runStartupBootstrap(c *dig.Container) {
 		logger.Warnf(ctx, "[bootstrap] failed to resolve TenantAPIKeyService: %v", err)
 	}
 
+	// Chat-history Embedding model migration backfill. The Embedding model
+	// moved from per-workspace Tenant.ChatHistoryConfig to the platform-global
+	// system setting chat_history.embedding_model_id. On upgrade the global
+	// setting is empty even though workspaces already had a model configured,
+	// which leaves every workspace showing "message indexing not in use" until
+	// an admin manually re-picks the model. Seed the global setting once from
+	// any workspace that already carries one. Idempotent: no-ops as soon as the
+	// global value is non-empty, so it only ever fires on the first boot after
+	// upgrade and is cheap on the steady-state path (single cached read).
+	if err := c.Invoke(func(settingSvc interfaces.SystemSettingService, tenantSvc interfaces.TenantService) {
+		backfillChatHistoryGlobalModel(ctx, settingSvc, tenantSvc)
+	}); err != nil {
+		logger.Warnf(ctx, "[bootstrap] failed to resolve services for chat-history model backfill: %v", err)
+	}
+
 	email := strings.TrimSpace(os.Getenv(bootstrapEnvVar))
 	if email == "" {
 		return
@@ -122,4 +137,62 @@ func bootstrapSystemAdmin(ctx context.Context, userSvc interfaces.UserService, e
 	logger.Infof(ctx,
 		"[bootstrap] promoted user %s (%s) to system admin via %s",
 		user.ID, email, bootstrapEnvVar)
+}
+
+// backfillChatHistoryGlobalModel seeds the platform-global Embedding model
+// system setting (chat_history.embedding_model_id) from the first workspace
+// that already carries one in its Tenant.ChatHistoryConfig. This closes the
+// gap left by moving the model from per-workspace config to a global setting:
+// upgrades keep a per-workspace model but an empty global value, so message
+// indexing appears disabled everywhere until an admin re-picks the model.
+//
+// Idempotent and best-effort: it returns immediately when the global value is
+// already set, when no workspace has a model to inherit, or on any error (a
+// failure here only warns — the admin can still set the model manually).
+// Prefers a workspace that had indexing actively enabled so the inherited
+// model matches what the deployment was actually using.
+func backfillChatHistoryGlobalModel(
+	ctx context.Context,
+	settingSvc interfaces.SystemSettingService,
+	tenantSvc interfaces.TenantService,
+) {
+	const (
+		key     = "chat_history.embedding_model_id"
+		envName = "WEKNORA_CHAT_HISTORY_EMBEDDING_MODEL_ID"
+	)
+	// Global value already present (real override or ENV) → nothing to do.
+	if settingSvc.GetString(ctx, key, envName, "") != "" {
+		return
+	}
+	tenants, err := tenantSvc.ListTenants(ctx)
+	if err != nil {
+		logger.Warnf(ctx, "[bootstrap] chat-history model backfill: list tenants failed: %v", err)
+		return
+	}
+	var picked string
+	for _, t := range tenants {
+		cfg := t.ChatHistoryConfig
+		if cfg == nil || cfg.EmbeddingModelID == "" {
+			continue
+		}
+		if cfg.Enabled {
+			// Strongest signal: a workspace that had indexing turned on.
+			picked = cfg.EmbeddingModelID
+			break
+		}
+		// Otherwise remember the first configured model as a fallback.
+		if picked == "" {
+			picked = cfg.EmbeddingModelID
+		}
+	}
+	if picked == "" {
+		return
+	}
+	if _, err := settingSvc.Update(ctx, key, picked); err != nil {
+		logger.Warnf(ctx, "[bootstrap] chat-history model backfill: write global model failed: %v", err)
+		return
+	}
+	logger.Infof(ctx,
+		"[bootstrap] backfilled global chat-history embedding model from an existing workspace (%s)",
+		picked)
 }

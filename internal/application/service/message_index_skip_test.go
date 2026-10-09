@@ -5,55 +5,67 @@ import (
 	"testing"
 
 	"github.com/Tencent/WeKnora/internal/types"
+	"github.com/Tencent/WeKnora/internal/types/interfaces"
 )
 
-// The stats endpoint reports the feature as enabled based on
-// ChatHistoryConfig.Enabled alone, but IndexMessageToKB only indexes when
-// IsConfigured() holds - which also requires an embedding model and an
-// auto-created KB. When those disagree the operator sees "indexed messages: 0"
-// with no log line explaining it. These cases pin the reason string so each
-// skip is attributable from the logs.
+// stubChatHistorySettings overrides GetString so tests can control the
+// platform-global embedding model returned for chat_history.embedding_model_id
+// without wiring a full system-setting service.
+type stubChatHistorySettings struct {
+	interfaces.SystemSettingService
+	embeddingModelID string
+}
+
+func (s *stubChatHistorySettings) GetString(_ context.Context, key string, _ string, def string) string {
+	if key == "chat_history.embedding_model_id" {
+		return s.embeddingModelID
+	}
+	return def
+}
+
+// newSkipTestService builds a messageService whose global embedding model is
+// `model`, so describeChatHistorySkip can be exercised as a method.
+func newSkipTestService(model string) *messageService {
+	return &messageService{
+		systemSettingSvc: &stubChatHistorySettings{embeddingModelID: model},
+	}
+}
+
+// describeChatHistorySkip now keys off the platform-global embedding model
+// first, then the workspace KB. These cases pin the reason string so each skip
+// is attributable from the logs.
 func TestDescribeChatHistorySkip(t *testing.T) {
 	tests := []struct {
-		name string
-		ctx  func() context.Context
-		want string
+		name  string
+		model string
+		ctx   func() context.Context
+		want  string
 	}{
 		{
-			name: "no tenant in context",
-			ctx:  func() context.Context { return context.Background() },
-			want: "no tenant in context",
-		},
-		{
-			name: "config not set",
+			name:  "global model not configured",
+			model: "",
 			ctx: func() context.Context {
 				return contextWithTenant(&types.Tenant{})
 			},
-			want: "chat history config not set",
+			want: "global embedding model not configured (chat_history.embedding_model_id is empty)",
 		},
 		{
-			name: "disabled",
+			name:  "no tenant in context",
+			model: "emb-1",
+			ctx:   func() context.Context { return context.Background() },
+			want:  "no tenant in context",
+		},
+		{
+			name:  "model set but config not created",
+			model: "emb-1",
 			ctx: func() context.Context {
-				return contextWithTenant(&types.Tenant{
-					ChatHistoryConfig: &types.ChatHistoryConfig{Enabled: false},
-				})
+				return contextWithTenant(&types.Tenant{})
 			},
-			want: "chat history indexing disabled",
+			want: "global model set but chat history knowledge base not created yet",
 		},
 		{
-			name: "enabled without embedding model",
-			ctx: func() context.Context {
-				return contextWithTenant(&types.Tenant{
-					ChatHistoryConfig: &types.ChatHistoryConfig{
-						Enabled:         true,
-						KnowledgeBaseID: "kb-1",
-					},
-				})
-			},
-			want: "enabled but no embedding model selected",
-		},
-		{
-			name: "enabled without knowledge base",
+			name:  "model set but knowledge base missing",
+			model: "emb-1",
 			ctx: func() context.Context {
 				return contextWithTenant(&types.Tenant{
 					ChatHistoryConfig: &types.ChatHistoryConfig{
@@ -62,32 +74,32 @@ func TestDescribeChatHistorySkip(t *testing.T) {
 					},
 				})
 			},
-			want: "enabled but chat history knowledge base not created yet",
+			want: "global model set but chat history knowledge base not created yet",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := describeChatHistorySkip(tt.ctx()); got != tt.want {
+			svc := newSkipTestService(tt.model)
+			if got := svc.describeChatHistorySkip(tt.ctx()); got != tt.want {
 				t.Errorf("describeChatHistorySkip() = %q, want %q", got, tt.want)
 			}
 		})
 	}
 }
 
-// A fully configured tenant must not be reported as a skip reason: it is the
-// one case where IndexMessageToKB proceeds, so the fallback string here would
-// mean the helper and IsConfigured() disagree.
+// A workspace already provisioned with a KB for the current global model must
+// not be reported as a missing-KB skip: it is the one case where
+// IndexMessageToKB proceeds, so the fallback string here would mean the helper
+// and getChatHistoryConfig disagree.
 func TestDescribeChatHistorySkipFullyConfigured(t *testing.T) {
 	cfg := &types.ChatHistoryConfig{
 		Enabled:          true,
 		EmbeddingModelID: "emb-1",
 		KnowledgeBaseID:  "kb-1",
 	}
-	if !cfg.IsConfigured() {
-		t.Fatal("fixture is not fully configured; test cannot check the agreement")
-	}
-	got := describeChatHistorySkip(contextWithTenant(&types.Tenant{ChatHistoryConfig: cfg}))
+	svc := newSkipTestService("emb-1")
+	got := svc.describeChatHistorySkip(contextWithTenant(&types.Tenant{ChatHistoryConfig: cfg}))
 	if got != "chat history config incomplete" {
 		t.Errorf("unexpected reason for a configured tenant: %q", got)
 	}

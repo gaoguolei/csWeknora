@@ -2,11 +2,16 @@
   <div class="chat-history-settings">
     <div class="section-header">
       <h2>{{ t('chatHistorySettings.title') }}</h2>
-      <p class="section-description">{{ t('chatHistorySettings.description') }}</p>
+      <p class="section-description">{{
+        canManage ? t('chatHistorySettings.description') : t('chatHistorySettings.descriptionViewOnly')
+      }}</p>
     </div>
 
-    <div class="settings-group">
-      <!-- 启用开关 -->
+    <!-- 「启用消息索引」是全局开关（系统设置 chat_history.indexing_enabled），
+         「Embedding 模型」也是全局设置（chat_history.embedding_model_id）：
+         两者均仅超级管理员可见可改，一次设置对所有空间生效；各空间的知识库在首次索引时自动创建。
+         其他人（含普通空间管理员）只能看到下方的只读索引统计。 -->
+    <div v-if="canManage && statsLoaded" class="settings-group">
       <div class="setting-row">
         <div class="setting-info">
           <label>{{ t('chatHistorySettings.enableLabel') }}</label>
@@ -14,14 +19,15 @@
         </div>
         <div class="setting-control">
           <t-switch
-            v-model="localEnabled"
+            v-model="globalEnabled"
+            :disabled="savingSwitch"
             @change="handleEnabledChange"
           />
         </div>
       </div>
 
-      <!-- Embedding 模型选择 -->
-      <div v-if="localEnabled" class="setting-row">
+      <!-- Embedding 模型选择（全局；所有空间共用，选定即对所有空间生效） -->
+      <div v-if="globalEnabled" class="setting-row">
         <div class="setting-info">
           <label>{{ t('chatHistorySettings.embeddingModelLabel') }}</label>
           <p class="desc">{{ t('chatHistorySettings.embeddingModelDescription') }}</p>
@@ -40,162 +46,122 @@
       </div>
     </div>
 
-    <!-- 统计信息 -->
-    <div class="stats-section">
+    <!-- 统计信息：只要全局开关开启且已选择全局 Embedding 模型，所有空间（含新建空间）
+         都视为已启用；新建空间在首条消息索引时自动创建各自的知识库，此处先显示 0。
+         仅当全局开关关闭时，所有人（含超管）才显示「消息索引未使用」。 -->
+    <div v-if="statsLoaded" class="stats-section">
       <h3 class="stats-title">{{ t('chatHistorySettings.statsTitle') }}</h3>
-      <div v-if="stats && stats.enabled && stats.knowledge_base_id" class="stats-grid">
+      <div v-if="globalEnabled && stats && stats.embedding_model_id" class="stats-grid">
         <div class="stat-card">
-          <div class="stat-value">{{ stats.indexed_message_count }}</div>
+          <div class="stat-value">{{ stats.indexed_message_count || 0 }}</div>
           <div class="stat-label">{{ t('chatHistorySettings.statsIndexedMessages') }}</div>
         </div>
       </div>
-      <div v-else class="stats-empty">
+      <div v-else-if="globalEnabled && canManage" class="stats-empty">
         <p class="stats-empty-title">{{ t('chatHistorySettings.statsNotConfigured') }}</p>
         <p class="stats-empty-desc">{{ t('chatHistorySettings.statsNotConfiguredDesc') }}</p>
+      </div>
+      <div v-else class="stats-empty">
+        <p class="stats-empty-title">{{ t('chatHistorySettings.statsUnused') }}</p>
+        <p class="stats-empty-desc">{{ t('chatHistorySettings.statsUnusedDesc') }}</p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { useI18n } from 'vue-i18n'
 import ModelSelector from '@/components/ModelSelector.vue'
+import { useAuthStore } from '@/stores/auth'
+import { updateSystemSetting } from '@/api/system'
 import {
-  getTenantChatHistoryConfig,
-  updateTenantChatHistoryConfig,
   getChatHistoryKBStats,
-  type ChatHistoryConfig,
   type ChatHistoryKBStats,
 } from '@/api/chat-history'
 
 const { t } = useI18n()
+const authStore = useAuthStore()
 
-// Local state
-const localEnabled = ref(false)
+// Only the platform super admin sees the global enable switch and the
+// per-workspace embedding model; everyone else gets read-only statistics.
+const canManage = computed(() => authStore.isSystemAdmin)
+
+// The platform master switch. Its value is surfaced to every viewer through
+// the stats endpoint (system settings APIs are SystemAdmin-only), so this
+// ref is seeded from stats.global_enabled and stays backend-authoritative.
+const globalEnabled = ref(false)
+const savingSwitch = ref(false)
+
 const localEmbeddingModelId = ref('')
-const isInitializing = ref(true)
-const initialConfig = ref<ChatHistoryConfig | null>(null)
 const stats = ref<ChatHistoryKBStats | null>(null)
+const statsLoaded = ref(false)
 
 // Whether the embedding model is locked (has indexed messages — cannot change)
 const modelLocked = ref(false)
 
-// Load tenant config
-const loadConfig = async () => {
-  try {
-    const response = await getTenantChatHistoryConfig()
-    if (response.data) {
-      const config = response.data
-      isInitializing.value = true
-
-      initialConfig.value = {
-        enabled: config.enabled || false,
-        embedding_model_id: config.embedding_model_id || '',
-      }
-
-      localEnabled.value = config.enabled || false
-      localEmbeddingModelId.value = config.embedding_model_id || ''
-
-      await nextTick()
-      await nextTick()
-      setTimeout(() => { isInitializing.value = false }, 100)
-    } else {
-      initialConfig.value = {
-        enabled: false,
-        embedding_model_id: '',
-      }
-      await nextTick()
-      setTimeout(() => { isInitializing.value = false }, 100)
-    }
-  } catch (error: any) {
-    console.error('Failed to load chat history config:', error)
-    initialConfig.value = {
-      enabled: false,
-      embedding_model_id: '',
-    }
-    await nextTick()
-    setTimeout(() => { isInitializing.value = false }, 100)
-  }
-}
-
-// Load stats
+// Load stats (also carries the global switch state and the global embedding
+// model for every viewer). The model dropdown is seeded from here so it shows
+// the same selection in every workspace.
 const loadStats = async () => {
   try {
     const response = await getChatHistoryKBStats()
     if (response.data) {
       stats.value = response.data
+      globalEnabled.value = response.data.global_enabled === true
+      localEmbeddingModelId.value = response.data.embedding_model_id || ''
       // Lock model if there are indexed messages
       modelLocked.value = response.data.has_indexed_messages === true
     }
   } catch (error: any) {
     console.error('Failed to load chat history stats:', error)
+  } finally {
+    statsLoaded.value = true
   }
 }
 
-// Check if config changed
-const hasConfigChanged = (): boolean => {
-  if (!initialConfig.value) return true
-  const initial = initialConfig.value
-  if (localEnabled.value !== initial.enabled) return true
-  if (localEmbeddingModelId.value !== initial.embedding_model_id) return true
-  return false
+// Toggle the platform-wide switch. t-switch already flipped globalEnabled
+// optimistically; on failure we roll it back. A stats reload afterwards
+// re-syncs the UI with the backend's authoritative value.
+const handleEnabledChange = async (value: boolean) => {
+  savingSwitch.value = true
+  try {
+    await updateSystemSetting('chat_history.indexing_enabled', value)
+    MessagePlugin.success(t('chatHistorySettings.toasts.saveSuccess'))
+  } catch (error: any) {
+    globalEnabled.value = !value
+    console.error('Failed to update message indexing switch:', error)
+    const errorMessage = error?.message || 'Unknown error'
+    MessagePlugin.error(t('chatHistorySettings.toasts.saveFailed', { message: errorMessage }))
+  } finally {
+    savingSwitch.value = false
+  }
+  await loadStats()
 }
 
-// Save config
-const saveConfig = async () => {
-  if (!hasConfigChanged()) return
-
+// Save the platform-global embedding model. Every workspace shares this
+// selection; each workspace's hidden KB is auto-created lazily on first
+// indexing. The platform switch still has the final say on whether indexing runs.
+const saveModel = async () => {
   try {
-    const config: ChatHistoryConfig = {
-      enabled: localEnabled.value,
-      embedding_model_id: localEmbeddingModelId.value,
-    }
-
-    const response = await updateTenantChatHistoryConfig(config)
-
-    // Update initial config from response (includes auto-managed knowledge_base_id)
-    if (response.data) {
-      initialConfig.value = {
-        enabled: response.data.enabled || false,
-        embedding_model_id: response.data.embedding_model_id || '',
-      }
-    } else {
-      initialConfig.value = { ...config }
-    }
-
+    await updateSystemSetting('chat_history.embedding_model_id', localEmbeddingModelId.value)
     MessagePlugin.success(t('chatHistorySettings.toasts.saveSuccess'))
-    // Refresh stats after save
     loadStats()
   } catch (error: any) {
-    console.error('Failed to save chat history config:', error)
+    console.error('Failed to save chat history embedding model:', error)
     const errorMessage = error?.message || 'Unknown error'
     MessagePlugin.error(t('chatHistorySettings.toasts.saveFailed', { message: errorMessage }))
   }
 }
 
-// Debounced save
-let saveTimer: number | null = null
-const debouncedSave = () => {
-  if (isInitializing.value) return
-  if (saveTimer) clearTimeout(saveTimer)
-  saveTimer = window.setTimeout(() => {
-    saveConfig().catch(() => {})
-  }, 500)
-}
-
-// Handlers
-const handleEnabledChange = () => debouncedSave()
 const handleModelChange = (modelId: string) => {
   localEmbeddingModelId.value = modelId
-  debouncedSave()
+  saveModel()
 }
 
 // Init
 onMounted(async () => {
-  isInitializing.value = true
-  await loadConfig()
   await loadStats()
 })
 </script>

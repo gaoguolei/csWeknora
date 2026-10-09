@@ -22,13 +22,14 @@ var regThinkIndex = regexp.MustCompile(`(?s)<think>.*?</think>`)
 // It reads the chat history knowledge base configuration from the tenant's ChatHistoryConfig,
 // which is managed via the settings UI.
 type messageService struct {
-	messageRepo    interfaces.MessageRepository    // Repository for message storage operations
-	sessionRepo    interfaces.SessionRepository    // Repository for session validation
-	tenantService  interfaces.TenantService        // Service for tenant operations (read ChatHistoryConfig)
-	kbService      interfaces.KnowledgeBaseService // Service for knowledge base operations (search chat history KB)
-	knowService    interfaces.KnowledgeService     // Service for knowledge operations (index/delete passages)
-	modelService   interfaces.ModelService         // Service for model operations (rerank model)
-	suggestionRepo interfaces.MessageSuggestionRepository
+	messageRepo      interfaces.MessageRepository      // Repository for message storage operations
+	sessionRepo      interfaces.SessionRepository      // Repository for session validation
+	tenantService    interfaces.TenantService          // Service for tenant operations (read ChatHistoryConfig)
+	kbService        interfaces.KnowledgeBaseService   // Service for knowledge base operations (search chat history KB)
+	knowService      interfaces.KnowledgeService       // Service for knowledge operations (index/delete passages)
+	modelService     interfaces.ModelService           // Service for model operations (rerank model)
+	suggestionRepo   interfaces.MessageSuggestionRepository
+	systemSettingSvc interfaces.SystemSettingService // Platform switches (chat_history.indexing_enabled master gate)
 }
 
 // NewMessageService creates a new message service instance with the required repositories
@@ -39,15 +40,17 @@ func NewMessageService(messageRepo interfaces.MessageRepository,
 	knowService interfaces.KnowledgeService,
 	modelService interfaces.ModelService,
 	suggestionRepo interfaces.MessageSuggestionRepository,
+	systemSettingSvc interfaces.SystemSettingService,
 ) interfaces.MessageService {
 	return &messageService{
-		messageRepo:    messageRepo,
-		sessionRepo:    sessionRepo,
-		tenantService:  tenantService,
-		kbService:      kbService,
-		knowService:    knowService,
-		modelService:   modelService,
-		suggestionRepo: suggestionRepo,
+		messageRepo:      messageRepo,
+		sessionRepo:      sessionRepo,
+		tenantService:    tenantService,
+		kbService:        kbService,
+		knowService:      knowService,
+		modelService:     modelService,
+		suggestionRepo:   suggestionRepo,
+		systemSettingSvc: systemSettingSvc,
 	}
 }
 
@@ -341,17 +344,98 @@ func (s *messageService) ClearSessionMessages(ctx context.Context, sessionID str
 // Chat History Knowledge Base — Configuration-driven (via Tenant.ChatHistoryConfig)
 // ─────────────────────────────────────────────────────────────────────────────
 
-// getChatHistoryConfig reads the chat history KB configuration from the tenant's settings.
-// Returns nil if the feature is not configured or disabled.
+// chatHistoryGloballyEnabled reads the platform master switch for message
+// indexing (system setting chat_history.indexing_enabled). Fail-closed: a nil
+// service (partially wired tests / pre-bootstrap calls) counts as off, matching
+// the registry default of false.
+func (s *messageService) chatHistoryGloballyEnabled(ctx context.Context) bool {
+	if s.systemSettingSvc == nil {
+		return false
+	}
+	return s.systemSettingSvc.GetBool(ctx,
+		"chat_history.indexing_enabled", "WEKNORA_CHAT_HISTORY_INDEXING_ENABLED", false)
+}
+
+// chatHistoryGlobalModelID reads the platform-global embedding model used for
+// message indexing (system setting chat_history.embedding_model_id). Empty
+// means no model has been chosen yet, so indexing stays off for every
+// workspace regardless of the master switch.
+func (s *messageService) chatHistoryGlobalModelID(ctx context.Context) string {
+	if s.systemSettingSvc == nil {
+		return ""
+	}
+	return s.systemSettingSvc.GetString(ctx,
+		"chat_history.embedding_model_id", "WEKNORA_CHAT_HISTORY_EMBEDDING_MODEL_ID", "")
+}
+
+// getChatHistoryConfig resolves the effective chat-history KB config for the
+// current workspace. The embedding model is now a platform-global system
+// setting; each workspace still owns its own hidden __chat_history__ KB, which
+// is auto-created lazily here the first time a message needs indexing (or when
+// the global model changes). Returns nil when the master switch is off or no
+// global model is configured.
 func (s *messageService) getChatHistoryConfig(ctx context.Context) *types.ChatHistoryConfig {
+	if !s.chatHistoryGloballyEnabled(ctx) {
+		return nil
+	}
+	globalModel := s.chatHistoryGlobalModelID(ctx)
+	if globalModel == "" {
+		return nil
+	}
 	tenant, ok := types.TenantInfoFromContext(ctx)
 	if !ok {
 		return nil
 	}
-	if tenant.ChatHistoryConfig == nil || !tenant.ChatHistoryConfig.IsConfigured() {
+	cfg := tenant.ChatHistoryConfig
+	// Workspace already provisioned with a KB matching the global model — reuse it.
+	if cfg != nil && cfg.Enabled && cfg.EmbeddingModelID == globalModel && cfg.KnowledgeBaseID != "" {
+		return cfg
+	}
+	// Lazy provision (or re-provision after a model change) the workspace KB.
+	return s.ensureWorkspaceChatHistoryKB(ctx, tenant, globalModel)
+}
+
+// ensureWorkspaceChatHistoryKB creates (or re-creates) the hidden
+// __chat_history__ KB for a workspace using the global embedding model, then
+// persists the resulting ChatHistoryConfig onto the tenant. If the model
+// changed, the old KB is left in place (orphaned) since its vectors are no
+// longer compatible. Returns nil on any failure so callers degrade to skipping
+// indexing rather than erroring the chat path.
+func (s *messageService) ensureWorkspaceChatHistoryKB(
+	ctx context.Context, tenant *types.Tenant, globalModel string,
+) *types.ChatHistoryConfig {
+	if tenant == nil || globalModel == "" {
 		return nil
 	}
-	return tenant.ChatHistoryConfig
+
+	kb := &types.KnowledgeBase{
+		Name:             "__chat_history__",
+		Type:             types.KnowledgeBaseTypeDocument,
+		IsTemporary:      true,
+		Description:      "Auto-managed knowledge base for chat history message indexing",
+		EmbeddingModelID: globalModel,
+	}
+	createdKB, err := s.kbService.CreateKnowledgeBase(ctx, kb)
+	if err != nil {
+		logger.Warnf(ctx, "Failed to auto-create chat history KB for tenant %d (model %s): %v",
+			tenant.ID, globalModel, err)
+		return nil
+	}
+
+	cfg := &types.ChatHistoryConfig{
+		Enabled:          true,
+		EmbeddingModelID: globalModel,
+		KnowledgeBaseID:  createdKB.ID,
+	}
+	tenant.ChatHistoryConfig = cfg
+	if _, err := s.tenantService.UpdateTenant(ctx, tenant); err != nil {
+		logger.Warnf(ctx, "Failed to persist chat history config for tenant %d: %v", tenant.ID, err)
+		// Still return the config so this call can index; the KB exists, only the
+		// tenant row update failed and will be retried on the next message.
+	}
+	logger.Infof(ctx, "Auto-created chat history KB for tenant %d: id=%s, embedding_model=%s",
+		tenant.ID, createdKB.ID, globalModel)
+	return cfg
 }
 
 // getRetrievalConfig reads the global retrieval configuration from the tenant's settings.
@@ -382,6 +466,14 @@ func (s *messageService) IndexMessageToKB(ctx context.Context, userQuery string,
 		return
 	}
 
+	// Check the platform master switch first so the log line distinguishes
+	// "super admin turned message indexing off globally" from a merely
+	// incomplete workspace configuration.
+	if !s.chatHistoryGloballyEnabled(ctx) {
+		logger.Infof(ctx, "Skipping message index for message %s: platform message indexing is disabled (chat_history.indexing_enabled=false)", messageID)
+		return
+	}
+
 	cfg := s.getChatHistoryConfig(ctx)
 	if cfg == nil {
 		// Say why, otherwise an operator who enabled indexing in the UI sees
@@ -389,7 +481,7 @@ func (s *messageService) IndexMessageToKB(ctx context.Context, userQuery string,
 		// stats endpoint only checks Enabled, while indexing additionally
 		// requires an embedding model and an auto-created KB.
 		logger.Infof(ctx, "Skipping message index for message %s: %s",
-			messageID, describeChatHistorySkip(ctx))
+			messageID, s.describeChatHistorySkip(ctx))
 		return
 	}
 
@@ -417,24 +509,21 @@ func (s *messageService) IndexMessageToKB(ctx context.Context, userQuery string,
 }
 
 // describeChatHistorySkip reports which chat-history precondition is missing,
-// for the log line emitted when indexing is skipped. ChatHistoryConfig.
-// IsConfigured requires Enabled plus a selected embedding model plus an
-// auto-created KB, so "enabled" alone is not enough to index.
-func describeChatHistorySkip(ctx context.Context) string {
+// for the log line emitted when indexing is skipped. It is only reached when
+// the platform master switch is already ON, so the remaining gates are the
+// global embedding model selection and the per-workspace KB auto-provisioning.
+func (s *messageService) describeChatHistorySkip(ctx context.Context) string {
+	if s.chatHistoryGlobalModelID(ctx) == "" {
+		return "global embedding model not configured (chat_history.embedding_model_id is empty)"
+	}
 	tenant, ok := types.TenantInfoFromContext(ctx)
 	if !ok {
 		return "no tenant in context"
 	}
 	cfg := tenant.ChatHistoryConfig
 	switch {
-	case cfg == nil:
-		return "chat history config not set"
-	case !cfg.Enabled:
-		return "chat history indexing disabled"
-	case cfg.EmbeddingModelID == "":
-		return "enabled but no embedding model selected"
-	case cfg.KnowledgeBaseID == "":
-		return "enabled but chat history knowledge base not created yet"
+	case cfg == nil || cfg.KnowledgeBaseID == "":
+		return "global model set but chat history knowledge base not created yet"
 	default:
 		return "chat history config incomplete"
 	}
@@ -480,18 +569,31 @@ func (s *messageService) GetChatHistoryKBStats(ctx context.Context) (*types.Chat
 	}
 
 	stats := &types.ChatHistoryKBStats{}
+	stats.GlobalEnabled = s.chatHistoryGloballyEnabled(ctx)
+	if !stats.GlobalEnabled {
+		// Global gate off: report the feature as unused regardless of any
+		// stale workspace configuration so the UI shows "消息索引未使用".
+		return stats, nil
+	}
+	// The embedding model is now a platform-global setting. Surface it through
+	// stats so the message-management dropdown shows the same selection in every
+	// workspace (the stats endpoint is Viewer-readable, unlike the admin-only
+	// system-settings API).
+	globalModel := s.chatHistoryGlobalModelID(ctx)
+	stats.EmbeddingModelID = globalModel
+	if globalModel == "" {
+		// Global switch on but no model chosen yet: nothing is configured anywhere.
+		return stats, nil
+	}
 	cfg := tenant.ChatHistoryConfig
-	if cfg == nil || !cfg.Enabled {
+	// A workspace counts as enabled only once it has been provisioned with a KB
+	// for the current global model (KBs are created lazily on first indexing).
+	if cfg == nil || !cfg.Enabled || cfg.KnowledgeBaseID == "" || cfg.EmbeddingModelID != globalModel {
 		return stats, nil
 	}
 
 	stats.Enabled = true
-	stats.EmbeddingModelID = cfg.EmbeddingModelID
 	stats.KnowledgeBaseID = cfg.KnowledgeBaseID
-
-	if cfg.KnowledgeBaseID == "" {
-		return stats, nil
-	}
 
 	// Fetch KB info and fill counts (KnowledgeCount is gorm:"-", needs FillKnowledgeBaseCounts)
 	kb, err := s.kbService.GetKnowledgeBaseByID(ctx, cfg.KnowledgeBaseID)

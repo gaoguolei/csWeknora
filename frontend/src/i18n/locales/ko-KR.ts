@@ -3301,6 +3301,9 @@ export default {
           auto_create_api_key: '신규 워크스페이스에 full_access API Key를 자동 생성하고 생성 응답에 평문 token을 반환합니다. 기존 동작에 의존하는 연동에만 사용하세요. 기본값은 비활성화입니다.',
           auto_accept_invitation: '켜면 워크스페이스 관리자가 이메일로 가입된 사용자를 초대할 때 상대가 바로 멤버가 되며, 받은편지함에서 수락할 필요가 없습니다. 끄면 「초대 발송 → 상대가 수락」 흐름을 유지합니다. 저장 즉시 적용됩니다.'
         },
+        chat_history: {
+          indexing_enabled: '메시지 인덱싱의 플랫폼 전역 스위치입니다. 모든 워크스페이스에 적용되며, 켜도 각 워크스페이스에서 슈퍼 관리자가 「메시지 관리」의 Embedding 모델을 선택해야 실제 인덱싱이 시작됩니다. 끄면 모든 워크스페이스의 인덱싱과 메시지 벡터 검색이 중단되고 「메시지 인덱싱이 사용되지 않았습니다」가 표시됩니다. 저장 즉시 적용되며 재시작이 필요 없습니다.'
+        },
         ssrf: {
           whitelist: 'SSRF 보호 허용 목록입니다. example.com / *.foo.com / 10.0.0.0/8 / 2001:db8::1 형식을 입력할 수 있습니다. 저장 즉시 적용됩니다. SSRF_WHITELIST_EXTRA 환경 변수는 배포자가 관리하며 여기서 덮어쓰지 않습니다.'
         },
@@ -3331,6 +3334,9 @@ export default {
           default_storage_quota_gb: '신규 워크스페이스 기본 저장 용량 (GB)',
           auto_create_api_key: '신규 워크스페이스 API Key 자동 생성',
           auto_accept_invitation: '등록된 사용자 초대 시 자동 가입'
+        },
+        chat_history: {
+          indexing_enabled: '메시지 인덱싱 활성화 (전역)'
         },
         ssrf: {
           whitelist: 'SSRF 보호 허용 목록'
@@ -5495,16 +5501,19 @@ export default {
   },
   chatHistorySettings: {
     title: '메시지 관리',
-    description: '채팅 기록 지식베이스를 구성하여 대화 메시지를 자동으로 벡터화 인덱싱하여 시맨틱 검색을 지원합니다',
+    description: '메시지 인덱싱은 모든 워크스페이스에 일괄 적용되는 플랫폼 스위치입니다. 여기서 켜기/끄기, 모든 워크스페이스가 공유하는 전역 Embedding 모델 설정, 현재 공간의 인덱스 기록 확인이 가능합니다',
+    descriptionViewOnly: '메시지 인덱싱은 슈퍼 관리자가 일괄 설정합니다. 여기서는 현재 공간의 인덱스 기록을 보여 드립니다',
     enableLabel: '메시지 인덱싱 활성화',
-    enableDescription: '활성화하면 새 대화 메시지가 자동으로 지식베이스에 인덱싱되어 벡터 검색을 지원합니다',
+    enableDescription: '플랫폼 전역 스위치: 켜면 모든 워크스페이스의 새 대화 메시지가 각 지식베이스에 자동으로 벡터화·인덱싱되어 시맨틱 검색을 지원합니다. 끄면 모든 워크스페이스에서 즉시 중단됩니다',
     embeddingModelLabel: 'Embedding 모델',
-    embeddingModelDescription: '메시지 벡터화에 사용할 Embedding 모델을 선택하세요',
+    embeddingModelDescription: '메시지 벡터화에 사용할 Embedding 모델을 선택하세요 (전역, 모든 워크스페이스 공유)',
     embeddingModelLocked: '이미 인덱싱된 메시지가 있어 Embedding 모델을 변경할 수 없습니다 (인덱스 데이터 초기화 필요)',
     statsTitle: '인덱스 통계',
     statsIndexedMessages: '인덱싱된 메시지',
     statsNotConfigured: '메시지 인덱싱 미설정',
-    statsNotConfiguredDesc: '활성화하고 Embedding 모델을 선택하면 대화 메시지가 자동으로 벡터화 인덱싱됩니다',
+    statsNotConfiguredDesc: 'Embedding 모델을 선택하면 대화 메시지가 자동으로 벡터화 인덱싱됩니다',
+    statsUnused: '메시지 인덱싱이 사용되지 않았습니다',
+    statsUnusedDesc: '슈퍼 관리자가 메시지 인덱싱을 활성화하지 않아 대화 메시지가 벡터 검색 대상이 아닙니다',
     toasts: {
       saveSuccess: '메시지 관리 설정이 저장되었습니다',
       saveFailed: '설정 저장 실패: {message}'

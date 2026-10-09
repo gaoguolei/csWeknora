@@ -2356,16 +2356,19 @@ export default {
   },
   chatHistorySettings: {
     title: 'Message Management',
-    description: 'Configure chat history knowledge base to automatically index conversation messages for semantic search',
+    description: 'Message indexing is a platform-wide switch that applies to all workspaces; here you can toggle it, configure the global Embedding model shared by every workspace, and view index records',
+    descriptionViewOnly: 'Message indexing is configured by the platform super admin. This page shows the current workspace index records',
     enableLabel: 'Enable Message Indexing',
-    enableDescription: 'When enabled, new conversation messages will be automatically indexed into the knowledge base for vector search',
+    enableDescription: 'Platform-wide switch: when on, new conversation messages in ALL workspaces are automatically vectorized and indexed into their knowledge bases for semantic search; when off, every workspace stops immediately',
     embeddingModelLabel: 'Embedding Model',
-    embeddingModelDescription: 'Select the embedding model for vectorizing chat messages',
+    embeddingModelDescription: 'Select the embedding model for vectorizing chat messages (global, shared by all workspaces)',
     embeddingModelLocked: 'Messages have been indexed; the embedding model cannot be changed (clearing indexed data is required)',
     statsTitle: 'Index Statistics',
     statsIndexedMessages: 'Indexed Messages',
     statsNotConfigured: 'Message indexing not configured',
-    statsNotConfiguredDesc: 'Enable and select an embedding model to start auto-indexing conversation messages',
+    statsNotConfiguredDesc: 'Select an embedding model to start auto-indexing conversation messages',
+    statsUnused: 'Message indexing is not in use',
+    statsUnusedDesc: 'The platform super admin has not enabled message indexing, so conversation messages are not vector-searched',
     toasts: {
       saveSuccess: 'Message management configuration saved',
       saveFailed: 'Failed to save configuration: {message}'
@@ -4361,6 +4364,9 @@ export default {
           auto_create_api_key: 'Automatically create an API key for new workspaces',
           auto_accept_invitation: 'Auto-join invited registered users'
         },
+        chat_history: {
+          indexing_enabled: 'Enable message indexing (global)'
+        },
         asynq: {
           core_concurrency: 'Guaranteed core parse concurrency',
           postprocess_concurrency: 'Post-process concurrency',
@@ -4391,6 +4397,9 @@ export default {
           default_storage_quota_gb: 'Default storage quota (GB) assigned when a new workspace is created, covering vectors, originals, text, indexes, and related data. Read only at creation time — changes apply to newly created workspaces only and do not retroactively update existing workspaces. 0 or a negative value uses the built-in default of 10 GB.',
           auto_create_api_key: 'Automatically creates a full_access API key for a new workspace and returns its plaintext token in the create response. Use only for integrations that depend on the legacy behavior; it is disabled by default and explicit API-key creation is recommended.',
           auto_accept_invitation: 'When enabled, inviting a registered user by email adds them as a member immediately instead of waiting for inbox confirmation. When off, the invitee must accept from their inbox. Takes effect immediately.'
+        },
+        chat_history: {
+          indexing_enabled: 'Platform-wide switch for message indexing (conversation messages are automatically vectorized into a knowledge base for semantic search). Applies to every workspace: when on, each workspace still needs a super admin to pick an Embedding model in Message Management before indexing actually runs. When off, all workspaces stop indexing and message vector search, and the page shows "Message indexing is not in use". Takes effect immediately, no restart required.'
         },
         asynq: {
           core_concurrency: 'Guaranteed per-process concurrency for document and manual parsing. Core may also borrow the shared elastic pool. Minimum 1; requires a service restart.',

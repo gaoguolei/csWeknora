@@ -412,9 +412,10 @@ type NavGroup = {
 // key 是 owner-only。改这张表前请在 router.go 里复核对应路由组。
 //
 // 特别说明：
-// - chathistory 页面唯一的「启用消息索引」开关 PUT /tenants/kv/chat-history-config
-//   后端走 g.Admin()。给 viewer/contributor 看到入口、点开开关、保存时
-//   403，体验很差，所以入口本身归 admin。
+// - chathistory 页面的「启用消息索引」开关 PUT /tenants/kv/chat-history-config
+//   后端已收归 SystemAdmin（非超管 403），前端也只对 isSystemAdmin 渲染开关；
+//   普通空间 admin 进入页面只看只读的索引统计（未开启时显示「消息索引未使用」），
+//   所以入口保留 admin，viewer/contributor 不可见。
 // - models 列表 viewer 可读，页面内的「+ 添加模型 / 编辑 / 删除」按钮在
 //   ModelSettings.vue 里另用 hasRole('admin') 自己 gate，所以入口保留
 //   viewer 是合理的（contributor 也能浏览模型列表）。

@@ -2910,8 +2910,12 @@ const removeStarterSuggestion = (index: number) => {
   formData.value.config.question_suggestions.starters.items.splice(index, 1);
 };
 
+// 对话模型 / ReRank 模型为空时预选平台默认模型（同类型 is_default 优先，
+// 否则取第一个可用模型）。新建和编辑都适用：编辑时智能体若从未配过模型，
+// 下拉框会一直显示「请选择模型」并卡住「未就绪」提示，这里补齐与知识库、
+// 长记忆库创建一致的默认预选行为。已保存过模型的智能体不受影响。
 const applyDefaultModelsIfEmpty = () => {
-  if (props.mode !== 'create' || !formData.value) return
+  if (!formData.value) return
   const chatModelId = selectInitialModelId(allModels.value, 'KnowledgeQA')
   const rerankModelId = selectInitialModelId(allModels.value, 'Rerank')
   if (!formData.value.config.model_id && chatModelId) {
@@ -3570,6 +3574,8 @@ watch(() => props.visible, async (val) => {
       });
       // Display inherited defaults for all agents without persisting a copy.
       fillBuiltinAgentDefaults();
+      // 未配置过模型的智能体：默认预选对话/ReRank 模型，仅改表单，不写库。
+      applyDefaultModelsIfEmpty();
       void loadAgentIntegrationCounts(agentData.id);
     } else {
       // 创建新智能体，使用系统默认值

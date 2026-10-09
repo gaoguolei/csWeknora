@@ -227,6 +227,34 @@ var registry = map[string]settingSpec{
 			"被邀请人将被立即自动加入（直接写入成员关系），无需在收件箱手动接受，也不再生成待接受的邀请记录。" +
 			"关闭时保持原有「发出邀请 → 被邀请人收件箱确认」流程。每次邀请时实时读取，修改后立即生效。默认 false。",
 	},
+	// chat_history.indexing_enabled: platform master switch for message
+	// indexing (chat history KB vectorization). Effective indexing for a
+	// workspace requires this switch ON plus the workspace-level embedding
+	// model configured by a system admin (Tenant.ChatHistoryConfig). When
+	// OFF, indexing and message vector search stop for every workspace and
+	// the message-management page shows "message indexing not in use".
+	"chat_history.indexing_enabled": {
+		Type:     "bool",
+		EnvName:  "WEKNORA_CHAT_HISTORY_INDEXING_ENABLED",
+		Default:  false,
+		Category: "tenant",
+		Description: "全局开关：是否开启消息索引（将对话消息自动向量化索引到知识库，支持语义搜索）。" +
+			"对所有工作空间生效：开启后需由超级管理员在「消息管理」中选择全局 Embedding 模型才会真正索引；" +
+			"关闭后所有空间停止索引与消息向量检索，页面显示「消息索引未使用」。修改后立即生效，无需重启。默认 false。",
+	},
+	// chat_history.embedding_model_id: platform-global embedding model used for
+	// message indexing. Chosen once by a super admin in the message-management
+	// page and shared by every workspace; each workspace still owns its own
+	// hidden __chat_history__ KB, auto-created lazily on first indexing.
+	"chat_history.embedding_model_id": {
+		Type:     "string",
+		EnvName:  "WEKNORA_CHAT_HISTORY_EMBEDDING_MODEL_ID",
+		Default:  "",
+		Category: "tenant",
+		Description: "全局 Embedding 模型 ID，所有空间的消息索引共用此模型。" +
+			"由超级管理员在「消息管理」中设置，设置后所有空间自动生效。" +
+			"修改后新消息使用新模型索引，旧消息需重新索引才能被新模型检索。默认空（未配置）。",
+	},
 	"asynq.core_concurrency": {
 		Type:            "int",
 		EnvName:         "WEKNORA_ASYNQ_CORE_CONCURRENCY",

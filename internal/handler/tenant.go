@@ -450,6 +450,14 @@ func (h *TenantHandler) CreateTenant(c *gin.Context) {
 		secutils.SanitizeForLog(createdTenant.Name),
 	)
 
+	// Message indexing is a platform-global feature (switch + Embedding model
+	// are system settings). Pre-provision this new workspace's hidden
+	// __chat_history__ KB so it is enabled from the moment of creation rather
+	// than waiting for the first message. Best-effort: any failure is logged and
+	// swallowed because the lazy path in messageService still backfills on the
+	// first index and the workspace remains fully usable.
+	h.provisionChatHistoryKBForTenant(ctx, createdTenant)
+
 	// data carries the created tenant. When the legacy auto-create-key
 	// behaviour is enabled we embed the plaintext token as data.api_key so
 	// the response shape mirrors the pre-break-change behaviour integrations
@@ -491,6 +499,61 @@ func (h *TenantHandler) CreateTenant(c *gin.Context) {
 		"success": true,
 		"data":    data,
 	})
+}
+
+// provisionChatHistoryKBForTenant creates the hidden __chat_history__ KB for a
+// freshly created workspace when the platform message-indexing switch is on and
+// a global Embedding model has been selected, then persists the resulting
+// ChatHistoryConfig onto the tenant. It mirrors messageService's lazy
+// provisioning so a new workspace is enabled immediately instead of on its
+// first message. Best-effort: failures are logged and never abort tenant
+// creation, since the lazy path still backfills on first indexing.
+func (h *TenantHandler) provisionChatHistoryKBForTenant(ctx context.Context, tenant *types.Tenant) {
+	if h.kbService == nil || h.systemSettingSvc == nil || tenant == nil {
+		return
+	}
+	if !h.systemSettingSvc.GetBool(ctx,
+		"chat_history.indexing_enabled", "WEKNORA_CHAT_HISTORY_INDEXING_ENABLED", false) {
+		return
+	}
+	model := h.systemSettingSvc.GetString(ctx,
+		"chat_history.embedding_model_id", "WEKNORA_CHAT_HISTORY_EMBEDDING_MODEL_ID", "")
+	if model == "" {
+		return
+	}
+
+	// Scope the context to the new workspace so the KB row, storage backend and
+	// retrieve-engine resolution all bind to it rather than the caller's active
+	// tenant.
+	tctx := context.WithValue(ctx, types.TenantIDContextKey, tenant.ID)
+	tctx = context.WithValue(tctx, types.TenantInfoContextKey, tenant)
+
+	kb := &types.KnowledgeBase{
+		Name:             "__chat_history__",
+		Type:             types.KnowledgeBaseTypeDocument,
+		IsTemporary:      true,
+		Description:      "Auto-managed knowledge base for chat history message indexing",
+		EmbeddingModelID: model,
+	}
+	createdKB, err := h.kbService.CreateKnowledgeBase(tctx, kb)
+	if err != nil {
+		logger.Warnf(ctx, "Failed to pre-provision chat history KB for new tenant %d (model %s): %v",
+			tenant.ID, model, err)
+		return
+	}
+
+	tenant.ChatHistoryConfig = &types.ChatHistoryConfig{
+		Enabled:          true,
+		EmbeddingModelID: model,
+		KnowledgeBaseID:  createdKB.ID,
+	}
+	if _, err := h.service.UpdateTenant(tctx, tenant); err != nil {
+		logger.Warnf(ctx, "Failed to persist pre-provisioned chat history config for tenant %d: %v",
+			tenant.ID, err)
+		return
+	}
+	logger.Infof(ctx, "Pre-provisioned chat history KB for new tenant %d: id=%s, embedding_model=%s",
+		tenant.ID, createdKB.ID, model)
 }
 
 // tenantWithAPIKey returns the tenant serialized as a map with an extra
@@ -1653,8 +1716,20 @@ func (h *TenantHandler) GetTenantChatHistoryConfig(c *gin.Context) {
 
 // updateTenantChatHistoryConfigInternal updates the tenant's chat history KB configuration.
 // When enabled with an embedding model and no KB exists yet, it auto-creates a hidden KB.
+//
+// Message indexing is a platform-level decision: interactive callers must be
+// system administrators. Workspace admins/members keep a read-only view on the
+// settings page (index stats only), matching the frontend gating on
+// isSystemAdmin. API-key principals are unaffected — they are already gated
+// by their own scope/rate policies upstream.
 func (h *TenantHandler) updateTenantChatHistoryConfigInternal(c *gin.Context) {
 	ctx := c.Request.Context()
+
+	if _, isAPIKey := types.TenantAPIKeyScopeFromContext(ctx); !isAPIKey && !types.IsSystemAdminFromContext(ctx) {
+		logger.Warnf(ctx, "Non-system-admin attempted to update chat history config")
+		c.Error(errors.NewForbiddenError("Only system administrators can change message indexing settings"))
+		return
+	}
 
 	// The frontend sends: enabled, embedding_model_id
 	// knowledge_base_id is managed internally.

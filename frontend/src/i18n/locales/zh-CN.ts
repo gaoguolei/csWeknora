@@ -3531,6 +3531,10 @@ export default {
           auto_accept_invitation:
             "开启后，空间管理员通过邮箱邀请已注册用户时，对方会立即成为成员，不再经过收件箱确认。关闭时保持「发出邀请 → 被邀请人确认」流程。修改后立即生效。",
         },
+        chat_history: {
+          indexing_enabled:
+            "全局开关：是否开启消息索引（对话消息自动向量化索引，支持语义搜索）。对所有空间生效；开启后各空间仍需由超级管理员在「消息管理」中选择 Embedding 模型才会真正索引。关闭后所有空间停止索引与消息向量检索，页面显示「消息索引未使用」。修改后立即生效，无需重启。",
+        },
         ssrf: {
           whitelist:
             "SSRF 防护白名单。可填入 example.com / *.foo.com / 10.0.0.0/8 / 2001:db8::1。修改后立即生效。SSRF_WHITELIST_EXTRA 环境变量仍由部署方维护，不在此处覆盖。",
@@ -3566,6 +3570,9 @@ export default {
           default_storage_quota_gb: "新空间默认存储配额 (GB)",
           auto_create_api_key: "创建空间时自动生成 API Key",
           auto_accept_invitation: "邀请已注册用户时自动加入",
+        },
+        chat_history: {
+          indexing_enabled: "启用消息索引（全局）",
         },
         ssrf: {
           whitelist: "SSRF 防护白名单",
@@ -5907,18 +5914,25 @@ export default {
   },
   chatHistorySettings: {
     title: "消息管理",
-    description: "配置聊天历史知识库，将对话消息自动向量化索引，实现语义搜索",
+    description:
+      "消息索引是全局开关，对所有空间统一生效；这里同时配置全局 Embedding 模型并查看当前空间的索引记录",
+    descriptionViewOnly:
+      "消息索引由超级管理员统一设置，这里展示当前空间的索引记录",
     enableLabel: "启用消息索引",
-    enableDescription: "开启后，新的对话消息将自动索引到知识库，支持向量搜索",
+    enableDescription:
+      "全局开关：开启后，所有空间的新对话消息将自动向量化索引到各自知识库，支持语义搜索；关闭后所有空间立即停用",
     embeddingModelLabel: "Embedding 模型",
-    embeddingModelDescription: "选择用于消息向量化的 Embedding 模型",
+    embeddingModelDescription: "选择用于消息向量化的 Embedding 模型（全局，所有空间共用）",
     embeddingModelLocked:
       "已有消息被索引，Embedding 模型不可修改（修改需清空索引数据）",
     statsTitle: "索引统计",
     statsIndexedMessages: "已索引消息",
     statsNotConfigured: "消息索引未配置",
     statsNotConfiguredDesc:
-      "启用并选择 Embedding 模型后，对话消息将自动向量化索引",
+      "选择 Embedding 模型后，对话消息将自动向量化索引",
+    statsUnused: "消息索引未使用",
+    statsUnusedDesc:
+      "超级管理员未开启消息索引，对话消息不会被向量化检索",
     toasts: {
       saveSuccess: "消息管理配置已保存",
       saveFailed: "保存配置失败: {message}",

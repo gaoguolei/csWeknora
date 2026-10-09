@@ -629,6 +629,10 @@ type MessageSearchResult struct {
 
 // ChatHistoryKBStats represents statistics about the chat history knowledge base
 type ChatHistoryKBStats struct {
+	// Platform-wide master switch (system setting chat_history.indexing_enabled).
+	// When false, no workspace indexes or vector-searches messages and the
+	// message-management page renders the "not in use" state for everyone.
+	GlobalEnabled bool `json:"global_enabled"`
 	// Whether the chat history KB is configured and enabled
 	Enabled bool `json:"enabled"`
 	// ID of the embedding model used

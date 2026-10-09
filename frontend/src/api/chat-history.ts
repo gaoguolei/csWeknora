@@ -10,6 +10,8 @@ export interface ChatHistoryConfig {
 
 // ChatHistoryKBStats represents statistics about the chat history knowledge base
 export interface ChatHistoryKBStats {
+  /** Platform master switch (system setting chat_history.indexing_enabled) */
+  global_enabled: boolean
   enabled: boolean
   embedding_model_id?: string
   knowledge_base_id?: string

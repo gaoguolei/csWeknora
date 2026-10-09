@@ -499,7 +499,18 @@ const SETTINGS_SECTION_KEYS: Record<Exclude<SettingsSection, 'other'>, readonly 
 }
 
 const activeSettingsSection = ref<SettingsSection>('access')
-const knownSettingKeys = new Set(Object.values(SETTINGS_SECTION_KEYS).flat())
+// Keys managed on their own dedicated page instead of 全局设置:
+// chat_history.indexing_enabled and chat_history.embedding_model_id are both
+// toggled from 设置→消息管理 (super admin only), so hide them here entirely —
+// including from the 其他 catch-all tab.
+const HIDDEN_SETTING_KEYS = new Set([
+  'chat_history.indexing_enabled',
+  'chat_history.embedding_model_id',
+])
+const knownSettingKeys = new Set<string>([
+  ...Object.values(SETTINGS_SECTION_KEYS).flat(),
+  ...HIDDEN_SETTING_KEYS,
+])
 const settingsByKey = computed<Map<string, SystemSettingItem>>(() => new Map(settings.value.map((item) => [item.key, item])))
 const unknownSettings = computed(() => settings.value.filter((item) => !knownSettingKeys.has(item.key)))
 const hasUnknownSettings = computed(() => unknownSettings.value.length > 0)
