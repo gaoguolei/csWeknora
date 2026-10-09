@@ -39,8 +39,9 @@ func newMemoryHarness(t *testing.T) (*Service, *gorm.DB, *stubTenantRepo) {
 		configs: map[uint64]*types.MemoryConfig{},
 	}
 	svc := &Service{
-		repo:       repository.NewMemoryRepository(db),
-		tenantRepo: tenantRepo,
+		repo:             repository.NewMemoryRepository(db),
+		tenantRepo:       tenantRepo,
+		systemSettingSvc: &stubSystemSettingSvc{tenantRepo: tenantRepo},
 	}
 	return svc, db, tenantRepo
 }

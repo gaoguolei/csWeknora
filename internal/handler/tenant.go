@@ -1881,21 +1881,25 @@ func (h *TenantHandler) updateTenantRetrievalConfigInternal(c *gin.Context) {
 	})
 }
 
-// GetTenantMemoryConfig returns the workspace long-term memory configuration.
+// GetTenantMemoryConfig returns the platform-global long-term memory
+// configuration. Long-term memory moved from per-workspace Tenant.MemoryConfig
+// to a single super-admin system setting (memory.global_config), so every
+// caller — including Viewer+ members viewing the greyed-out page — reads the
+// same platform value rather than the tenant row.
 func (h *TenantHandler) GetTenantMemoryConfig(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenant, _ := types.TenantInfoFromContext(ctx)
-	if tenant == nil {
-		logger.Error(ctx, "Workspace is empty")
-		c.Error(errors.NewBadRequestError("Workspace is empty"))
-		return
+	data := &types.MemoryConfig{}
+	if h.systemSettingSvc != nil {
+		if raw := h.systemSettingSvc.GetString(ctx,
+			"memory.global_config", "WEKNORA_MEMORY_GLOBAL_CONFIG", ""); raw != "" {
+			var cfg types.MemoryConfig
+			if err := json.Unmarshal([]byte(raw), &cfg); err == nil {
+				data = &cfg
+			}
+		}
 	}
-	data := tenant.MemoryConfig
-	if data == nil {
-		// Memory is off until an admin turns it on: the feature retains what
-		// users say across sessions, so it must not arrive enabled by default.
-		data = &types.MemoryConfig{}
-	}
+	// Memory is off until a super admin turns it on: the feature retains what
+	// users say across sessions, so it must not arrive enabled by default.
 	data.Normalize()
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -1903,9 +1907,21 @@ func (h *TenantHandler) GetTenantMemoryConfig(c *gin.Context) {
 	})
 }
 
-// updateTenantMemoryConfigInternal updates the workspace memory configuration.
+// updateTenantMemoryConfigInternal updates the platform-global memory
+// configuration. Long-term memory is a platform-level decision now: interactive
+// callers must be system administrators. Workspace admins/members keep a
+// read-only view on the settings page, matching the frontend gating on
+// isSystemAdmin. API-key principals are unaffected — they are already gated by
+// their own scope/rate policies upstream. The whole config is carried as a JSON
+// blob in the memory.global_config system setting.
 func (h *TenantHandler) updateTenantMemoryConfigInternal(c *gin.Context) {
 	ctx := c.Request.Context()
+
+	if _, isAPIKey := types.TenantAPIKeyScopeFromContext(ctx); !isAPIKey && !types.IsSystemAdminFromContext(ctx) {
+		logger.Warnf(ctx, "Non-system-admin attempted to update memory config")
+		c.Error(errors.NewForbiddenError("Only system administrators can change long-term memory settings"))
+		return
+	}
 
 	var cfg types.MemoryConfig
 	if err := c.ShouldBindJSON(&cfg); err != nil {
@@ -1952,16 +1968,17 @@ func (h *TenantHandler) updateTenantMemoryConfigInternal(c *gin.Context) {
 	}
 	cfg.Normalize()
 
-	tenant, _ := types.TenantInfoFromContext(ctx)
-	if tenant == nil {
-		logger.Error(ctx, "Workspace is empty")
-		c.Error(errors.NewBadRequestError("Workspace is empty"))
+	if h.systemSettingSvc == nil {
+		c.Error(errors.NewInternalServerError("Memory settings unavailable"))
 		return
 	}
-
-	tenant.MemoryConfig = &cfg
-	updatedTenant, err := h.service.UpdateTenant(ctx, tenant)
+	jsonBytes, err := json.Marshal(cfg)
 	if err != nil {
+		logger.ErrorWithFields(ctx, err, nil)
+		c.Error(errors.NewInternalServerError("Failed to encode memory config").WithDetails(err.Error()))
+		return
+	}
+	if _, err := h.systemSettingSvc.Update(ctx, "memory.global_config", string(jsonBytes)); err != nil {
 		if appErr, ok := errors.IsAppError(err); ok {
 			c.Error(appErr)
 		} else {
@@ -1972,7 +1989,7 @@ func (h *TenantHandler) updateTenantMemoryConfigInternal(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    updatedTenant.MemoryConfig,
+		"data":    &cfg,
 		"message": "Memory configuration updated successfully",
 	})
 }

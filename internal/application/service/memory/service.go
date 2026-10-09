@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -46,6 +47,11 @@ type Service struct {
 	modelService interfaces.ModelService
 	enqueuer     interfaces.TaskEnqueuer
 	config       *config.Config
+	// systemSettingSvc resolves the platform-global long-term memory config
+	// (memory.global_config). Long-term memory moved from per-workspace
+	// Tenant.MemoryConfig to a single super-admin setting, so workspaceConfig
+	// reads here rather than off the tenant row.
+	systemSettingSvc interfaces.SystemSettingService
 }
 
 // NewMemoryService builds the long-term memory service.
@@ -56,25 +62,37 @@ func NewMemoryService(
 	modelService interfaces.ModelService,
 	enqueuer interfaces.TaskEnqueuer,
 	cfg *config.Config,
+	systemSettingSvc interfaces.SystemSettingService,
 ) interfaces.MemoryService {
 	return &Service{
-		repo:         repo,
-		tenantRepo:   tenantRepo,
-		messageRepo:  messageRepo,
-		modelService: modelService,
-		enqueuer:     enqueuer,
-		config:       cfg,
+		repo:             repo,
+		tenantRepo:       tenantRepo,
+		messageRepo:      messageRepo,
+		modelService:     modelService,
+		enqueuer:         enqueuer,
+		config:           cfg,
+		systemSettingSvc: systemSettingSvc,
 	}
 }
 
-// workspaceConfig loads the workspace memory switch. A missing tenant or an
-// unset column yields a zero-value config, which is disabled.
+// workspaceConfig resolves the platform-global memory configuration. Long-term
+// memory is now a single super-admin setting (system setting memory.global_config)
+// shared by every workspace, so tenantID is unused and kept only so the many
+// callsites don't need to change signature. An unset/blank global value yields a
+// zero-value config, which is disabled.
 func (s *Service) workspaceConfig(ctx context.Context, tenantID uint64) *types.MemoryConfig {
-	tenant, err := s.tenantRepo.GetTenantByID(ctx, tenantID)
-	if err != nil || tenant == nil || tenant.MemoryConfig == nil {
+	raw := ""
+	if s.systemSettingSvc != nil {
+		raw = s.systemSettingSvc.GetString(ctx, "memory.global_config", "WEKNORA_MEMORY_GLOBAL_CONFIG", "")
+	}
+	if raw == "" {
 		return &types.MemoryConfig{}
 	}
-	cfg := *tenant.MemoryConfig
+	var cfg types.MemoryConfig
+	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
+		logger.Warnf(ctx, "memory: cannot parse global memory config, treating as disabled: %v", err)
+		return &types.MemoryConfig{}
+	}
 	cfg.Normalize()
 	return &cfg
 }

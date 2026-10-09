@@ -20,23 +20,64 @@ import (
 // interface so the tests only have to implement what the memory service
 // actually calls; anything else panics loudly rather than silently returning
 // a zero value.
+//
+// Long-term memory is now a platform-global setting, so the tests drive it
+// through `set` on whichever tenant they name; `global` records the most
+// recently set config so stubSystemSettingSvc can hand it back as the single
+// global value regardless of the tenant ID a call happens to carry.
 type stubTenantRepo struct {
 	interfaces.TenantRepository
 
 	mu      sync.RWMutex
 	configs map[uint64]*types.MemoryConfig
+	global  *types.MemoryConfig
 }
 
 func (s *stubTenantRepo) set(tenantID uint64, cfg *types.MemoryConfig) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.configs[tenantID] = cfg
+	s.global = cfg
+}
+
+// globalConfig returns the most recently set memory config, modelling the
+// platform-global memory.global_config setting.
+func (s *stubTenantRepo) globalConfig() *types.MemoryConfig {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.global
 }
 
 func (s *stubTenantRepo) GetTenantByID(_ context.Context, id uint64) (*types.Tenant, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return &types.Tenant{ID: id, MemoryConfig: s.configs[id]}, nil
+}
+
+// stubSystemSettingSvc serves the platform-global memory config that
+// memory.Service.workspaceConfig now resolves. Long-term memory moved off the
+// tenant row to the memory.global_config system setting, so the service reads
+// its config from here. To keep the existing per-test wiring (every test drives
+// memory on/off through stubTenantRepo.set) this stub simply reads back the
+// most recently set config and hands it over as the global JSON blob.
+type stubSystemSettingSvc struct {
+	interfaces.SystemSettingService
+	tenantRepo *stubTenantRepo
+}
+
+func (s *stubSystemSettingSvc) GetString(_ context.Context, key string, _ string, def string) string {
+	if key != "memory.global_config" {
+		return def
+	}
+	cfg := s.tenantRepo.globalConfig()
+	if cfg == nil {
+		return def
+	}
+	b, err := json.Marshal(cfg)
+	if err != nil {
+		return def
+	}
+	return string(b)
 }
 
 // stubMessageRepo serves per-session transcripts. It implements the same

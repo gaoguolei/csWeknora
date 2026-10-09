@@ -8,12 +8,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"strings"
 
 	"go.uber.org/dig"
 
 	"github.com/Tencent/WeKnora/internal/logger"
+	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
 )
 
@@ -65,6 +67,19 @@ func runStartupBootstrap(c *dig.Container) {
 		backfillChatHistoryGlobalModel(ctx, settingSvc, tenantSvc)
 	}); err != nil {
 		logger.Warnf(ctx, "[bootstrap] failed to resolve services for chat-history model backfill: %v", err)
+	}
+
+	// Long-term memory global config migration backfill. Memory moved from
+	// per-workspace Tenant.MemoryConfig to the platform-global system setting
+	// memory.global_config. On upgrade the global setting is empty even though
+	// workspaces already had a config, which would disable long-term memory
+	// everywhere until a super admin re-configures it. Seed the global setting
+	// once from any workspace that already carries a config (preferring one that
+	// had memory enabled). Idempotent: no-ops once the global value is non-empty.
+	if err := c.Invoke(func(settingSvc interfaces.SystemSettingService, tenantSvc interfaces.TenantService) {
+		backfillMemoryGlobalConfig(ctx, settingSvc, tenantSvc)
+	}); err != nil {
+		logger.Warnf(ctx, "[bootstrap] failed to resolve services for memory global config backfill: %v", err)
 	}
 
 	email := strings.TrimSpace(os.Getenv(bootstrapEnvVar))
@@ -195,4 +210,66 @@ func backfillChatHistoryGlobalModel(
 	logger.Infof(ctx,
 		"[bootstrap] backfilled global chat-history embedding model from an existing workspace (%s)",
 		picked)
+}
+
+// backfillMemoryGlobalConfig seeds the platform-global long-term memory system
+// setting (memory.global_config) from the first workspace that already carries
+// a Tenant.MemoryConfig. This closes the gap left by moving memory from
+// per-workspace config to a single global setting: upgrades keep a per-workspace
+// config but an empty global value, so long-term memory appears disabled
+// everywhere until a super admin re-configures it.
+//
+// Idempotent and best-effort: it returns immediately when the global value is
+// already set, when no workspace has a config to inherit, or on any error (a
+// failure here only warns — the super admin can still configure it manually).
+// Prefers a workspace that had memory actively enabled so the inherited config
+// matches what the deployment was actually using.
+func backfillMemoryGlobalConfig(
+	ctx context.Context,
+	settingSvc interfaces.SystemSettingService,
+	tenantSvc interfaces.TenantService,
+) {
+	const (
+		key     = "memory.global_config"
+		envName = "WEKNORA_MEMORY_GLOBAL_CONFIG"
+	)
+	// Global value already present (real override or ENV) → nothing to do.
+	if settingSvc.GetString(ctx, key, envName, "") != "" {
+		return
+	}
+	tenants, err := tenantSvc.ListTenants(ctx)
+	if err != nil {
+		logger.Warnf(ctx, "[bootstrap] memory config backfill: list tenants failed: %v", err)
+		return
+	}
+	var picked *types.MemoryConfig
+	for _, t := range tenants {
+		cfg := t.MemoryConfig
+		if cfg == nil {
+			continue
+		}
+		if cfg.Enabled {
+			// Strongest signal: a workspace that had memory turned on.
+			picked = cfg
+			break
+		}
+		// Otherwise remember the first configured workspace as a fallback.
+		if picked == nil {
+			picked = cfg
+		}
+	}
+	if picked == nil {
+		return
+	}
+	jsonBytes, err := json.Marshal(picked)
+	if err != nil {
+		logger.Warnf(ctx, "[bootstrap] memory config backfill: marshal failed: %v", err)
+		return
+	}
+	if _, err := settingSvc.Update(ctx, key, string(jsonBytes)); err != nil {
+		logger.Warnf(ctx, "[bootstrap] memory config backfill: write global config failed: %v", err)
+		return
+	}
+	logger.Infof(ctx,
+		"[bootstrap] backfilled global long-term memory config from an existing workspace")
 }

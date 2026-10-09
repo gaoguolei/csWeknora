@@ -221,7 +221,7 @@
           <ChatHistorySettings />
         </div>
 
-        <!-- 长期记忆（空间级开关） -->
+        <!-- 长期记忆（全平台设置，仅超管可编辑，其余成员只读置灰） -->
         <div v-if="currentSection === 'memory'" class="section">
           <MemoryWorkspaceSettings />
         </div>
@@ -416,6 +416,10 @@ type NavGroup = {
 //   后端已收归 SystemAdmin（非超管 403），前端也只对 isSystemAdmin 渲染开关；
 //   普通空间 admin 进入页面只看只读的索引统计（未开启时显示「消息索引未使用」），
 //   所以入口保留 admin，viewer/contributor 不可见。
+// - memory 页面（长期记忆）现已改为全平台设置：写操作 PUT /tenants/kv/memory-config
+//   后端收归 SystemAdmin（非超管 403），前端仅对 isSystemAdmin 开放编辑，其余控件
+//   对所有成员置灰只读展示平台配置。因此入口下调到 viewer，让普通成员也能看到
+//   置灰版（与 chathistory 不同，chathistory 只展示统计、页面本身仍限 admin）。
 // - models 列表 viewer 可读，页面内的「+ 添加模型 / 编辑 / 删除」按钮在
 //   ModelSettings.vue 里另用 hasRole('admin') 自己 gate，所以入口保留
 //   viewer 是合理的（contributor 也能浏览模型列表）。

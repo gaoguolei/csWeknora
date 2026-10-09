@@ -502,10 +502,12 @@ const activeSettingsSection = ref<SettingsSection>('access')
 // Keys managed on their own dedicated page instead of 全局设置:
 // chat_history.indexing_enabled and chat_history.embedding_model_id are both
 // toggled from 设置→消息管理 (super admin only), so hide them here entirely —
-// including from the 其他 catch-all tab.
+// including from the 其他 catch-all tab. memory.global_config is likewise
+// edited from 设置→长期记忆 (super admin only), so it is hidden here too.
 const HIDDEN_SETTING_KEYS = new Set([
   'chat_history.indexing_enabled',
   'chat_history.embedding_model_id',
+  'memory.global_config',
 ])
 const knownSettingKeys = new Set<string>([
   ...Object.values(SETTINGS_SECTION_KEYS).flat(),

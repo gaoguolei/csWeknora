@@ -16,6 +16,14 @@
       </div>
     </div>
 
+    <!-- Long-term memory is now a platform-wide setting owned by the super
+         admin. Everyone else lands on the same page but every control is
+         greyed out; this banner states who actually controls it. -->
+    <div v-if="!canEdit" class="platform-readonly-banner">
+      <t-icon name="info-circle" class="intro-icon" />
+      <span>{{ t('memoryWorkspaceSettings.platformManagedReadonly') }}</span>
+    </div>
+
     <div class="settings-group">
       <div class="setting-row">
         <div class="setting-info">
@@ -209,7 +217,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
 import { useChatResourcesStore } from '@/stores/chatResources'
 import { selectInitialModelId } from '@/utils/modelDefaults'
-import { getTenantMemoryConfig, updateTenantMemoryConfig, type MemoryConfig } from '@/api/memory'
+import { getTenantMemoryConfig, type MemoryConfig } from '@/api/memory'
+import { updateSystemSetting } from '@/api/system'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -231,7 +240,10 @@ const config = reactive<MemoryConfig>({
 })
 const isInitializing = ref(true)
 
-const canEdit = computed(() => authStore.hasRole('admin'))
+// Long-term memory is a platform-wide setting now: only the super admin can
+// edit it. Workspace admins and members see the same page with every control
+// disabled (all rows already bind :disabled="!canEdit").
+const canEdit = computed(() => authStore.isSystemAdmin)
 
 const loadConfig = async () => {
   try {
@@ -266,7 +278,9 @@ const loadConfig = async () => {
 
 const saveConfig = async () => {
   try {
-    await updateTenantMemoryConfig({ ...config })
+    // Persist the whole config as a JSON blob in the platform-global system
+    // setting; every workspace reads the same value through memory.Service.
+    await updateSystemSetting('memory.global_config', JSON.stringify({ ...config }))
     MessagePlugin.success(t('memoryWorkspaceSettings.toasts.saveSuccess'))
   } catch (error: any) {
     MessagePlugin.error(
@@ -360,6 +374,23 @@ onMounted(loadConfig)
   font-size: var(--app-text-md);
   line-height: 1.6;
   color: var(--td-text-color-secondary);
+}
+
+.platform-readonly-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: var(--app-radius-md);
+  background: var(--td-bg-color-secondarycontainer);
+  font-size: var(--app-text-md);
+  color: var(--td-text-color-secondary);
+}
+
+.platform-readonly-banner .intro-icon {
+  color: var(--td-brand-color);
+  flex-shrink: 0;
 }
 
 .settings-group {

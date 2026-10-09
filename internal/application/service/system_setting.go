@@ -255,6 +255,20 @@ var registry = map[string]settingSpec{
 			"由超级管理员在「消息管理」中设置，设置后所有空间自动生效。" +
 			"修改后新消息使用新模型索引，旧消息需重新索引才能被新模型检索。默认空（未配置）。",
 	},
+	// memory.global_config: platform-wide long-term memory configuration,
+	// carried as a single JSON blob mirroring types.MemoryConfig. Chosen once
+	// by a super admin in the (formerly per-workspace) long-term-memory page and
+	// shared by every workspace; when enabled=false the "my memory" surface and
+	// agent long-term memory are all disabled for every workspace. Read by
+	// memory.Service.workspaceConfig as its single source of truth.
+	"memory.global_config": {
+		Type:     "string",
+		EnvName:  "WEKNORA_MEMORY_GLOBAL_CONFIG",
+		Default:  "",
+		Category: "tenant",
+		Description: "全平台长期记忆配置(JSON)。由超级管理员统一设定，对所有工作空间生效；" +
+			"enabled=false 时所有空间的「我的记忆」与智能体长记忆一并关闭。",
+	},
 	"asynq.core_concurrency": {
 		Type:            "int",
 		EnvName:         "WEKNORA_ASYNQ_CORE_CONCURRENCY",

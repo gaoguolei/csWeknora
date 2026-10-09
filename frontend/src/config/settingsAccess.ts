@@ -26,7 +26,12 @@ export const SETTINGS_SECTION_MIN_ROLE: Record<string, SettingsRoleKey> = {
   tenant: 'viewer',
   members: 'viewer',
   mymemory: 'viewer',
-  memory: 'admin',
+  // Long-term memory is now a platform-wide setting owned by the super admin
+  // (system setting memory.global_config). The page is visible to every member
+  // so they can see the platform config, but every control is disabled unless
+  // isSystemAdmin, and the backend PUT is gated to SystemAdmin. Entry stays
+  // viewer; editing is gated on isSystemAdmin inside the component.
+  memory: 'viewer',
   // Every member fills in their own environment variables; the workspace-wide
   // values stay on the Admin+ skills page.
   envvars: 'viewer',
