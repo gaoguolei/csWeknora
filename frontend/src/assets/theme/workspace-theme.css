@@ -2,22 +2,22 @@
  * Semantic success/warning/error colors remain independent of the neutral brand. */
 :root:root,
 :root:root[theme-mode="light"] {
-  --td-brand-color-1: #f0f0ec;
-  --td-brand-color-2: #e4e4dd;
-  --td-brand-color-3: #60605a;
-  --td-brand-color-4: #353630;
-  --td-brand-color-5: #252620;
-  --td-brand-color-6: #45463e;
-  --td-brand-color-7: #303128;
-  --td-brand-color-8: #24251e;
-  --td-brand-color-9: #1d1e18;
-  --td-brand-color-10: #15160f;
-  --td-brand-color: #353630;
-  --td-brand-color-hover: #53544b;
-  --td-brand-color-active: #252620;
-  --td-brand-color-disabled: #b6b7af;
-  --td-brand-color-focus: #e4e4dd;
-  --td-brand-color-light: #f0f0ec;
+  --td-brand-color-1: #eef2ff;
+  --td-brand-color-2: #d6deff;
+  --td-brand-color-3: #9db1fc;
+  --td-brand-color-4: #507aff;
+  --td-brand-color-5: #3a63e6;
+  --td-brand-color-6: #2b4cc0;
+  --td-brand-color-7: #1f3893;
+  --td-brand-color-8: #162a70;
+  --td-brand-color-9: #0f1e4f;
+  --td-brand-color-10: #0a1535;
+  --td-brand-color: #507aff;
+  --td-brand-color-hover: #6f92ff;
+  --td-brand-color-active: #3a63e6;
+  --td-brand-color-disabled: #b9c8ff;
+  --td-brand-color-focus: #d6deff;
+  --td-brand-color-light: #eef2ff;
   --brand-main: var(--td-brand-color);
   --td-bg-color-container: #fff;
   --td-bg-color-page: #f8f8f6;
@@ -43,22 +43,22 @@
 }
 
 :root:root[theme-mode="dark"] {
-  --td-brand-color-1: #34352f;
-  --td-brand-color-2: #45463e;
-  --td-brand-color-3: #66685d;
-  --td-brand-color-4: #929588;
-  --td-brand-color-5: #d0d2c7;
-  --td-brand-color-6: #e6e7df;
-  --td-brand-color-7: #f0f1e9;
-  --td-brand-color-8: #f6f7f0;
-  --td-brand-color-9: #f8f9f3;
-  --td-brand-color-10: #fcfcf8;
-  --td-brand-color: #dedfd4;
-  --td-brand-color-hover: #ecede4;
-  --td-brand-color-active: #c7c9bd;
-  --td-brand-color-disabled: #65675c;
-  --td-brand-color-light: #34352f;
-  --td-brand-color-focus: #45463e;
+  --td-brand-color-1: #0f1e4f;
+  --td-brand-color-2: #162a70;
+  --td-brand-color-3: #1f3893;
+  --td-brand-color-4: #3a63e6;
+  --td-brand-color-5: #507aff;
+  --td-brand-color-6: #6f92ff;
+  --td-brand-color-7: #8faaff;
+  --td-brand-color-8: #b3c4ff;
+  --td-brand-color-9: #cdd9ff;
+  --td-brand-color-10: #dbe4ff;
+  --td-brand-color: #6f92ff;
+  --td-brand-color-hover: #8faaff;
+  --td-brand-color-active: #507aff;
+  --td-brand-color-disabled: #2b3f7a;
+  --td-brand-color-light: #162a70;
+  --td-brand-color-focus: #1f3893;
   --td-bg-color-page: #1f201c;
   --td-bg-color-container: #252620;
   --td-bg-color-sidebar: #20211c;

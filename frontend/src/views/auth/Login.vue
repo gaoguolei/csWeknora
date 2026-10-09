@@ -664,7 +664,7 @@ onMounted(async () => {
   display: flex;
   min-height: 100dvh;
   width: 100%;
-  background: #f4f7f4;
+  background: #f5f7fb;
   font-family: var(--app-font-family);
   overflow: hidden;
 }
@@ -677,15 +677,15 @@ onMounted(async () => {
   background:
     radial-gradient(
       circle at 82% 14%,
-      rgba(29, 205, 125, 0.2),
+      rgba(80, 122, 255, 0.2),
       transparent 32%
     ),
     radial-gradient(
       circle at 14% 88%,
-      rgba(20, 143, 107, 0.16),
+      rgba(58, 99, 230, 0.16),
       transparent 36%
     ),
-    #0c1513;
+    #0b1120;
   color: #f1f5f9;
   overflow: hidden;
   display: flex;
@@ -719,7 +719,7 @@ onMounted(async () => {
   height: 480px;
   top: -180px;
   right: -160px;
-  background: rgba(16, 185, 129, 0.28);
+  background: rgba(80, 122, 255, 0.28);
 }
 
 .brand-panel__glow--bottom {
@@ -727,7 +727,7 @@ onMounted(async () => {
   height: 420px;
   bottom: -200px;
   left: -120px;
-  background: rgba(20, 184, 166, 0.22);
+  background: rgba(56, 130, 246, 0.22);
 }
 
 .brand-panel__inner {
@@ -754,12 +754,12 @@ onMounted(async () => {
   width: 38px;
   height: 38px;
   border-radius: var(--app-radius-xl);
-  background: #d6f7e4;
-  color: #0c1513;
+  background: #dbe4ff;
+  color: #0b1120;
   font-weight: 800;
   font-size: var(--app-text-4xl);
   letter-spacing: -0.7px;
-  box-shadow: 0 0 0 6px rgba(214, 247, 228, 0.08);
+  box-shadow: 0 0 0 6px rgba(219, 228, 255, 0.08);
 }
 
 .brand-logo__text {
@@ -778,7 +778,7 @@ onMounted(async () => {
 }
 
 .brand-panel__eyebrow {
-  color: rgba(167, 243, 208, 0.68);
+  color: rgba(179, 196, 255, 0.68);
   margin-bottom: 74px;
 }
 
@@ -828,8 +828,8 @@ onMounted(async () => {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: rgba(16, 185, 129, 0.16);
-  color: #34d399;
+  background: rgba(80, 122, 255, 0.16);
+  color: #6f92ff;
   flex-shrink: 0;
 
   svg {
@@ -869,8 +869,8 @@ onMounted(async () => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #34d399;
-  box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.1);
+  background: #6f92ff;
+  box-shadow: 0 0 0 4px rgba(111, 146, 255, 0.1);
 }
 
 .brand-footer {
@@ -891,10 +891,10 @@ onMounted(async () => {
   background:
     radial-gradient(
       circle at 82% 18%,
-      rgba(211, 246, 225, 0.62),
+      rgba(219, 228, 255, 0.62),
       transparent 28%
     ),
-    #f7faf7;
+    #f6f8fc;
 
   &::after {
     content: "";
@@ -903,7 +903,7 @@ onMounted(async () => {
     bottom: 10%;
     width: 160px;
     height: 160px;
-    border: 1px solid rgba(18, 93, 59, 0.08);
+    border: 1px solid rgba(30, 58, 138, 0.08);
     border-radius: var(--app-radius-xl);
     transform: rotate(18deg);
     pointer-events: none;
@@ -920,10 +920,10 @@ onMounted(async () => {
 .auth-card {
   width: 100%;
   padding: 40px 42px 36px;
-  border: 1px solid rgba(15, 61, 40, 0.1);
+  border: 1px solid rgba(23, 37, 84, 0.1);
   border-radius: var(--app-radius-pill);
   background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 22px 60px rgba(16, 54, 35, 0.08);
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.08);
   backdrop-filter: blur(18px);
   box-sizing: border-box;
 }
@@ -933,7 +933,7 @@ onMounted(async () => {
 }
 
 .auth-card__eyebrow {
-  color: #138653;
+  color: #3a63e6;
   margin-bottom: 18px;
 }
 
@@ -957,9 +957,9 @@ onMounted(async () => {
   margin: 0 0 24px 0;
   padding: 10px 14px;
   border-radius: var(--app-radius-xl);
-  background: #f0faf3;
-  border: 1px solid #c7ecd4;
-  color: #047857;
+  background: #eef2ff;
+  border: 1px solid #d6deff;
+  color: #2b4cc0;
   font-size: var(--app-text-md);
   line-height: 1.5;
 }
@@ -972,7 +972,7 @@ onMounted(async () => {
 }
 
 .auth-link {
-  color: #059669;
+  color: #3a63e6;
   text-decoration: none;
   font-weight: 600;
   margin-left: 4px;
@@ -998,7 +998,7 @@ onMounted(async () => {
 
   :deep(.t-input) {
     border-radius: var(--app-radius-xl);
-    border-color: #dce7df;
+    border-color: #dbe2ec;
     background: rgba(255, 255, 255, 0.72);
     transition:
       border-color var(--app-motion-base) ease,
@@ -1009,8 +1009,8 @@ onMounted(async () => {
     }
 
     &:focus-within {
-      border-color: #10b981;
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+      border-color: #507aff;
+      box-shadow: 0 0 0 3px rgba(80, 122, 255, 0.14);
     }
   }
 
@@ -1032,23 +1032,23 @@ onMounted(async () => {
 }
 
 .btn--primary {
-  background: #17201d !important;
-  border-color: #17201d !important;
+  background: #142138 !important;
+  border-color: #142138 !important;
   border: none;
   color: #ffffff !important;
   margin-top: 30px;
 
   &:hover,
   &:focus {
-    background: #26312d !important;
-    border-color: #26312d !important;
+    background: #1e3a5f !important;
+    border-color: #1e3a5f !important;
     color: #ffffff !important;
     transform: translateY(-1px);
   }
 
   &:active {
-    background: #0d1210 !important;
-    border-color: #0d1210 !important;
+    background: #0d1a33 !important;
+    border-color: #0d1a33 !important;
     color: #ffffff !important;
     transform: translateY(0);
   }
@@ -1056,19 +1056,19 @@ onMounted(async () => {
 
 .btn--ghost {
   background: rgba(255, 255, 255, 0.72);
-  border: 1px solid #dce7df;
+  border: 1px solid #dbe2ec;
   color: #0f172a;
 
   &:hover {
-    border-color: #10b981;
-    color: #047857;
-    background: #f0fdf4;
+    border-color: #507aff;
+    color: #2b4cc0;
+    background: #eef2ff;
   }
 }
 
 .btn--oidc {
   background: rgba(255, 255, 255, 0.72);
-  border: 1px solid #dce7df;
+  border: 1px solid #dbe2ec;
   color: #334155;
 
   &:hover {
@@ -1109,15 +1109,15 @@ onMounted(async () => {
   padding: 12px 14px;
   margin-bottom: 24px;
   border-radius: var(--app-radius-lg);
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background: #eef2ff;
+  border: 1px solid #d6deff;
 }
 
 .invite-banner__icon {
   margin-top: 2px;
   font-size: var(--app-text-2xl);
   flex-shrink: 0;
-  color: #059669;
+  color: #3a63e6;
 }
 
 .invite-banner__text {
@@ -1131,12 +1131,12 @@ onMounted(async () => {
   font-size: var(--app-text-base);
   font-weight: 600;
   line-height: 1.4;
-  color: #065f46;
+  color: #1e3a8a;
 }
 
 .invite-banner__hint {
   font-size: var(--app-text-md);
-  color: #047857;
+  color: #2b4cc0;
   line-height: 1.5;
 }
 
@@ -1237,27 +1237,27 @@ onMounted(async () => {
 html[theme-mode="dark"] {
   .auth-page,
   .form-panel {
-    background: #0b1110;
+    background: #0a0f1a;
   }
 
   .form-panel {
     background:
       radial-gradient(
         circle at 82% 18%,
-        rgba(26, 104, 67, 0.18),
+        rgba(40, 70, 150, 0.18),
         transparent 28%
       ),
-      #0b1110;
+      #0a0f1a;
   }
 
   .auth-card {
-    background: rgba(17, 27, 23, 0.9);
-    border-color: rgba(148, 224, 179, 0.14);
+    background: rgba(15, 20, 34, 0.9);
+    border-color: rgba(179, 196, 255, 0.14);
     box-shadow: 0 22px 60px rgba(0, 0, 0, 0.24);
   }
 
   .auth-card__eyebrow {
-    color: #6ee7b7;
+    color: #b3c4ff;
   }
 
   .auth-card__title {
@@ -1270,20 +1270,20 @@ html[theme-mode="dark"] {
   }
 
   .auth-card__hint {
-    background: rgba(16, 185, 129, 0.12);
-    border-color: rgba(16, 185, 129, 0.3);
-    color: #6ee7b7;
+    background: rgba(80, 122, 255, 0.12);
+    border-color: rgba(80, 122, 255, 0.3);
+    color: #b3c4ff;
   }
 
   .auth-link {
-    color: #34d399;
+    color: #6f92ff;
   }
 
   .auth-divider {
     color: #64748b;
 
     span {
-      background: #111b17;
+      background: #0f1420;
     }
 
     &::before {
@@ -1305,26 +1305,26 @@ html[theme-mode="dark"] {
     }
 
     &:focus-within {
-      border-color: #10b981;
+      border-color: #507aff;
     }
   }
 
   .btn--primary {
-    background: #dce5e0 !important;
-    border-color: #dce5e0 !important;
-    color: #102019 !important;
+    background: #dbe4ff !important;
+    border-color: #dbe4ff !important;
+    color: #0f1e4f !important;
 
     &:hover,
     &:focus {
-      background: #c8d5ce !important;
-      border-color: #c8d5ce !important;
-      color: #102019 !important;
+      background: #c3d2ff !important;
+      border-color: #c3d2ff !important;
+      color: #0f1e4f !important;
     }
 
     &:active {
-      background: #b8c9bf !important;
-      border-color: #b8c9bf !important;
-      color: #102019 !important;
+      background: #a9bcff !important;
+      border-color: #a9bcff !important;
+      color: #0f1e4f !important;
     }
   }
 
@@ -1335,23 +1335,23 @@ html[theme-mode="dark"] {
     color: #e2e8f0;
 
     &:hover {
-      border-color: #10b981;
-      color: #6ee7b7;
-      background: #111a22;
+      border-color: #507aff;
+      color: #b3c4ff;
+      background: #0f1a2e;
     }
   }
 
   .invite-banner {
-    background: rgba(16, 185, 129, 0.1);
-    border-color: rgba(16, 185, 129, 0.28);
+    background: rgba(80, 122, 255, 0.1);
+    border-color: rgba(80, 122, 255, 0.28);
   }
 
   .invite-banner__title {
-    color: #a7f3d0;
+    color: #dbe4ff;
   }
 
   .invite-banner__hint {
-    color: #6ee7b7;
+    color: #b3c4ff;
   }
 
   .brand-panel__meta {
