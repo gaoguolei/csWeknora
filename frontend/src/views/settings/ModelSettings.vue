@@ -7,7 +7,7 @@
           <p class="section-description">{{ $t('modelSettings.description') }}</p>
         </div>
         <t-button
-          v-if="authStore.hasRole('admin')"
+          v-if="authStore.isSystemAdmin"
           type="button"
           theme="primary"
           variant="text"
@@ -46,7 +46,7 @@
     </t-tabs>
 
     <t-loading :loading="loading" size="small" class="model-list-loading">
-      <div v-if="!loading && filteredModels.length === 0 && !authStore.hasRole('admin')" class="empty-state">
+      <div v-if="!loading && filteredModels.length === 0 && !authStore.isSystemAdmin" class="empty-state">
         <t-empty :description="emptyHint" />
       </div>
       <div v-else-if="!loading" class="model-grid">
@@ -129,7 +129,7 @@
           </div>
         </div>
         <button
-          v-if="authStore.hasRole('admin')"
+          v-if="authStore.isSystemAdmin"
           type="button"
           class="model-card model-card--add"
           data-guide="settings-add-model"
@@ -263,7 +263,7 @@
 
     <!-- 模型编辑器抽屉 -->
     <ModelEditorDialog v-model:visible="showDialog" :model-type="currentModelType" :model-data="editingModel"
-      :save-model="handleModelSave" />
+      :can-manage-default="authStore.isSystemAdmin" :save-model="handleModelSave" />
     <ModelDebugDrawer v-model:visible="showDebugDrawer" :models="allModels" />
 
   </div>
@@ -371,6 +371,8 @@ function convertToLegacyFormat(model: ModelConfig) {
     dimension: model.parameters.embedding_parameters?.dimension,
     supportsDimensionOverride: model.parameters.embedding_parameters?.supports_dimension_override || false,
     isBuiltin: model.is_builtin || false,
+    isDefault: model.is_default || false,
+    managedBy: model.managed_by || '',
     supportsVision: model.parameters.supports_vision || false,
     contextWindow: model.parameters.context_window || undefined,
     maxConcurrency: model.parameters.max_concurrency,
@@ -516,19 +518,19 @@ const openAddDialog = () => {
   showDialog.value = true
 }
 
-// Tenant Admin+ manages tenant models; only SystemAdmin manages shared
-// built-in models. The backend repeats this distinction authoritatively.
-const canEditModel = (model: any) =>
-  model.isBuiltin ? authStore.isSystemAdmin : authStore.hasRole('admin')
+// Model configuration is platform infrastructure: only SystemAdmin manages
+// every model (create/edit/copy/delete). Space-level admins no longer own
+// model writes. The backend repeats this authoritatively (RequireSystemAdmin).
+const canEditModel = (_model: any) => authStore.isSystemAdmin
 
 const isModelCardClickable = (model: any) => canEditModel(model)
 
 const canManageModel = (model: any) => canEditModel(model)
 
-// Built-in lifecycle remains deployment-managed (YAML / SQL). The UI only
-// exposes configuration and credential editing to SystemAdmin.
+// Deployment-managed (YAML) global models stay lifecycle-locked; UI-created
+// global models can be deleted by SystemAdmin.
 const canDeleteModel = (model: any) =>
-  authStore.hasRole('admin') && !model.isBuiltin
+  authStore.isSystemAdmin && model.managedBy !== 'yaml'
 
 const onModelCardClick = (event: Event, type: ModelType, model: any) => {
   if (!isModelCardClickable(model)) return
@@ -544,11 +546,8 @@ const onModelCardClick = (event: Event, type: ModelType, model: any) => {
 
 // 编辑模型
 const editModel = (type: ModelType, model: any) => {
-  if (model.isBuiltin && !authStore.isSystemAdmin) {
+  if (!authStore.isSystemAdmin) {
     MessagePlugin.warning(t('modelSettings.toasts.builtinCannotEdit'))
-    return
-  }
-  if (!model.isBuiltin && !authStore.hasRole('admin')) {
     return
   }
   currentModelType.value = type
@@ -658,6 +657,9 @@ const handleModelSave = async (modelData: any) => {
       type: getModelType(saveType),
       source: modelData.source,
       description: '',
+      // "Set as default" is a SystemAdmin-only knob surfaced in the editor
+      // form; the backend clears other same-type defaults when this is true.
+      is_default: !!modelData.isDefault,
       parameters: {
         base_url: modelData.baseUrl?.trim() || '',
         ...apiKeyFields,
@@ -712,7 +714,10 @@ const handleModelSave = async (modelData: any) => {
 // 删除模型
 const deleteModel = async (_type: ModelType, modelId: string) => {
   const model = allModels.value.find(m => m.id === modelId)
-  if (model?.is_builtin) {
+  // YAML-managed seeds are deployment-owned and can never be removed via the
+  // UI; UI-created global models stay deletable by SystemAdmin (the backend
+  // repeats this and enforces the in-use guard).
+  if (model?.managed_by === 'yaml') {
     MessagePlugin.warning(t('modelSettings.toasts.builtinCannotDelete'))
     return
   }
@@ -777,21 +782,10 @@ const openUsageResource = async (
 const getModelOptions = (type: ModelType, model: any) => {
   const options: any[] = []
 
-  if (model.isBuiltin) {
-    if (authStore.isSystemAdmin) {
-      options.push({
-        content: t('common.edit'),
-        value: `edit-${type}-${model.id}`
-      })
-    }
-    return options
-  }
-
-  // Models are tenant-wide infrastructure (LLM credentials); the
-  // backend gates every mutation behind Admin+ (see RegisterModelRoutes).
-  // Non-Admins get an empty action menu — viewing is fine, but editing,
-  // copying (also goes through createModel), and deleting are not.
-  if (!authStore.hasRole('admin')) {
+  // Models are platform-wide infrastructure: every mutation is SystemAdmin-only
+  // (see RegisterModelRoutes). Non-SystemAdmins get an empty action menu —
+  // viewing/using models is fine, but editing, copying and deleting are not.
+  if (!authStore.isSystemAdmin) {
     return options
   }
 
@@ -838,7 +832,7 @@ const copyModel = async (_type: ModelType, modelId: string) => {
   if (!source) {
     return
   }
-  if (source.is_builtin) {
+  if (source.managed_by === 'yaml') {
     MessagePlugin.warning(t('modelSettings.toasts.builtinCannotCopy'))
     return
   }

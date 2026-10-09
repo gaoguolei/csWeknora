@@ -45,7 +45,7 @@
       
       <!-- 添加模型选项（在底部） -->
       <t-option
-        v-if="!disabled"
+        v-if="!disabled && showAddModel"
         value="__add_model__"
         class="add-model-option"
       >
@@ -79,6 +79,9 @@ interface Props {
   placeholder?: string
   status?: 'default' | 'success' | 'warning' | 'error'
   clearable?: boolean
+  // 是否展示底部"去设置添加模型"入口。模型配置已收回为平台超管专属，
+  // 非超管看不到模型设置页，故消费处（如长记忆库配置）应传 false 隐藏。
+  showAddModel?: boolean
   // 可选：外部传入的所有模型列表，如果提供则不调用API
   allModels?: ModelConfig[]
 }
@@ -88,6 +91,7 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: '',
   status: 'default',
   clearable: false,
+  showAddModel: true,
 })
 
 const emit = defineEmits<{

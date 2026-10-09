@@ -51,6 +51,10 @@ type CreateModelRequest struct {
 	Source      types.ModelSource     `json:"source"      binding:"required"`
 	Description string                `json:"description"`
 	Parameters  types.ModelParameters `json:"parameters"  binding:"required"`
+	// IsDefault marks the new model as the workspace-shared default for its
+	// type; the service clears the previous default in the same (tenant, type)
+	// bucket. Only system administrators reach this endpoint.
+	IsDefault bool `json:"is_default"`
 }
 
 // CreateModel godoc
@@ -107,6 +111,7 @@ func (h *ModelHandler) CreateModel(c *gin.Context) {
 		Source:      req.Source,
 		Description: secutils.SanitizeForLog(req.Description),
 		Parameters:  req.Parameters,
+		IsDefault:   req.IsDefault,
 	}
 
 	if err := h.service.CreateModel(ctx, model); err != nil {
@@ -573,6 +578,10 @@ type UpdateModelRequest struct {
 	Parameters  types.ModelParameters `json:"parameters"`
 	Source      types.ModelSource     `json:"source"`
 	Type        types.ModelType       `json:"type"`
+	// IsDefault is a pointer so an omitted field leaves the stored default
+	// flag untouched; a non-nil value promotes/demotes this model as the
+	// default for its type (the service clears the previous default).
+	IsDefault *bool `json:"is_default"`
 }
 
 // UpdateModel godoc
@@ -689,6 +698,11 @@ func (h *ModelHandler) UpdateModel(c *gin.Context) {
 
 	model.Source = req.Source
 	model.Type = req.Type
+
+	// Apply an explicit default change; omitted keeps the stored flag.
+	if req.IsDefault != nil {
+		model.IsDefault = *req.IsDefault
+	}
 
 	logger.Infof(ctx, "Updating model, ID: %s, Name: %s", id, model.Name)
 	if err := h.service.UpdateModel(ctx, model); err != nil {

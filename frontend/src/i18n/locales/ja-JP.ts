@@ -4805,6 +4805,8 @@ export default {
       maxConcurrencyLabel: 'バックグラウンドの並列実行上限',
       maxConcurrencyPlaceholder: '0 = グローバルのデフォルト値を使用',
       maxConcurrencyDesc: 'このモデルへのバックグラウンド（取り込み・エンリッチメント）呼び出しの並列数を制限します。モデルごとにすべてのレプリカで共有されます。0または空欄の場合はグローバルのデフォルト値が使われます。対話型のチャットには影響しません。',
+      isDefaultLabel: 'デフォルトに設定',
+      isDefaultDesc: 'ナレッジベース／長期メモリの作成時にこのモデルをプリ選択します。同一タイプでは 1 つのみデフォルトになれます。',
       dimensionHint: 'モデルを選択しました。「次元数を検出」をクリックするとベクトル次元数を自動取得できます。',
       loadModelListFailed: 'モデル一覧の読み込みに失敗しました',
       listRefreshed: '一覧を更新しました',
@@ -5254,6 +5256,7 @@ export default {
   ollamaSettings: {
     title: 'Ollama設定',
     description: 'ローカルのOllamaサービスを管理し、モデルの確認やダウンロードを行います',
+    noAccess: 'プラットフォームのシステム管理者のみがOllama設定を管理できます。',
     status: {
       label: 'Ollamaサービスのステータス',
       desc: 'ローカルのOllamaサービスが利用可能かを自動検出します。サービスが停止しているかURLが誤っている場合は「利用不可」と表示されます。',

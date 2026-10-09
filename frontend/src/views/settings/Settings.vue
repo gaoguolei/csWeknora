@@ -365,6 +365,7 @@ import {
 import {
   SETTINGS_SECTION_MIN_ROLE,
   SYSTEM_ADMIN_SETTINGS_SECTIONS,
+  GLOBAL_MODEL_ADMIN_SECTIONS,
 } from "@/config/settingsAccess";
 import { SETTINGS_SECTION_CAPABILITY } from "@/config/deploymentCapabilities";
 import { SKILL_ICON } from "@/types/mention";
@@ -419,6 +420,17 @@ type NavGroup = {
 //   viewer 是合理的（contributor 也能浏览模型列表）。
 const SYSTEM_ADMIN_SECTIONS = SYSTEM_ADMIN_SETTINGS_SECTIONS;
 
+// 临时屏蔽的设置入口（产品要求暂不展示）：WeKnora Cloud、IM 集成、
+// 网页嵌入、CLI、Claw Skill、版本信息。恢复展示时删除本常量及下方过滤即可。
+const HIDDEN_SETTINGS_SECTIONS = new Set<string>([
+  "weknoracloud",
+  "integration-im",
+  "integration-embed",
+  "integration-cli",
+  "integration-claw",
+  "system",
+]);
+
 const normalizeSettingsSection = (section: string) => {
   return normalizeSettingsSectionFromQuery(
     section,
@@ -453,6 +465,11 @@ const canSeeSection = (key: string): boolean => {
     return authStore.hasRole(min);
   }
   if (SYSTEM_ADMIN_SECTIONS.has(key)) {
+    return authStore.isSystemAdmin;
+  }
+  // 模型 / Ollama 配置已彻底收回到平台超级管理员：仅 isSystemAdmin 可见,
+  // canAccessAllTenants(跨空间超管)不 bypass,与服务端 RequireSystemAdmin 对齐。
+  if (GLOBAL_MODEL_ADMIN_SECTIONS.has(key)) {
     return authStore.isSystemAdmin;
   }
   const min = SETTINGS_SECTION_MIN_ROLE[key] ?? "viewer";
@@ -530,7 +547,10 @@ const navItems = computed(() => {
     return [] as NavItem[];
   }
   return all.filter(
-    (it) => canSeeSection(it.key) && isSectionSupported(it.key),
+    (it) =>
+      !HIDDEN_SETTINGS_SECTIONS.has(it.key) &&
+      canSeeSection(it.key) &&
+      isSectionSupported(it.key),
   );
 });
 
@@ -742,6 +762,14 @@ watch(
       section,
       typeof route.query.tab === "string" ? route.query.tab : undefined,
     );
+    // URL 直接指向被临时屏蔽的 section 时，回退到第一个可见入口。
+    if (HIDDEN_SETTINGS_SECTIONS.has(normalizedSection)) {
+      const fallback = navItems.value[0]?.key || "general";
+      currentSection.value = fallback;
+      currentSubSection.value = "";
+      syncSettingsRoute(fallback);
+      return;
+    }
     if (capabilitiesLoaded && !isSectionSupported(normalizedSection)) {
       MessagePlugin.warning(t("settings.capabilityUnavailable"));
       const fallback = navItems.value[0]?.key || "general";

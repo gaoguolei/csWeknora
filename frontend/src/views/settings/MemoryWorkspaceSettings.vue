@@ -61,6 +61,7 @@
             model-type="KnowledgeQA"
             :selected-model-id="config.extract_model_id"
             :disabled="!canEdit"
+            :show-add-model="authStore.isSystemAdmin"
             @update:selected-model-id="handleModelChange"
             @add-model="handleAddModel('chat')"
           />
@@ -124,6 +125,7 @@
             :selected-model-id="config.embedding_model_id"
             :disabled="!canEdit"
             :clearable="true"
+            :show-add-model="authStore.isSystemAdmin"
             @update:selected-model-id="handleEmbeddingModelChange"
             @add-model="handleAddModel('embedding')"
           />
@@ -205,11 +207,14 @@ import { useI18n } from 'vue-i18n'
 import ModelSelector from '@/components/ModelSelector.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
+import { useChatResourcesStore } from '@/stores/chatResources'
+import { selectInitialModelId } from '@/utils/modelDefaults'
 import { getTenantMemoryConfig, updateTenantMemoryConfig, type MemoryConfig } from '@/api/memory'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
 const uiStore = useUIStore()
+const chatResources = useChatResourcesStore()
 
 const config = reactive<MemoryConfig>({
   enabled: false,
@@ -244,6 +249,10 @@ const loadConfig = async () => {
       config.embedding_model_id = response.data.embedding_model_id || ''
       config.vector_recall = response.data.vector_recall !== false
     }
+    // Pre-select the platform default models when this workspace has not
+    // pinned one yet, so members/admins see the superadmin's default chat /
+    // embedding model already chosen (mirrors knowledge-base creation).
+    await applyDefaultModelsIfEmpty()
   } catch (error: any) {
     console.error('Failed to load memory config:', error)
   } finally {
@@ -290,6 +299,23 @@ const handleAddModel = (subSection: 'chat' | 'embedding') => {
   window.dispatchEvent(
     new CustomEvent('settings-nav', { detail: { section: 'models', subsection: subSection } }),
   )
+}
+
+const applyDefaultModelsIfEmpty = async () => {
+  try {
+    await chatResources.ensureModels()
+  } catch {
+    return
+  }
+  const models = chatResources.allModels || []
+  if (!config.extract_model_id) {
+    const fallback = selectInitialModelId(models, 'KnowledgeQA')
+    if (fallback) config.extract_model_id = fallback
+  }
+  if (config.vector_recall && !config.embedding_model_id) {
+    const fallback = selectInitialModelId(models, 'Embedding')
+    if (fallback) config.embedding_model_id = fallback
+  }
 }
 
 onMounted(loadConfig)

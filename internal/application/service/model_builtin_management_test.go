@@ -15,6 +15,108 @@ func builtinModelContext(systemAdmin bool) context.Context {
 	return context.WithValue(ctx, types.SystemAdminContextKey, systemAdmin)
 }
 
+func TestCreateModel_SystemAdminStoresAsGlobalBuiltin(t *testing.T) {
+	repo := &stubModelRepoForDelete{}
+	svc := NewModelService(repo, nil, nil, nil, nil, nil)
+
+	model := &types.Model{
+		ID: "ui-global-chat", TenantID: 7, Name: "chat", Type: types.ModelTypeKnowledgeQA,
+		Source: types.ModelSourceRemote,
+	}
+	require.NoError(t, svc.CreateModel(builtinModelContext(true), model))
+
+	require.NotNil(t, repo.created)
+	assert.True(t, repo.created.IsBuiltin, "system-admin models must be globally visible")
+	assert.Equal(t, types.DefaultBuiltinModelTenantID, repo.created.TenantID)
+	assert.Empty(t, repo.created.ManagedBy, "UI-created global rows stay deletable")
+}
+
+func TestCreateModel_NonSystemAdminKeepsTenantScope(t *testing.T) {
+	repo := &stubModelRepoForDelete{}
+	svc := NewModelService(repo, nil, nil, nil, nil, nil)
+
+	model := &types.Model{
+		ID: "tenant-chat", TenantID: 7, Name: "chat", Type: types.ModelTypeKnowledgeQA,
+		Source: types.ModelSourceRemote,
+	}
+	require.NoError(t, svc.CreateModel(builtinModelContext(false), model))
+
+	require.NotNil(t, repo.created)
+	assert.False(t, repo.created.IsBuiltin)
+	assert.Equal(t, uint64(7), repo.created.TenantID)
+}
+
+func TestCreateModel_DefaultClearsSameTypeBucket(t *testing.T) {
+	repo := &stubModelRepoForDelete{}
+	svc := NewModelService(repo, nil, nil, nil, nil, nil)
+
+	model := &types.Model{
+		ID: "ui-global-embed", TenantID: 7, Name: "embed", Type: types.ModelTypeEmbedding,
+		Source: types.ModelSourceRemote, IsDefault: true,
+	}
+	require.NoError(t, svc.CreateModel(builtinModelContext(true), model))
+
+	require.NotNil(t, repo.clearDefaultCall, "promoting a default must clear the previous one")
+	assert.Equal(t, uint(types.DefaultBuiltinModelTenantID), repo.clearDefaultCall.tenantID)
+	assert.Equal(t, types.ModelTypeEmbedding, repo.clearDefaultCall.modelType)
+	assert.Empty(t, repo.clearDefaultCall.excludeID)
+}
+
+func TestDeleteModel(t *testing.T) {
+	newSvc := func(stored *types.Model, deleted *string) *modelService {
+		repo := &stubModelRepoForDelete{
+			model: stored,
+			delete: func(id string) error {
+				if deleted != nil {
+					*deleted = id
+				}
+				return nil
+			},
+		}
+		svc := NewModelService(
+			repo,
+			&stubKBRepoForModelDelete{},
+			&stubAgentRepoForModelDelete{},
+			nil, nil, nil,
+		)
+		return svc.(*modelService)
+	}
+
+	t.Run("system admin deletes UI-created global model", func(t *testing.T) {
+		var deleted string
+		svc := newSvc(&types.Model{
+			ID: "ui-global", TenantID: types.DefaultBuiltinModelTenantID,
+			IsBuiltin: true, ManagedBy: "",
+		}, &deleted)
+		require.NoError(t, svc.DeleteModel(builtinModelContext(true), "ui-global"))
+		assert.Equal(t, "ui-global", deleted)
+	})
+
+	t.Run("yaml-managed global model is never deletable", func(t *testing.T) {
+		svc := newSvc(&types.Model{
+			ID: "yaml-model", TenantID: types.DefaultBuiltinModelTenantID,
+			IsBuiltin: true, ManagedBy: types.BuiltinModelManagedBy,
+		}, nil)
+		err := svc.DeleteModel(builtinModelContext(true), "yaml-model")
+		require.Error(t, err)
+		appErr, ok := apperrors.IsAppError(err)
+		require.True(t, ok)
+		assert.Equal(t, apperrors.ErrBadRequest, appErr.Code)
+	})
+
+	t.Run("non system admin cannot delete global model", func(t *testing.T) {
+		svc := newSvc(&types.Model{
+			ID: "ui-global", TenantID: types.DefaultBuiltinModelTenantID,
+			IsBuiltin: true, ManagedBy: "",
+		}, nil)
+		err := svc.DeleteModel(builtinModelContext(false), "ui-global")
+		require.Error(t, err)
+		appErr, ok := apperrors.IsAppError(err)
+		require.True(t, ok)
+		assert.Equal(t, apperrors.ErrBadRequest, appErr.Code)
+	})
+}
+
 func TestUpdateBuiltinModel_RequiresSystemAdmin(t *testing.T) {
 	stored := &types.Model{
 		ID: "builtin-chat", TenantID: 10000, IsBuiltin: true,

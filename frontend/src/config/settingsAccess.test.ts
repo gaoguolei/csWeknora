@@ -5,13 +5,12 @@ import {
   SETTINGS_MANAGEMENT_SHORTCUT_MIN_ROLE,
   SETTINGS_SECTION_MIN_ROLE,
   SYSTEM_ADMIN_SETTINGS_SECTIONS,
+  GLOBAL_MODEL_ADMIN_SECTIONS,
 } from './settingsAccess'
 
 test('management shortcuts are stricter than read-only settings pages', () => {
   assert.equal(SETTINGS_SECTION_MIN_ROLE.members, 'viewer')
   assert.equal(SETTINGS_MANAGEMENT_SHORTCUT_MIN_ROLE.members, 'owner')
-  assert.equal(SETTINGS_SECTION_MIN_ROLE.models, 'viewer')
-  assert.equal(SETTINGS_MANAGEMENT_SHORTCUT_MIN_ROLE.models, 'admin')
 })
 
 test('the skill catalog is admin-only like the sandbox it installs into', () => {
@@ -36,4 +35,13 @@ test('system administration settings stay explicitly system-admin-only', () => {
     [...SYSTEM_ADMIN_SETTINGS_SECTIONS],
     ['system-global', 'runtime-queues', 'platform-api-keys', 'system-audit-log'],
   )
+})
+
+test('model and Ollama config are reclaimed to the platform super admin', () => {
+  // Both are gated on isSystemAdmin via GLOBAL_MODEL_ADMIN_SECTIONS, not on
+  // the per-tenant role ladder, so they are absent from MIN_ROLE.
+  assert.equal(SETTINGS_SECTION_MIN_ROLE.models, undefined)
+  assert.equal(SETTINGS_SECTION_MIN_ROLE.ollama, undefined)
+  assert.ok(GLOBAL_MODEL_ADMIN_SECTIONS.has('models'))
+  assert.ok(GLOBAL_MODEL_ADMIN_SECTIONS.has('ollama'))
 })

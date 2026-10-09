@@ -2345,6 +2345,7 @@ export default {
   ollamaSettings: {
     title: 'Ollama 설정',
     description: '로컬 Ollama 서비스를 관리하고 모델을 보고 다운로드합니다',
+    noAccess: '플랫폼 시스템 관리자만 Ollama 설정을 관리할 수 있습니다.',
     toasts: {
       connected: '연결 성공',
       connectFailed: '연결 실패, Ollama가 실행 중인지 확인해주세요',
@@ -2918,6 +2919,8 @@ export default {
       maxConcurrencyLabel: '백그라운드 동시 실행 상한',
       maxConcurrencyPlaceholder: '0이면 전역 기본값 사용',
       maxConcurrencyDesc: '문서 인덱싱/보강 등 백그라운드 작업이 이 모델을 호출하는 동시 실행 수를 제한합니다(모델별로 모든 복제본이 공유). 0 또는 비워 두면 전역 기본값을 사용하며, 대화형 채팅에는 영향을 주지 않습니다.',
+      isDefaultLabel: '기본으로 설정',
+      isDefaultDesc: '지식 베이스/장기 메모리를 생성할 때 이 모델을 기본 선택합니다. 유형별로 기본 모델은 하나만 설정할 수 있습니다.',
       dimensionHint: '모델이 선택되었습니다. "차원 감지" 버튼을 클릭하여 벡터 차원을 자동으로 가져옵니다',
       loadModelListFailed: '모델 목록 로드 실패',
       listRefreshed: '목록이 새로고침되었습니다',

@@ -4805,6 +4805,8 @@ export default {
       maxConcurrencyLabel: 'Background concurrency limit',
       maxConcurrencyPlaceholder: '0 = use global default',
       maxConcurrencyDesc: 'Caps concurrent background (ingestion/enrichment) calls to this model, shared per model across all replicas. 0 or empty falls back to the global default; interactive chat is never affected.',
+      isDefaultLabel: 'Set as default',
+      isDefaultDesc: 'Pre-select this model when creating knowledge bases / long-memory stores. Only one model per type can be the default.',
       dimensionHint: 'Model selected. Click "Detect Dimension" to fetch the vector dimension automatically.',
       loadModelListFailed: 'Failed to load model list',
       listRefreshed: 'List refreshed',
@@ -5254,6 +5256,7 @@ export default {
   ollamaSettings: {
     title: 'Ollama Settings',
     description: 'Manage local Ollama service and view/download models',
+    noAccess: 'Only platform system administrators can manage Ollama settings.',
     status: {
       label: 'Ollama Service Status',
       desc: 'Automatically detect local Ollama service availability. If the service is down or the URL is incorrect, status will be "Unavailable".',

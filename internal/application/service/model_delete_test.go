@@ -107,13 +107,24 @@ func (s *stubAgentRepoForModelDelete) ListNamesBySandboxConfigID(context.Context
 	return nil, nil
 }
 
-type stubModelRepoForDelete struct {
-	model  *types.Model
-	delete func(id string) error
-	update func(model *types.Model) error
+type clearDefaultCall struct {
+	tenantID  uint
+	modelType types.ModelType
+	excludeID string
 }
 
-func (s *stubModelRepoForDelete) Create(context.Context, *types.Model) error { return nil }
+type stubModelRepoForDelete struct {
+	model            *types.Model
+	delete           func(id string) error
+	update           func(model *types.Model) error
+	created          *types.Model
+	clearDefaultCall *clearDefaultCall
+}
+
+func (s *stubModelRepoForDelete) Create(_ context.Context, model *types.Model) error {
+	s.created = model
+	return nil
+}
 func (s *stubModelRepoForDelete) GetByID(_ context.Context, _ uint64, id string) (*types.Model, error) {
 	if s.model != nil && s.model.ID == id {
 		return s.model, nil
@@ -135,7 +146,8 @@ func (s *stubModelRepoForDelete) Delete(_ context.Context, _ uint64, id string) 
 	}
 	return nil
 }
-func (s *stubModelRepoForDelete) ClearDefaultByType(context.Context, uint, types.ModelType, string) error {
+func (s *stubModelRepoForDelete) ClearDefaultByType(_ context.Context, tenantID uint, modelType types.ModelType, excludeID string) error {
+	s.clearDefaultCall = &clearDefaultCall{tenantID: tenantID, modelType: modelType, excludeID: excludeID}
 	return nil
 }
 

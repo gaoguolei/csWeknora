@@ -90,6 +90,10 @@ export interface ModelConfig {
   capabilities?: ModelCapabilities;
   is_default?: boolean;
   is_builtin?: boolean;
+  // Lifecycle owner of a builtin/global row. "yaml" marks deployment-managed
+  // models (config/builtin_models.yaml) which the UI must not delete; UI-created
+  // global models by SystemAdmin carry an empty value.
+  managed_by?: string;
   status?: string;
   // Per-field configured? metadata from the main response. For builtin
   // models it is returned only to system administrators.

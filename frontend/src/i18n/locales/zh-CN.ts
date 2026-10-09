@@ -2535,6 +2535,7 @@ export default {
   ollamaSettings: {
     title: "Ollama 配置",
     description: "管理本地 Ollama 服务，查看和下载模型",
+    noAccess: "仅平台超级管理员可管理 Ollama 配置。",
     toasts: {
       connected: "连接成功",
       connectFailed: "连接失败，请检查 Ollama 是否运行",
@@ -3119,6 +3120,8 @@ export default {
       maxConcurrencyPlaceholder: "0 表示使用全局默认",
       maxConcurrencyDesc:
         "限制文档入库/富化等后台任务对该模型的并发调用数（按模型全副本共享）。0 或留空表示沿用全局默认；不影响交互式对话。",
+      isDefaultLabel: "设为默认",
+      isDefaultDesc: "创建知识库/长记忆库时预选该模型；同类型仅有一个默认模型。",
       dimensionHint: '模型已选择，点击"检测维度"按钮自动获取向量维度',
       loadModelListFailed: "加载模型列表失败",
       listRefreshed: "列表已刷新",

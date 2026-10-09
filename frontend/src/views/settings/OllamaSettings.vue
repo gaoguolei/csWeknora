@@ -1,5 +1,5 @@
 <template>
-  <div class="ollama-settings">
+  <div v-if="authStore.isSystemAdmin" class="ollama-settings">
     <div class="section-header">
       <h2>{{ $t('ollamaSettings.title') }}</h2>
       <p class="section-description">{{ $t('ollamaSettings.description') }}</p>
@@ -173,16 +173,21 @@
       </div>
     </div>
   </div>
+  <div v-else class="ollama-settings">
+    <t-empty :description="$t('ollamaSettings.noAccess')" />
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useSettingsStore } from '@/stores/settings'
+import { useAuthStore } from '@/stores/auth'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { useI18n } from 'vue-i18n'
 import { checkOllamaStatus, listOllamaModels, downloadOllamaModel, getDownloadProgress, type OllamaModelInfo } from '@/api/initialization'
 
 const settingsStore = useSettingsStore()
+const authStore = useAuthStore()
 const { t } = useI18n()
 
 const localBaseUrl = ref(settingsStore.settings.ollamaConfig?.baseUrl ?? '')
@@ -361,6 +366,9 @@ const initOllamaBaseUrl = async () => {
 
 // 组件挂载时自动检查连接
 onMounted(async () => {
+  // Defensive deep-link guard: the Ollama endpoints are SystemAdmin-only, so
+  // skip every probe for non-admins (their UI is replaced by an empty state).
+  if (!authStore.isSystemAdmin) return
   // 初始化服务地址，如果启用则直接使用返回的状态，避免重复调用
   await initOllamaBaseUrl()
 })

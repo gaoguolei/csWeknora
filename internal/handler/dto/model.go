@@ -187,7 +187,12 @@ type ModelResponse struct {
 	Parameters  ModelParametersDTO `json:"parameters"`
 	IsDefault   bool               `json:"is_default"`
 	IsBuiltin   bool               `json:"is_builtin"`
-	Status      types.ModelStatus  `json:"status"`
+	// ManagedBy reports which subsystem owns this row's lifecycle ("" for
+	// manually/UI-created, "yaml" for deployment seeds). The frontend uses it
+	// to hide the delete affordance on YAML-managed built-in models, which the
+	// backend refuses to delete regardless.
+	ManagedBy string            `json:"managed_by,omitempty"`
+	Status    types.ModelStatus `json:"status"`
 	CreatedAt   time.Time          `json:"created_at"`
 	UpdatedAt   time.Time          `json:"updated_at"`
 	// Per-field "configured?" map. Omitted for builtin models unless the
@@ -328,6 +333,7 @@ func NewModelResponse(ctx context.Context, m *types.Model) *ModelResponse {
 		Parameters:   params,
 		IsDefault:    m.IsDefault,
 		IsBuiltin:    m.IsBuiltin,
+		ManagedBy:    m.ManagedBy,
 		Status:       m.Status,
 		CreatedAt:    m.CreatedAt,
 		UpdatedAt:    m.UpdatedAt,

@@ -9,9 +9,7 @@ export type SettingsRoleKey = 'viewer' | 'contributor' | 'admin' | 'owner'
  */
 export const SETTINGS_SECTION_MIN_ROLE: Record<string, SettingsRoleKey> = {
   general: 'viewer',
-  ollama: 'admin',
   weknoracloud: 'admin',
-  models: 'viewer',
   websearch: 'admin',
   chathistory: 'admin',
   vectorstore: 'admin',
@@ -49,3 +47,15 @@ export const SYSTEM_ADMIN_SETTINGS_SECTIONS = new Set([
   'platform-api-keys',
   'system-audit-log',
 ])
+
+/**
+ * Sections that model management has been reclaimed to: online-model
+ * configuration (`models`) and the local/Ollama service (`ollama`) are now a
+ * platform super-administrator concern. Unlike the per-tenant role ladder in
+ * SETTINGS_SECTION_MIN_ROLE, these are gated strictly on `isSystemAdmin` —
+ * cross-tenant superusers (canAccessAllTenants) do NOT bypass them, matching
+ * the server-side RequireSystemAdmin guards on the model / Ollama mutation
+ * routes. Members and workspace admins still consume the shared model
+ * catalogue from KB / agent / memory pickers; they just cannot configure it.
+ */
+export const GLOBAL_MODEL_ADMIN_SECTIONS = new Set(['models', 'ollama'])

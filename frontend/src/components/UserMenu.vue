@@ -156,6 +156,8 @@
           <t-icon name="usergroup" class="menu-icon" />
           <span>{{ $t("tenantMember.title") }}</span>
         </div>
+        <!-- 按需求屏蔽「模型管理」快捷入口：头像菜单不再展示该项；
+             如需配置模型，仍可从「全部设置」进入。
         <div
           v-if="canManageModels"
           class="menu-item"
@@ -164,6 +166,7 @@
           <t-icon name="control-platform" class="menu-icon" />
           <span>{{ $t("settings.modelManagement") }}</span>
         </div>
+        -->
         <div class="menu-divider"></div>
         <div class="menu-item" @click="handleSettings">
           <t-icon name="setting" class="menu-icon" />
@@ -382,12 +385,6 @@ const canManageMembers = computed(
   () =>
     authStore.canAccessAllTenants ||
     authStore.hasRole(SETTINGS_MANAGEMENT_SHORTCUT_MIN_ROLE.members),
-);
-const canManageModels = computed(
-  () =>
-    authStore.canAccessAllTenants ||
-    authStore.isSystemAdmin ||
-    authStore.hasRole(SETTINGS_MANAGEMENT_SHORTCUT_MIN_ROLE.models),
 );
 const menuRef = ref<HTMLElement>();
 const tenantMenuItemRef = ref<HTMLElement>();

@@ -539,6 +539,19 @@
         </div>
 
         <!--
+          "Set as default" — SystemAdmin-only. Marks this model as the default
+          for its type so knowledge-base / long-memory creation pre-selects it.
+          The backend clears other same-type defaults when saving with this on.
+        -->
+        <div v-if="canManageDefault" class="form-item">
+          <label class="form-label">{{ $t('model.editor.isDefaultLabel') }}</label>
+          <div class="vision-toggle">
+            <t-switch v-model="formData.isDefault" />
+            <span class="form-desc form-desc--inline">{{ $t('model.editor.isDefaultDesc') }}</span>
+          </div>
+        </div>
+
+        <!--
           高级：协议覆盖 / 远端模型名 / 目录 compat 覆盖，以及仅旧数据才显示的
           thinking_control 兼容选择。默认折叠，绝大多数用户无需触碰。
         -->
@@ -709,6 +722,12 @@ interface Props {
   modelType: EditorModelType
   modelData?: ModelFormData | null
   saveModel: (data: ModelFormData & { modelType?: EditorModelType }) => Promise<void>
+  // Gates the "set as default" toggle. Only platform system administrators may
+  // change which model is the shared default for a type, so the parent
+  // (ModelSettings) passes its authStore.isSystemAdmin here. Kept as a prop
+  // rather than reading the auth store directly to keep this component free of
+  // the global auth dependency.
+  canManageDefault?: boolean
 }
 
 const { t, locale } = useI18n()
@@ -717,7 +736,8 @@ const providersStore = useModelProvidersStore()
 
 const props = withDefaults(defineProps<Props>(), {
   visible: false,
-  modelData: null
+  modelData: null,
+  canManageDefault: false
 })
 
 const emit = defineEmits<{

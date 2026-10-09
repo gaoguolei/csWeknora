@@ -93,11 +93,52 @@ func (s *modelService) resolveWeKnoraCloudCredentials(ctx context.Context, param
 	return
 }
 
+// hasPlatformModelAuthority reports whether the caller may create, globalize or
+// delete platform-level (builtin) model rows.
+//
+// POST /models sits behind RequireSystemAdmin, which admits system administrators
+// and platform API keys. But the KB-initialization wizard calls this same
+// service through /initialization/initialize/:kbId, guarded only by
+// OwnedKBOrAdminFromKbIDParam, so a plain workspace admin reaches CreateModel
+// too (see canUpdateTenantModels, which likewise treats TenantRoleAdmin as a
+// distinct caller). Only the platform pair above may move a row onto the builtin
+// tenant; anything less keeps it inside the caller's own workspace.
+func hasPlatformModelAuthority(ctx context.Context) bool {
+	if scope, ok := types.TenantAPIKeyScopeFromContext(ctx); ok {
+		return scope.IsPlatform()
+	}
+	return types.IsSystemAdminFromContext(ctx)
+}
+
 // CreateModel creates a new model in the repository
 // For local models, it initiates an asynchronous download process
 // Remote models are immediately set to active status
 func (s *modelService) CreateModel(ctx context.Context, model *types.Model) error {
 	logger.Infof(ctx, "Creating model: %s, type: %s, source: %s", model.Name, model.Type, model.Source)
+
+	// Model management is a platform concern, so a model created by a system
+	// administrator (or a platform API key) is stored as a global (builtin) row on
+	// the builtin tenant (10000) for every workspace to consume through the shared
+	// read filter (tenant_id = ? OR is_builtin). UI-created global rows keep
+	// ManagedBy == "" so they stay deletable, unlike YAML-managed seeds.
+	// A workspace admin coming through the initialization wizard is not such a
+	// caller and keeps a tenant-scoped row.
+	if hasPlatformModelAuthority(ctx) {
+		model.IsBuiltin = true
+		model.TenantID = types.DefaultBuiltinModelTenantID
+	}
+
+	// Enforce "single default per (tenant, type)": promoting a new default
+	// clears the previous one in the same bucket, mirroring the YAML loader.
+	if model.IsDefault {
+		if err := s.repo.ClearDefaultByType(ctx, uint(model.TenantID), model.Type, ""); err != nil {
+			logger.ErrorWithFields(ctx, err, map[string]interface{}{
+				"model_type": model.Type,
+				"tenant_id":  model.TenantID,
+			})
+			return err
+		}
+	}
 
 	// Handle remote models (e.g., OpenAI, Azure)
 	if model.Source == types.ModelSourceRemote {
@@ -250,6 +291,19 @@ func (s *modelService) UpdateModel(ctx context.Context, model *types.Model) erro
 		model.ManagedBy = ""
 	}
 
+	// Enforce "single default per (tenant, type)": promoting this model to
+	// default clears the previous default in the same bucket (YAML loader
+	// parity). Run before the write so no window leaves two defaults.
+	if model.IsDefault {
+		if err := s.repo.ClearDefaultByType(ctx, uint(model.TenantID), model.Type, model.ID); err != nil {
+			logger.ErrorWithFields(ctx, err, map[string]interface{}{
+				"model_id":   model.ID,
+				"model_type": model.Type,
+			})
+			return err
+		}
+	}
+
 	// Update model in repository
 	err = s.repo.Update(ctx, model)
 	if err != nil {
@@ -371,8 +425,15 @@ func (s *modelService) DeleteModel(ctx context.Context, id string) error {
 		return ErrModelNotFound
 	}
 	if existingModel.IsBuiltin {
-		logger.Warnf(ctx, "Attempted to delete builtin model: %s", id)
-		return apperrors.NewBadRequestError("builtin models cannot be deleted")
+		// YAML-managed seeds are deployment-owned and can never be removed via
+		// the API. UI-created global models (ManagedBy == "") are deletable by a
+		// system administrator or platform key, subject to the in-use guard below;
+		// everyone else stays blocked exactly as before.
+		if existingModel.ManagedBy == types.BuiltinModelManagedBy ||
+			!hasPlatformModelAuthority(ctx) {
+			logger.Warnf(ctx, "Attempted to delete protected builtin model: %s", id)
+			return apperrors.NewBadRequestError("builtin models cannot be deleted")
+		}
 	}
 
 	usage, err := s.getModelUsageDetails(ctx, tenantID, id)
@@ -399,8 +460,10 @@ func (s *modelService) DeleteModel(ctx context.Context, id string) error {
 		)
 	}
 
-	// Delete model from repository
-	err = s.repo.Delete(ctx, tenantID, id)
+	// Delete model from repository. Builtin global rows live on the builtin
+	// tenant (10000), not the caller's tenant, so delete against the model's
+	// own tenant or the WHERE (id AND tenant_id) clause matches nothing.
+	err = s.repo.Delete(ctx, existingModel.TenantID, id)
 	if err != nil {
 		logger.ErrorWithFields(ctx, err, map[string]interface{}{
 			"model_id":  id,
