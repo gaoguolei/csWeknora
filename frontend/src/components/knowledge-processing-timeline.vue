@@ -3299,7 +3299,7 @@ const processConfigLines = computed<string[]>(() => {
 }
 
 .kp-tab-active {
-  color: var(--td-text-color-primary);
+  color: var(--td-brand-color);
   font-weight: 600;
 }
 

@@ -28,26 +28,6 @@
         </div>
       </div>
 
-      <!-- 主题设置 -->
-      <div class="setting-row">
-        <div class="setting-info">
-          <label>{{ $t('theme.theme') }}</label>
-          <p class="desc">{{ $t('theme.themeDescription') }}</p>
-        </div>
-        <div class="setting-control">
-          <t-select
-            v-model="localTheme"
-            style="width: 280px;"
-            :placeholder="$t('theme.selectTheme')"
-            @change="handleThemeChange"
-          >
-            <t-option value="light" :label="$t('theme.light')">{{ $t('theme.light') }}</t-option>
-            <t-option value="dark" :label="$t('theme.dark')">{{ $t('theme.dark') }}</t-option>
-            <t-option value="system" :label="$t('theme.system')">{{ $t('theme.system') }}</t-option>
-          </t-select>
-        </div>
-      </div>
-
       <!-- 界面字体 -->
       <div class="setting-row">
         <div class="setting-info">
@@ -144,7 +124,6 @@ import { MessagePlugin } from 'tdesign-vue-next'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
-import { useTheme, type ThemeMode } from '@/composables/useTheme'
 import {
   useFont,
   SANS_STACKS,
@@ -159,7 +138,6 @@ import {
 const { t, locale } = useI18n()
 const settingsStore = useSettingsStore()
 const authStore = useAuthStore()
-const { currentTheme, setTheme } = useTheme()
 const {
   currentSans,
   currentMono,
@@ -171,13 +149,11 @@ const {
 
 // 本地状态
 const localLanguage = ref('zh-CN')
-const localTheme = ref<ThemeMode>(currentTheme.value)
 const localSansFont = ref<FontKey>(currentSans.value)
 const localMonoFont = ref<MonoFontKey>(currentMono.value)
 const localFontSize = ref<FontSizeKey>(currentSize.value)
 
 // Keep the form in sync if preferences change externally (e.g. on user switch).
-watch(currentTheme, (val) => { localTheme.value = val })
 watch(currentSans, (val) => { localSansFont.value = val })
 watch(currentMono, (val) => { localMonoFont.value = val })
 watch(currentSize, (val) => { localFontSize.value = val })
@@ -237,16 +213,6 @@ const handleLanguageChange = () => {
   localStorage.setItem('locale', localLanguage.value)
   MessagePlugin.success(t('language.languageSaved'))
     }
-
-// 处理主题变化
-const handleThemeChange = (val: ThemeMode) => {
-  if (!setTheme(val)) {
-    // Setter rejected the value (validation guard); roll the form back to
-    // the canonical state so the UI doesn't drift.
-    localTheme.value = currentTheme.value
-    return
-  }
-}
 
 // 处理字体变化
 const handleSansFontChange = (val: FontKey) => {

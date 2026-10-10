@@ -53,9 +53,9 @@
   --td-brand-color-8: #b3c4ff;
   --td-brand-color-9: #cdd9ff;
   --td-brand-color-10: #dbe4ff;
-  --td-brand-color: #6f92ff;
-  --td-brand-color-hover: #8faaff;
-  --td-brand-color-active: #507aff;
+  --td-brand-color: #507aff;
+  --td-brand-color-hover: #6f92ff;
+  --td-brand-color-active: #3a63e6;
   --td-brand-color-disabled: #2b3f7a;
   --td-brand-color-light: #162a70;
   --td-brand-color-focus: #1f3893;
@@ -80,12 +80,10 @@
 }
 
 /* Keep static SVG navigation icons consistent with the neutral active state. */
-:root .aside_box .menu_icon img.icon,
-:root .aside_box .logo_box .logo { filter: grayscale(1); }
+:root .aside_box .menu_icon img.icon { filter: grayscale(1); }
 :root .aside_box .menu_item_active .menu_icon img.icon,
 :root .aside_box .menu_item_c_active .menu_icon img.icon { filter: grayscale(1); }
 :root[theme-mode="dark"] .aside_box .menu_icon img.icon { filter: grayscale(1) brightness(0) invert(1); }
-:root[theme-mode="dark"] .aside_box .logo_box .logo { filter: invert(1) hue-rotate(180deg); }
 :root[theme-mode="dark"] .aside_box .menu_item_active .menu_icon img.icon,
 :root[theme-mode="dark"] .aside_box .menu_item_c_active .menu_icon img.icon { filter: grayscale(1) brightness(0) invert(1); }
 
@@ -110,4 +108,4 @@
 :root .t-dialog { border-radius: var(--app-radius-2xl); }
 :root .t-input,
 :root .t-textarea__inner { border-radius: var(--app-radius-md); }
-:root .t-button--theme-primary.t-button--variant-base { color: var(--td-bg-color-container); }
+:root .t-button--theme-primary.t-button--variant-base { color: var(--td-font-white-1); }

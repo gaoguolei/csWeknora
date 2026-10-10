@@ -6,10 +6,11 @@
     <!-- 展开时：Logo + 搜索/折叠按钮同行 -->
     <div class="logo_row" v-if="!uiStore.sidebarCollapsed">
       <div class="logo_box" @click="router.push('/platform/creatChat')" style="cursor: pointer">
-        <img class="logo" src="@/assets/img/weknora.png" alt="" />
+        <img class="logo" :src="logoSrc" alt="" />
         <sup v-if="isLiteEdition" class="lite-badge">Lite</sup>
       </div>
       <div class="logo_actions">
+        <ThemeToggle />
         <t-tooltip placement="bottom">
           <template #content>
             <span class="cmdk-tip">
@@ -173,6 +174,15 @@
             <div class="menu_item-box">
               <div class="menu_icon">
                 <img class="icon" :src="getImgSrc('search.svg')" alt="" />
+              </div>
+            </div>
+          </div>
+        </t-tooltip>
+        <t-tooltip :content="t('theme.theme')" placement="right">
+          <div class="menu_item menu_item--cmdk">
+            <div class="menu_item-box">
+              <div class="menu_icon menu_icon--theme-toggle">
+                <ThemeToggle />
               </div>
             </div>
           </div>
@@ -426,6 +436,10 @@ import { useChatResourcesStore } from "@/stores/chatResources";
 import { listAllIMChannels } from "@/api/agent/index";
 import SessionSidebarRow from "./SessionSidebarRow.vue";
 import PanelResizeHandle from "./PanelResizeHandle.vue";
+import ThemeToggle from "./ThemeToggle.vue";
+import allthinkerLogo from "@/assets/img/allthinker.png";
+import allthinkerLogoDark from "@/assets/img/allthinker-dark.png";
+import { useTheme } from "@/composables/useTheme";
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_MIN_WIDTH,
@@ -534,6 +548,16 @@ const PLATFORM_LOGO: Record<string, string> = {
 const platformLogo = (p: string): string => (p ? PLATFORM_LOGO[p] || "" : "");
 
 const { t } = useI18n();
+const { currentTheme } = useTheme();
+// 侧边栏 logo：浅色用深色文字原图，深色用白字版（竖线保持 #507aff），
+// 替代旧的 invert 滤镜方案——文字更纯白、竖线不偏色。
+const logoSrc = computed(() => {
+  if (currentTheme.value === "light") return allthinkerLogo;
+  if (currentTheme.value === "dark") return allthinkerLogoDark;
+  return document.documentElement.getAttribute("theme-mode") === "dark"
+    ? allthinkerLogoDark
+    : allthinkerLogo;
+});
 const usemenuStore = useMenuStore();
 const sessionActivity = useSessionActivityStore();
 const { entries: sessionActivityEntries } = storeToRefs(sessionActivity);
@@ -2517,6 +2541,13 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
     }
   }
 
+  // 折叠态侧栏里的主题切换：按钮比常规图标宽，居中摆放并去掉图标间距
+  .menu_icon--theme-toggle {
+    align-items: center;
+    justify-content: center;
+    margin-right: 0;
+  }
+
   .menu_title {
     color: var(--td-text-color-primary);
     text-overflow: ellipsis;
@@ -2987,11 +3018,6 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
 }
 </style>
 <style lang="less">
-// Dark mode: invert dark logo to light
-html[theme-mode="dark"] .aside_box .logo_box .logo {
-  filter: invert(1) hue-rotate(180deg);
-}
-
 // Dark mode: 滚动条在深色背景下需要更亮的颜色才看得见
 html[theme-mode="dark"] .aside_box .menu_top:hover {
   scrollbar-color: rgba(255, 255, 255, 0.22) transparent;

@@ -3,15 +3,38 @@ import {
   loadPreference,
   savePreference,
   migratePreferencesIntoUser,
+  readUserId,
+  safeGetItem,
+  safeSetItem,
 } from './preferenceStorage'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
 const THEME_KEY = 'theme'
 
+// Device-level mirror of the most recently chosen theme. Only consulted for
+// the pre-login "anon" namespace so the login page renders with the same
+// light/dark mode the user last saw, instead of flashing light and flipping
+// to dark on successful login. Logged-in users keep strict per-user isolation.
+const LAST_THEME_KEY = 'WeKnora_last_theme'
+
+function isThemeMode(v: unknown): v is ThemeMode {
+  return v === 'light' || v === 'dark' || v === 'system'
+}
+
 function loadTheme(): ThemeMode {
   const v = loadPreference(THEME_KEY)
-  if (v === 'light' || v === 'dark' || v === 'system') return v
+  if (isThemeMode(v)) {
+    // Seed the device-level mirror whenever a signed-in user's own
+    // preference is read (app start, login, logout), so the pre-login
+    // page picks it up without requiring the user to re-toggle theme.
+    if (readUserId() !== 'anon') safeSetItem(LAST_THEME_KEY, v)
+    return v
+  }
+  if (readUserId() === 'anon') {
+    const last = safeGetItem(LAST_THEME_KEY)
+    if (isThemeMode(last)) return last
+  }
   return 'light'
 }
 
@@ -63,16 +86,41 @@ function syncWailsNativeChrome(effective: 'light' | 'dark') {
 function applyTheme(mode: ThemeMode) {
   const effective = mode === 'system' ? getSystemTheme() : mode
   if (lastEffective === effective) return
-  lastEffective = effective
-  document.documentElement.setAttribute('theme-mode', effective)
-  syncWailsNativeChrome(effective)
+  const mutate = () => {
+    lastEffective = effective
+    document.documentElement.setAttribute('theme-mode', effective)
+    syncWailsNativeChrome(effective)
+  }
+  // 主题切换动效：新界面扫出覆盖旧界面（见 theme.css ::view-transition-*）。
+  // 方向：进入深色从左往右，回到浅色从右往左，通过 data-theme-sweep
+  // 属性告知 CSS。首次加载、浏览器不支持或用户偏好减弱动效时直接瞬切。
+  const doc = document as Document & {
+    startViewTransition?: (cb: () => void) => { finished?: Promise<unknown> }
+  }
+  const animate =
+    typeof doc.startViewTransition === 'function' &&
+    lastEffective !== null &&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (!animate) {
+    mutate()
+    return
+  }
+  doc.documentElement.setAttribute('data-theme-sweep', effective === 'dark' ? 'ltr' : 'rtl')
+  const transition = doc.startViewTransition!(mutate)
+  const reset = () => doc.documentElement.removeAttribute('data-theme-sweep')
+  if (transition?.finished) {
+    transition.finished.then(reset, reset)
+  } else {
+    reset()
+  }
 }
 
 export function useTheme() {
   function setTheme(mode: ThemeMode): boolean {
-    if (mode !== 'light' && mode !== 'dark' && mode !== 'system') return false
+    if (!isThemeMode(mode)) return false
     currentTheme.value = mode
     savePreference(THEME_KEY, mode)
+    safeSetItem(LAST_THEME_KEY, mode)
     applyTheme(mode)
     return true
   }

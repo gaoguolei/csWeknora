@@ -245,7 +245,7 @@ onBeforeUnmount(() => { generation++; emit('busy', false) })
 }
 
 .tool-detail__tab.is-active {
-  color: var(--td-text-color-primary);
+  color: var(--td-brand-color);
   font-weight: 500;
   border-bottom-color: var(--td-brand-color);
 }

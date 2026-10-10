@@ -307,3 +307,46 @@ select:-webkit-autofill {
 :root[theme-mode="dark"] .t-tooltip--light .t-popup__arrow::before {
   background: var(--td-gray-color-13) !important;
 }
+
+/* 主题切换动效（View Transitions API，由 useTheme.applyTheme 触发）：
+   旧界面静止兑底，新界面用 clip-path 依次揭示。
+   默认（进入深色）从左往右；data-theme-sweep="rtl"（回到浅色）从右往左。
+   分界线带 18% 宽度的倾斜角，不是垂直直扫。 */
+::view-transition-old(root) {
+  animation: none;
+}
+
+::view-transition-new(root) {
+  animation: theme-sweep-ltr calc(var(--app-motion-slow) * 1.6) ease-in-out both;
+}
+
+html[data-theme-sweep="rtl"]::view-transition-new(root) {
+  animation-name: theme-sweep-rtl;
+}
+
+@keyframes theme-sweep-ltr {
+  from {
+    clip-path: polygon(0% 0%, 0% 0%, -18% 100%, 0% 100%);
+  }
+
+  to {
+    clip-path: polygon(0% 0%, 118% 0%, 100% 100%, 0% 100%);
+  }
+}
+
+@keyframes theme-sweep-rtl {
+  from {
+    clip-path: polygon(100% 0%, 100% 0%, 118% 100%, 100% 100%);
+  }
+
+  to {
+    clip-path: polygon(100% 0%, -18% 0%, 0% 100%, 100% 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}

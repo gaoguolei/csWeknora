@@ -71,6 +71,9 @@
 
     <!-- 右侧表单区 -->
     <main class="form-panel">
+      <div class="form-panel__theme">
+        <ThemeToggle />
+      </div>
       <div class="form-panel__inner">
         <!-- 登录 -->
         <div v-if="!isRegisterMode" class="auth-card">
@@ -97,7 +100,7 @@
           </div>
 
           <header class="auth-card__header">
-            <div class="auth-card__eyebrow">WEKNORA WORKSPACE</div>
+            <div class="auth-card__eyebrow">ALLTHINKER WORKSPACE</div>
             <h2 class="auth-card__title">{{ $t("auth.login") }}</h2>
             <p class="auth-card__subtitle">{{ $t("auth.subtitle") }}</p>
           </header>
@@ -206,7 +209,7 @@
           </div>
 
           <header class="auth-card__header">
-            <div class="auth-card__eyebrow">WEKNORA WORKSPACE</div>
+            <div class="auth-card__eyebrow">ALLTHINKER WORKSPACE</div>
             <h2 class="auth-card__title">{{ $t("auth.createAccount") }}</h2>
             <p class="auth-card__subtitle">{{ $t("auth.subtitle") }}</p>
           </header>
@@ -310,6 +313,7 @@ import {
   type InviteLookup,
 } from "@/api/auth";
 import { useAuthStore } from "@/stores/auth";
+import ThemeToggle from "@/components/ThemeToggle.vue";
 import { useI18n } from "vue-i18n";
 
 const router = useRouter();
@@ -677,15 +681,15 @@ onMounted(async () => {
   background:
     radial-gradient(
       circle at 82% 14%,
-      rgba(80, 122, 255, 0.2),
-      transparent 32%
+      rgba(80, 122, 255, 0.28),
+      transparent 34%
     ),
     radial-gradient(
       circle at 14% 88%,
-      rgba(58, 99, 230, 0.16),
-      transparent 36%
+      rgba(43, 76, 192, 0.34),
+      transparent 38%
     ),
-    #0b1120;
+    linear-gradient(165deg, #16255e 0%, #0f1e4f 52%, #0a1535 100%);
   color: #f1f5f9;
   overflow: hidden;
   display: flex;
@@ -727,7 +731,7 @@ onMounted(async () => {
   height: 420px;
   bottom: -200px;
   left: -120px;
-  background: rgba(56, 130, 246, 0.22);
+  background: rgba(43, 76, 192, 0.3);
 }
 
 .brand-panel__inner {
@@ -754,12 +758,12 @@ onMounted(async () => {
   width: 38px;
   height: 38px;
   border-radius: var(--app-radius-xl);
-  background: #dbe4ff;
-  color: #0b1120;
+  background: #507aff;
+  color: #ffffff;
   font-weight: 800;
   font-size: var(--app-text-4xl);
   letter-spacing: -0.7px;
-  box-shadow: 0 0 0 6px rgba(219, 228, 255, 0.08);
+  box-shadow: 0 0 0 6px rgba(80, 122, 255, 0.14);
 }
 
 .brand-logo__text {
@@ -778,7 +782,7 @@ onMounted(async () => {
 }
 
 .brand-panel__eyebrow {
-  color: rgba(179, 196, 255, 0.68);
+  color: rgba(157, 177, 252, 0.85);
   margin-bottom: 74px;
 }
 
@@ -828,8 +832,8 @@ onMounted(async () => {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: rgba(80, 122, 255, 0.16);
-  color: #6f92ff;
+  background: rgba(80, 122, 255, 0.22);
+  color: #9db1fc;
   flex-shrink: 0;
 
   svg {
@@ -850,11 +854,11 @@ onMounted(async () => {
   display: inline-block;
   padding: 7px 12px;
   border-radius: var(--app-radius-md);
-  border: 1px solid rgba(241, 245, 249, 0.16);
-  background: rgba(241, 245, 249, 0.06);
+  border: 1px solid rgba(157, 177, 252, 0.24);
+  background: rgba(80, 122, 255, 0.1);
   font-size: var(--app-text-md);
   font-weight: 500;
-  color: rgba(241, 245, 249, 0.78);
+  color: #cdd9ff;
 }
 
 .brand-panel__meta {
@@ -869,8 +873,8 @@ onMounted(async () => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #6f92ff;
-  box-shadow: 0 0 0 4px rgba(111, 146, 255, 0.1);
+  background: #507aff;
+  box-shadow: 0 0 0 4px rgba(80, 122, 255, 0.14);
 }
 
 .brand-footer {
@@ -894,7 +898,7 @@ onMounted(async () => {
       rgba(219, 228, 255, 0.62),
       transparent 28%
     ),
-    #f6f8fc;
+    #f8faff;
 
   &::after {
     content: "";
@@ -908,6 +912,14 @@ onMounted(async () => {
     transform: rotate(18deg);
     pointer-events: none;
   }
+}
+
+/* 表单区右上角的主题切换（浅色/深色/跟随系统） */
+.form-panel__theme {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  z-index: 2;
 }
 
 .form-panel__inner {
@@ -1032,24 +1044,24 @@ onMounted(async () => {
 }
 
 .btn--primary {
-  background: #142138 !important;
-  border-color: #142138 !important;
+  background: linear-gradient(135deg, #507aff 0%, #3a63e6 100%) !important;
   border: none;
   color: #ffffff !important;
   margin-top: 30px;
+  box-shadow: 0 8px 20px rgba(80, 122, 255, 0.3);
 
   &:hover,
   &:focus {
-    background: #1e3a5f !important;
-    border-color: #1e3a5f !important;
+    background: linear-gradient(135deg, #6f92ff 0%, #507aff 100%) !important;
     color: #ffffff !important;
+    box-shadow: 0 10px 24px rgba(80, 122, 255, 0.36);
     transform: translateY(-1px);
   }
 
   &:active {
-    background: #0d1a33 !important;
-    border-color: #0d1a33 !important;
+    background: linear-gradient(135deg, #3a63e6 0%, #2b4cc0 100%) !important;
     color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(80, 122, 255, 0.24);
     transform: translateY(0);
   }
 }
@@ -1061,7 +1073,7 @@ onMounted(async () => {
 
   &:hover {
     border-color: #507aff;
-    color: #2b4cc0;
+    color: #3a63e6;
     background: #eef2ff;
   }
 }
@@ -1237,23 +1249,23 @@ onMounted(async () => {
 html[theme-mode="dark"] {
   .auth-page,
   .form-panel {
-    background: #0a0f1a;
+    background: #0a1535;
   }
 
   .form-panel {
     background:
       radial-gradient(
         circle at 82% 18%,
-        rgba(40, 70, 150, 0.18),
+        rgba(80, 122, 255, 0.14),
         transparent 28%
       ),
-      #0a0f1a;
+      #0a1535;
   }
 
   .auth-card {
-    background: rgba(15, 20, 34, 0.9);
-    border-color: rgba(179, 196, 255, 0.14);
-    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.24);
+    background: rgba(15, 30, 79, 0.78);
+    border-color: rgba(157, 177, 252, 0.16);
+    box-shadow: 0 22px 60px rgba(4, 10, 32, 0.4);
   }
 
   .auth-card__eyebrow {
@@ -1283,11 +1295,11 @@ html[theme-mode="dark"] {
     color: #64748b;
 
     span {
-      background: #0f1420;
+      background: #101d47;
     }
 
     &::before {
-      border-color: #1e2530;
+      border-color: rgba(157, 177, 252, 0.14);
     }
   }
 
@@ -1296,48 +1308,49 @@ html[theme-mode="dark"] {
   }
 
   .auth-form .t-input {
-    background: #161a21;
-    border-color: #1e2530;
+    background: rgba(10, 21, 53, 0.72);
+    border-color: rgba(157, 177, 252, 0.18);
     color: #f1f5f9;
 
     &:hover {
-      border-color: #334155;
+      border-color: rgba(157, 177, 252, 0.36);
     }
 
     &:focus-within {
       border-color: #507aff;
+      box-shadow: 0 0 0 3px rgba(80, 122, 255, 0.18);
     }
   }
 
   .btn--primary {
-    background: #dbe4ff !important;
-    border-color: #dbe4ff !important;
-    color: #0f1e4f !important;
+    background: linear-gradient(135deg, #507aff 0%, #3a63e6 100%) !important;
+    border: none;
+    color: #ffffff !important;
+    box-shadow: 0 8px 20px rgba(80, 122, 255, 0.28);
 
     &:hover,
     &:focus {
-      background: #c3d2ff !important;
-      border-color: #c3d2ff !important;
-      color: #0f1e4f !important;
+      background: linear-gradient(135deg, #6f92ff 0%, #507aff 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 10px 24px rgba(80, 122, 255, 0.34);
     }
 
     &:active {
-      background: #a9bcff !important;
-      border-color: #a9bcff !important;
-      color: #0f1e4f !important;
+      background: linear-gradient(135deg, #3a63e6 0%, #2b4cc0 100%) !important;
+      color: #ffffff !important;
     }
   }
 
   .btn--ghost,
   .btn--oidc {
-    background: #161a21;
-    border-color: #1e2530;
-    color: #e2e8f0;
+    background: rgba(10, 21, 53, 0.72);
+    border-color: rgba(157, 177, 252, 0.18);
+    color: #dbe4ff;
 
     &:hover {
       border-color: #507aff;
       color: #b3c4ff;
-      background: #0f1a2e;
+      background: rgba(31, 56, 147, 0.35);
     }
   }
 

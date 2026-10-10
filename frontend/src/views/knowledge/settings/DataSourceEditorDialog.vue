@@ -2745,8 +2745,8 @@ const drawerConfirmText = computed(() => {
 
 .option-pill.is-active {
   background: var(--td-bg-color-container);
-  border-color: var(--td-component-stroke);
-  color: var(--td-text-color-primary);
+  border-color: var(--td-brand-color);
+  color: var(--td-brand-color);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
 }
 

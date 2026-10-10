@@ -251,7 +251,7 @@ watch(() => visibleItems.value.map((item) => item.key), (keys, previous = []) =>
   }
 
   &[aria-selected='true'] {
-    color: var(--td-text-color-primary);
+    color: var(--td-brand-color);
 
     > .t-icon, > svg {
       color: var(--td-brand-color);
