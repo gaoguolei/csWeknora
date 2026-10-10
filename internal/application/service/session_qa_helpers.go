@@ -125,13 +125,58 @@ func (s *sessionService) restrictTagScopesToAgentScope(
 	return filtered
 }
 
+// defaultModelIDForType resolves the platform default model for a type: the
+// row flagged is_default, otherwise the first active model of that type.
+// Returns "" when the workspace has no usable model of that type at all.
+//
+// Agents are allowed to leave their model bindings empty — built-in agents
+// ship that way — and inherit this default at request time, so a conversation
+// can start without the user opening the editor and saving first. What counts
+// as "the default" is still declared in exactly one place (the model's own
+// is_default flag, set in model management or builtin_models.yaml), which is
+// what the previous per-feature KV fallbacks lacked.
+func (s *sessionService) defaultModelIDForType(ctx context.Context, modelType types.ModelType) string {
+	if s.modelService == nil {
+		return ""
+	}
+	models, err := s.modelService.ListModels(ctx)
+	if err != nil {
+		logger.Warnf(ctx, "Failed to list models while resolving the default %s model: %v", modelType, err)
+		return ""
+	}
+	firstActive := ""
+	for _, model := range models {
+		if model == nil || model.Type != modelType {
+			continue
+		}
+		// Empty status is the legacy "usable" default; anything else that is
+		// not active (still downloading, download failed) cannot serve a turn.
+		if model.Status != "" && model.Status != types.ModelStatusActive {
+			continue
+		}
+		if model.IsDefault {
+			return model.ID
+		}
+		if firstActive == "" {
+			firstActive = model.ID
+		}
+	}
+	return firstActive
+}
+
 // resolveChatModelID resolves the effective chat model ID for a QA request.
 //
-// When a user-configured agent is selected, its model configuration must be
-// complete and valid. The internal wiki fixer is the one exception: it is not
-// exposed in the agent UI, so an empty model_id falls back to KB/system model
-// selection. A request-level override may choose another valid model for this
-// request, but it must not make an unconfigured or stale agent appear usable.
+// A user-configured agent wins when it declares a model, and that model must
+// exist and be a chat model — a stale binding is an error rather than something
+// to paper over. An agent that declares nothing (built-in agents, or one saved
+// before any model existed) inherits the platform default chat model so the
+// turn can run without the user editing and saving the agent first; only when
+// the workspace has no chat model at all do we reject it. The internal wiki
+// fixer is the exception that keeps resolving through the KB/system chain, as
+// it is not exposed in the agent UI.
+//
+// A request-level override may choose another valid model for this request,
+// but only on top of an agent binding that already resolves.
 //
 // Without an agent, the legacy KB / session / system fallback remains
 // available for non-agent callers.
@@ -155,7 +200,12 @@ func (s *sessionService) resolveChatModelID(
 	if customAgent != nil {
 		configuredAgentModelID = strings.TrimSpace(customAgent.Config.ModelID)
 		if configuredAgentModelID == "" && customAgent.ID != types.BuiltinWikiFixerID {
-			return "", fmt.Errorf("chat model is not configured: please set model_id on agent %s", customAgent.ID)
+			if defaultID := s.defaultModelIDForType(ctx, types.ModelTypeKnowledgeQA); defaultID != "" {
+				logger.Infof(ctx, "Agent %s has no model_id, inheriting the default chat model %s", customAgent.ID, defaultID)
+				configuredAgentModelID = defaultID
+			} else {
+				return "", fmt.Errorf("chat model is not configured: please set model_id on agent %s", customAgent.ID)
+			}
 		}
 		if configuredAgentModelID != "" {
 			model, err := s.modelService.GetModelByID(ctx, configuredAgentModelID)

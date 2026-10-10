@@ -9,7 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestResolveChatModelIDRequiresConfiguredAgentModel(t *testing.T) {
+// An agent with no model_id is only rejected when the workspace has no chat
+// model to inherit; "no models at all" is a real configuration gap.
+func TestResolveChatModelIDRejectsAgentWithoutModelWhenNoChatModelExists(t *testing.T) {
 	svc := &sessionService{
 		modelService: &stubModelService{
 			modelsByID: map[string]*types.Model{
@@ -18,6 +20,8 @@ func TestResolveChatModelIDRequiresConfiguredAgentModel(t *testing.T) {
 					Type: types.ModelTypeKnowledgeQA,
 				},
 			},
+			// ListModels is what the default lookup reads; keep it empty.
+			availableModels: []*types.Model{},
 		},
 	}
 	req := &types.QARequest{
@@ -25,8 +29,6 @@ func TestResolveChatModelIDRequiresConfiguredAgentModel(t *testing.T) {
 		CustomAgent: &types.CustomAgent{
 			ID: "agent-1",
 		},
-		// Even a valid request-level model must not hide incomplete agent config.
-		SummaryModelID: "builtin-chat",
 	}
 
 	modelID, err := svc.resolveChatModelID(context.Background(), req, nil, nil)
@@ -36,9 +38,68 @@ func TestResolveChatModelIDRequiresConfiguredAgentModel(t *testing.T) {
 	assert.Contains(t, err.Error(), "model_id")
 }
 
+// The declared default wins over creation order, so the platform default the
+// administrator picked is what an unbound agent actually runs on.
+func TestResolveChatModelIDUnboundAgentInheritsDefaultChatModel(t *testing.T) {
+	svc := &sessionService{
+		modelService: &stubModelService{
+			modelsByID: map[string]*types.Model{
+				"default-chat": {ID: "default-chat", Type: types.ModelTypeKnowledgeQA},
+			},
+			availableModels: []*types.Model{
+				{ID: "other-chat", Type: types.ModelTypeKnowledgeQA},
+				{ID: "default-chat", Type: types.ModelTypeKnowledgeQA, IsDefault: true},
+				{ID: "default-embed", Type: types.ModelTypeEmbedding, IsDefault: true},
+			},
+		},
+	}
+	req := &types.QARequest{
+		Session: &types.Session{},
+		CustomAgent: &types.CustomAgent{
+			ID:     "agent-1",
+			Config: types.CustomAgentConfig{ModelID: ""},
+		},
+	}
+
+	modelID, err := svc.resolveChatModelID(context.Background(), req, nil, nil)
+
+	require.NoError(t, err)
+	assert.Equal(t, "default-chat", modelID)
+}
+
+// Without an explicit default, the first usable model of the type takes over;
+// a model that is still downloading must not be picked.
+func TestResolveChatModelIDUnboundAgentFallsBackToFirstActiveChatModel(t *testing.T) {
+	svc := &sessionService{
+		modelService: &stubModelService{
+			modelsByID: map[string]*types.Model{
+				"active-chat": {ID: "active-chat", Type: types.ModelTypeKnowledgeQA},
+			},
+			availableModels: []*types.Model{
+				{ID: "pulling-chat", Type: types.ModelTypeKnowledgeQA, Status: types.ModelStatusDownloading},
+				{ID: "active-chat", Type: types.ModelTypeKnowledgeQA, Status: types.ModelStatusActive},
+			},
+		},
+	}
+	req := &types.QARequest{
+		Session:     &types.Session{},
+		CustomAgent: &types.CustomAgent{ID: "agent-1"},
+	}
+
+	modelID, err := svc.resolveChatModelID(context.Background(), req, nil, nil)
+
+	require.NoError(t, err)
+	assert.Equal(t, "active-chat", modelID)
+}
+
+// A stale binding is a misconfiguration, not an invitation to silently switch
+// models: it must still fail instead of inheriting the default.
 func TestResolveChatModelIDRejectsUnavailableConfiguredAgentModel(t *testing.T) {
 	svc := &sessionService{
-		modelService: &stubModelService{modelsByID: map[string]*types.Model{}},
+		modelService: &stubModelService{
+			modelsByID:      map[string]*types.Model{},
+			availableModels: []*types.Model{{ID: "some-chat", Type: types.ModelTypeKnowledgeQA}},
+		},
 	}
 	req := &types.QARequest{
 		Session: &types.Session{},

@@ -9,11 +9,30 @@ import {
   resolveAgentNotReadyHighlight,
 } from './agent-readiness.ts'
 
-test('does not treat an unrelated built-in chat model as agent configuration', () => {
+test('unbound agent inherits the platform default chat model', () => {
   assert.equal(agentHasConfiguredChatModel(
     {},
     [{ id: 'builtin-chat', type: 'KnowledgeQA' }],
+  ), true)
+})
+
+test('unbound agent is not ready when the workspace has no chat model', () => {
+  assert.equal(agentHasConfiguredChatModel({}, []), false)
+  assert.equal(agentHasConfiguredChatModel(
+    {},
+    [{ id: 'embed-1', type: 'Embedding' }],
   ), false)
+})
+
+test('unbound agent skips a model that is still downloading', () => {
+  assert.equal(agentHasConfiguredChatModel(
+    {},
+    [{ id: 'pulling-chat', type: 'KnowledgeQA', status: 'downloading' }],
+  ), false)
+})
+
+test('shared agent with no binding is left to the backend default', () => {
+  assert.equal(agentHasConfiguredChatModel({}, [], true), true)
 })
 
 test('accepts the chat model explicitly configured on the agent', () => {
@@ -100,25 +119,43 @@ test('resolveAgentNotReadyHighlight returns the first missing item', () => {
   assert.equal(resolveAgentNotReadyHighlight([]), undefined)
 })
 
-test('getAgentNotReadyReasonKeys flags missing chat model', () => {
+test('getAgentNotReadyReasonKeys flags a missing chat model only when none exists', () => {
+  assert.deepEqual(getAgentNotReadyReasonKeys(
+    {},
+    [],
+    { isAgentMode: false, isSharedAgent: false },
+  ), ['summary_model'])
   assert.deepEqual(getAgentNotReadyReasonKeys(
     {},
     [{ id: 'chat-1', type: 'KnowledgeQA' }],
     { isAgentMode: false, isSharedAgent: false },
-  ), ['summary_model'])
+  ), [])
 })
 
 test('getAgentNotReadyReasonKeys requires rerank only in agent mode with KB search', () => {
+  // No reranker in the workspace at all: the agent cannot retrieve safely.
   assert.deepEqual(getAgentNotReadyReasonKeys(
     { kb_selection_mode: 'all', allowed_tools: ['search_knowledge'] },
-    [{ id: 'chat-1', type: 'KnowledgeQA' }, { id: 'rerank-1', type: 'Rerank' }],
+    [{ id: 'chat-1', type: 'KnowledgeQA' }],
     { isAgentMode: true, isSharedAgent: false },
-  ), ['summary_model', 'rerank_model'])
+  ), ['rerank_model'])
+  // An unbound rerank slot inherits the platform default reranker.
   assert.deepEqual(getAgentNotReadyReasonKeys(
     { kb_selection_mode: 'all', allowed_tools: ['knowledge_search'] },
     [{ id: 'chat-1', type: 'KnowledgeQA' }, { id: 'rerank-1', type: 'Rerank' }],
     { isAgentMode: true, isSharedAgent: false },
-  ), ['summary_model', 'rerank_model'])
+  ), [])
+  // A stale rerank binding is still reported.
+  assert.deepEqual(getAgentNotReadyReasonKeys(
+    {
+      model_id: 'chat-1',
+      rerank_model_id: 'deleted-rerank',
+      kb_selection_mode: 'all',
+      allowed_tools: ['search_knowledge'],
+    },
+    [{ id: 'chat-1', type: 'KnowledgeQA' }, { id: 'rerank-1', type: 'Rerank' }],
+    { isAgentMode: true, isSharedAgent: false },
+  ), ['rerank_model'])
 })
 
 test('getAgentNotReadyReasonKeys does not treat current shared context as shared without sourceTenantId', () => {

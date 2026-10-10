@@ -1,24 +1,38 @@
 import type { CustomAgentConfig } from '@/api/agent'
 import type { ModelConfig } from '@/api/model'
 import { allowedToolsInclude } from './legacy-tool-names'
+import { selectInitialModelId } from './modelDefaults'
 
 export type AgentNotReadyReasonKey = 'summary_model' | 'rerank_model' | 'allowed_tools'
 
+// Readiness only needs the identity fields; kept structural so callers can
+// pass the full ModelConfig list they already hold.
+type AgentModelCandidate = Pick<ModelConfig, 'id' | 'type' | 'status' | 'is_default'>
+
 /**
- * An agent is chat-ready only when it explicitly references a usable chat
- * model. Merely having some built-in/default model in the tenant must not hide
- * incomplete agent configuration.
+ * Whether an agent can start a conversation model-wise.
  *
- * For shared agents the model belongs to the source tenant, so the caller can
- * require a non-empty ID but must leave existence validation to the backend.
+ * An agent that explicitly binds a chat model must have that model still
+ * present — a stale ID is a real misconfiguration and is never papered over.
+ * An agent with no binding (built-in agents, or one saved before any model
+ * existed) inherits the platform default chat model at request time, mirroring
+ * `sessionService.resolveChatModelID`, so it is ready as soon as a usable
+ * model of that type exists. The user therefore never has to open the editor
+ * and save just to send a first message.
+ *
+ * For shared agents the model belongs to the source tenant, so the receiver can
+ * only require a non-empty ID and must leave existence validation to the
+ * backend.
  */
 export function agentHasConfiguredChatModel(
   config: Pick<CustomAgentConfig, 'model_id'> | undefined,
-  models: Pick<ModelConfig, 'id' | 'type'>[],
+  models: AgentModelCandidate[],
   sourceModelIsRemote = false,
 ): boolean {
   const modelID = config?.model_id?.trim()
-  if (!modelID) return false
+  if (!modelID) {
+    return sourceModelIsRemote || !!selectInitialModelId(models, 'KnowledgeQA')
+  }
   if (sourceModelIsRemote) return true
   return models.some(model => model.type === 'KnowledgeQA' && model.id === modelID)
 }
@@ -51,7 +65,7 @@ export function getAgentNotReadyReasonKeys(
     CustomAgentConfig,
     'model_id' | 'rerank_model_id' | 'kb_selection_mode' | 'allowed_tools' | 'agent_mode'
   > | undefined,
-  models: Pick<ModelConfig, 'id' | 'type'>[],
+  models: AgentModelCandidate[],
   options: { isAgentMode: boolean; isSharedAgent: boolean },
 ): AgentNotReadyReasonKey[] {
   const reasons: AgentNotReadyReasonKey[] = []
@@ -62,11 +76,16 @@ export function getAgentNotReadyReasonKeys(
 
   if (options.isAgentMode && agentRequiresRerankModel(config)) {
     const rerankModelID = config?.rerank_model_id?.trim()
-    const rerankExists = !!rerankModelID && (
-      options.isSharedAgent
-      || models.some(model => model.type === 'Rerank' && model.id === rerankModelID)
-    )
-    if (!rerankExists) {
+    if (rerankModelID) {
+      const rerankExists = options.isSharedAgent
+        || models.some(model => model.type === 'Rerank' && model.id === rerankModelID)
+      if (!rerankExists) {
+        reasons.push('rerank_model')
+      }
+    } else if (!options.isSharedAgent && !selectInitialModelId(models, 'Rerank')) {
+      // Unbound rerank inherits the platform default reranker (see
+      // AgentQA in session_agent_qa.go); only a workspace with no Rerank
+      // model at all is genuinely blocked.
       reasons.push('rerank_model')
     }
   }

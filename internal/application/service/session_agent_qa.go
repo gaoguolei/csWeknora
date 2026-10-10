@@ -119,18 +119,24 @@ func (s *sessionService) AgentQA(
 	// must not force users to configure an otherwise-unused rerank model.
 	var rerankModel rerank.Reranker
 	if agentRequiresRerankModel(req.CustomAgent) {
-		// Rerank model is resolved purely from the agent config now.
-		// We used to fall back to ConversationConfig.RerankModelID at
-		// the tenant level, but that path encouraged "leave rerank
-		// blank on the agent and inherit silently" which made debugging
-		// retrieval quality a guessing game across tenant settings vs
-		// agent settings. Forcing the agent to declare its own rerank
-		// model puts the configuration where the user actually edits
-		// the agent. If a Wiki-only agent doesn't need reranking,
-		// agentRequiresRerankModel() below already lets it pass.
+		// Rerank resolution mirrors the chat model: the agent's own binding
+		// wins, and an agent that declares none inherits the platform default
+		// Rerank model (is_default, else the first active one) so built-in
+		// agents and agents saved before any model existed still retrieve
+		// properly. We deliberately do NOT inherit ConversationConfig.
+		// RerankModelID — that was a second, hidden place to configure the same
+		// thing; the default now lives on the model itself, where it is visible
+		// in model management. If a Wiki-only agent doesn't need reranking,
+		// agentRequiresRerankModel() above already lets it pass.
 		rerankModelID := req.CustomAgent.Config.RerankModelID
 		if rerankModelID == "" {
-			logger.Warnf(ctx, "No rerank model configured for custom agent %s, but knowledge_search tool is enabled", req.CustomAgent.ID)
+			rerankModelID = s.defaultModelIDForType(ctx, types.ModelTypeRerank)
+			if rerankModelID != "" {
+				logger.Infof(ctx, "Custom agent %s has no rerank_model_id, inheriting the default rerank model %s", req.CustomAgent.ID, rerankModelID)
+			}
+		}
+		if rerankModelID == "" {
+			logger.Warnf(ctx, "No rerank model configured for custom agent %s and no default available, but knowledge_search tool is enabled", req.CustomAgent.ID)
 			return errors.New("rerank model is not configured: please set rerank_model_id on the agent")
 		}
 
