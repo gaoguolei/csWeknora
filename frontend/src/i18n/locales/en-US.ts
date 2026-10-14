@@ -2130,7 +2130,9 @@ export default {
   memorySettings: {
     title: 'My memory',
     description: 'What the assistant remembers about you across conversations. You can review, edit and delete anything here; deleted memories are never used again.',
-    workspaceDisabled: 'Long-term memory is off for this workspace. This switch takes effect once an admin turns it on.',
+    workspaceDisabled: 'Long-term memory is not enabled. Once the platform administrator turns it on, you can review and manage your memories here.',
+    enableGlobalLabel: 'Enable long-term memory',
+    enableGlobalDescription: 'When on, every workspace on the platform can use long-term memory; when off, "My memory" and agent long-term memory are disabled across all workspaces. Only the platform super administrator can change this.',
     enableLabel: 'Use long-term memory for me',
     enableDescription: 'When off, the assistant neither reads nor adds your memories. Existing ones are kept and resume when you turn it back on.',
     agentDisabledHint: 'An individual agent can also turn long-term memory off for itself. In a conversation with such an agent your memories are neither read nor added to; other agents are unaffected.',
@@ -2268,12 +2270,12 @@ export default {
   },
   envVarSettings: {
     title: 'Sandbox secrets',
-    description: 'Personal keys for skills and sandboxes, not WeKnora system or deployment settings.',
+    description: 'Encrypted secrets configured once by a super admin for the whole platform; every workspace\'s skills and sandboxes use them by default.',
     helpAria: 'About sandbox secrets',
-    introPersonalTitle: 'Yours only',
-    introPersonalBody: 'Injected into your own chats and runs. Other members cannot see them, and theirs will not replace yours.',
+    introGlobalTitle: 'One platform-wide store',
+    introGlobalBody: 'Set once by a super admin and stored encrypted. It applies to every workspace\'s skills and sandbox runs; members and workspace admins no longer set their own, and runs always use these values.',
     introRuntimeTitle: 'Passed in when something runs',
-    introRuntimeBody: 'Injected when a skill runs, or when a command runs in that sandbox. You can also supply them in the conversation. Saved values are never shown again.',
+    introRuntimeBody: 'Injected when a skill runs, or when a command runs in a sandbox. Saved values are never shown again and can only be overwritten.',
     loading: 'Loading…',
     loadFailed: 'Could not load sandbox secrets.',
     retry: 'Try again',
@@ -2315,7 +2317,14 @@ export default {
     clear: 'Remove my value',
     clearConfirm: 'Remove your own value for {name}? The workspace value, if there is one, applies again afterwards.',
     clearSuccess: 'Your value was removed.',
-    updatedAt: 'You set this on {time}'
+    secretListTitle: 'Global secrets',
+    globalHint: 'The keys every workspace and user uses at runtime. Saved values are never shown again and can only be overwritten.',
+    addSecret: 'New secret',
+    hasValue: 'Set',
+    noValue: 'Not set',
+    globalEmptyTitle: 'No global secrets yet',
+    globalEmptyDesc: 'Click "New secret" to add a name and value; every workspace will use it by default once saved.',
+    updatedAt: 'Updated at {time}'
   },
   memoryWorkspaceSettings: {
     title: 'Long-term memory',

@@ -33,33 +33,31 @@
       <p class="section-description">{{ t('memorySettings.description') }}</p>
     </div>
 
-    <!-- Workspace switch is off: say so plainly instead of showing a personal
-         toggle that would appear to work and change nothing. -->
-    <div v-if="settings && !settings.workspace_enabled" class="notice">
-      <t-icon name="info-circle" />
-      <span>{{ t('memorySettings.workspaceDisabled') }}</span>
-    </div>
-
-    <div class="settings-group">
+    <!-- Only the super admin owns the platform-wide long-term memory switch, so
+         the enable control is rendered for them alone. Workspace admins and
+         members do not see this row at all. -->
+    <div v-if="isSystemAdmin" class="settings-group">
       <div class="setting-row">
         <div class="setting-info">
-          <label>{{ t('memorySettings.enableLabel') }}</label>
-          <p class="desc">{{ t('memorySettings.enableDescription') }}</p>
-          <!-- An agent can opt out on its own, so this switch being on is not a
-               promise that every conversation uses memory. Say so here rather
-               than letting someone conclude the page is broken. -->
-          <p v-if="userEnabled && settings?.workspace_enabled" class="desc">
-            {{ t('memorySettings.agentDisabledHint') }}
-          </p>
+          <label>{{ t('memorySettings.enableGlobalLabel') }}</label>
+          <p class="desc">{{ t('memorySettings.enableGlobalDescription') }}</p>
         </div>
         <div class="setting-control">
           <t-switch
-            v-model="userEnabled"
-            :disabled="!settings || !settings.workspace_enabled"
-            @change="handleEnabledChange"
+            v-model="globalEnabled"
+            :loading="togglingGlobal"
+            @change="handleGlobalEnabledChange"
           />
         </div>
       </div>
+    </div>
+
+    <!-- Long-term memory is now a platform-wide switch owned by the super
+         admin, so there is no personal toggle here. When it is off, say so
+         plainly instead of showing an empty manager. -->
+    <div v-if="settings && !settings.workspace_enabled" class="notice">
+      <t-icon name="info-circle" />
+      <span>{{ t('memorySettings.workspaceDisabled') }}</span>
     </div>
 
     <div class="list-section">
@@ -364,6 +362,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '@/stores/auth'
+import { updateSystemSetting } from '@/api/system'
 import {
   clearMemoryItems,
   consolidateMemory,
@@ -374,12 +374,12 @@ import {
   deleteMemoryTopic,
   exportMemoryItems,
   getMemorySettings,
+  getTenantMemoryConfig,
   listMemoryDocuments,
   listMemoryItems,
   listMemoryTopics,
   promoteMemoryTopic,
   rejectMemoryItem,
-  updateMemoryEnabled,
   updateMemoryItem,
   type MemoryDoc,
   type MemoryItem,
@@ -391,11 +391,18 @@ import {
 
 const { t } = useI18n()
 const router = useRouter()
+const authStore = useAuthStore()
+
+// Long-term memory is a platform-wide switch owned by the super admin, so the
+// enable control on this page is shown to the super admin alone. Workspace
+// admins and members never see it; they only get the "not enabled" notice.
+const isSystemAdmin = computed(() => authStore.isSystemAdmin)
+const globalEnabled = ref(false)
+const togglingGlobal = ref(false)
 
 type MemoryListTab = MemoryStatus | 'tracking' | 'documents'
 
 const settings = ref<MemorySettings | null>(null)
-const userEnabled = ref(false)
 const items = ref<MemoryItem[]>([])
 const topics = ref<MemoryTopic[]>([])
 const documents = ref<MemoryDoc[]>([])
@@ -502,9 +509,11 @@ const statusHint = computed(() => {
   return ''
 })
 
-// Writing requires both switches; the list itself stays readable either way so
-// a user who just turned memory off can still review and delete what is stored.
-const canWrite = computed(() => settings.value?.effective === true)
+// There is no personal toggle anymore: writing follows the platform-wide
+// long-term memory switch owned by the super admin, mirroring the 长期记忆 page.
+// The list itself stays readable either way so a user can still review and
+// delete what is stored even while the feature is off.
+const canWrite = computed(() => settings.value?.workspace_enabled === true)
 
 // A pending guess is not in use yet, but it is not retired either: the greyed-out
 // strike-through reads as "thrown away" and only fits superseded and archived rows.
@@ -548,9 +557,31 @@ const loadSettings = async () => {
   try {
     const response = await getMemorySettings()
     settings.value = response.data
-    userEnabled.value = response.data.user_enabled
+    globalEnabled.value = response.data.workspace_enabled
   } catch (error: any) {
     console.error('Failed to load memory settings:', error)
+  }
+}
+
+// The super admin's switch here drives the same platform-global setting as the
+// 长期记忆 page (memory.global_config), so read the whole config back, flip only
+// `enabled`, and write it out to avoid clobbering the other fields.
+const handleGlobalEnabledChange = async (value: boolean) => {
+  togglingGlobal.value = true
+  try {
+    const current = await getTenantMemoryConfig()
+    const config = { ...(current.data || {}), enabled: value }
+    await updateSystemSetting('memory.global_config', JSON.stringify(config))
+    await loadSettings()
+    await reload()
+    MessagePlugin.success(
+      value ? t('memorySettings.toasts.enabled') : t('memorySettings.toasts.disabled'),
+    )
+  } catch (error: any) {
+    globalEnabled.value = !value
+    MessagePlugin.error(t('memorySettings.toasts.saveFailed', { message: error?.message || '' }))
+  } finally {
+    togglingGlobal.value = false
   }
 }
 
@@ -721,20 +752,6 @@ const handleTabChange = async (value: string | number) => {
 const handlePageChange = async (current: number) => {
   page.value = current
   await loadList()
-}
-
-const handleEnabledChange = async (value: boolean) => {
-  try {
-    const response = await updateMemoryEnabled(value)
-    settings.value = response.data
-    userEnabled.value = response.data.user_enabled
-    MessagePlugin.success(
-      value ? t('memorySettings.toasts.enabled') : t('memorySettings.toasts.disabled'),
-    )
-  } catch (error: any) {
-    userEnabled.value = !value
-    MessagePlugin.error(t('memorySettings.toasts.saveFailed', { message: error?.message || '' }))
-  }
 }
 
 watch(addVisible, (visible) => {
@@ -930,6 +947,7 @@ onMounted(async () => {
 .settings-group {
   display: flex;
   flex-direction: column;
+  margin-bottom: 8px;
 }
 
 .setting-row {

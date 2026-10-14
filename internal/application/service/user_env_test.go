@@ -121,7 +121,7 @@ func newUserEnvFixture(t *testing.T) (*UserEnvService, *installSkillRepo) {
 		{ID: "cfg-2", TenantID: userEnvTenantID, Name: "Staging"},
 		{ID: "cfg-9", TenantID: 8, Name: "Theirs"},
 	}}
-	return NewUserEnvService(repo, configs), repo
+	return NewUserEnvService(repo, configs, nil), repo
 }
 
 func configByID(t *testing.T, groups []ConfigEnvGroup, configID string) ConfigEnvGroup {

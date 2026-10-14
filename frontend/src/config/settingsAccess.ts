@@ -34,6 +34,9 @@ export const SETTINGS_SECTION_MIN_ROLE: Record<string, SettingsRoleKey> = {
   memory: 'viewer',
   // Every member fills in their own environment variables; the workspace-wide
   // values stay on the Admin+ skills page.
+  // NOTE: superseded — 沙箱密钥 is now a platform-wide super-admin store
+  // (sandbox.global_env_vars). The page is gated to isSystemAdmin via
+  // SUPER_ADMIN_ONLY_SECTIONS below, so this viewer entry never takes effect.
   envvars: 'viewer',
 }
 
@@ -64,3 +67,15 @@ export const SYSTEM_ADMIN_SETTINGS_SECTIONS = new Set([
  * catalogue from KB / agent / memory pickers; they just cannot configure it.
  */
 export const GLOBAL_MODEL_ADMIN_SECTIONS = new Set(['models', 'ollama'])
+
+/**
+ * Sections that are a pure platform super-administrator concern and must not be
+ * visible to anyone else — not to workspace admins/owners, and not to
+ * cross-tenant superusers (canAccessAllTenants). Gated strictly on
+ * `isSystemAdmin`, mirroring the server-side RequireSystemAdmin guards.
+ *
+ * 沙箱密钥 moved here: a super admin configures one encrypted global secret
+ * store that every workspace's runs read from; members and workspace admins no
+ * longer see the page at all.
+ */
+export const SUPER_ADMIN_ONLY_SECTIONS = new Set(['envvars'])

@@ -121,6 +121,132 @@ func (v *SkillEnvVars) Scan(value interface{}) error {
 	return nil
 }
 
+// GlobalSandboxEnvVar is one platform-wide sandbox/skill secret the super admin
+// set. It is stored as a single encrypted JSON blob in the
+// sandbox.global_env_vars system setting and shared by every workspace; the
+// runtime resolver treats it as the sole source of injected values.
+type GlobalSandboxEnvVar struct {
+	Name      string    `json:"name"`
+	UpdatedAt time.Time `json:"updated_at"`
+	// Value is AES-GCM encrypted at rest by GlobalSandboxEnvVars.Value and
+	// decrypted by Scan. json:"-" makes it unserialisable by construction, so no
+	// response body can carry a secret by forgetting to strip it.
+	Value string `json:"-"`
+}
+
+// globalSandboxEnvVarRow is the on-blob shape of one entry. It exists only so
+// Value/Scan can persist the encrypted value while GlobalSandboxEnvVar itself
+// stays unserialisable.
+type globalSandboxEnvVarRow struct {
+	Name      string    `json:"name"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Value     string    `json:"value,omitempty"`
+}
+
+// GlobalSandboxEnvVars is the whole global list, stored as one JSON blob.
+// It follows the same driver.Valuer/sql.Scanner encryption pattern as
+// SkillEnvVars.
+type GlobalSandboxEnvVars []GlobalSandboxEnvVar
+
+// Value implements driver.Valuer, encrypting each value. The receiver is never
+// mutated: the caller holds plaintext.
+func (v GlobalSandboxEnvVars) Value() (driver.Value, error) {
+	if v == nil {
+		return nil, nil
+	}
+	rows := make([]globalSandboxEnvVarRow, len(v))
+	for i, entry := range v {
+		encrypted, err := encryptEnvValue(entry.Value)
+		if err != nil {
+			return nil, fmt.Errorf("encrypt sandbox.global_env_vars.%s: %w", entry.Name, err)
+		}
+		rows[i] = globalSandboxEnvVarRow{
+			Name:      entry.Name,
+			UpdatedAt: entry.UpdatedAt,
+			Value:     encrypted,
+		}
+	}
+	return json.Marshal(rows)
+}
+
+// Scan implements sql.Scanner. A value that cannot be decrypted (missing or
+// rotated SYSTEM_AES_KEY) is reported as unset rather than failing the load,
+// matching SkillEnvVars.Scan.
+func (v *GlobalSandboxEnvVars) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+	var b []byte
+	switch raw := value.(type) {
+	case []byte:
+		b = raw
+	case string:
+		b = []byte(raw)
+	default:
+		return nil
+	}
+	if len(b) == 0 {
+		return nil
+	}
+	var rows []globalSandboxEnvVarRow
+	if err := json.Unmarshal(b, &rows); err != nil {
+		return err
+	}
+	out := make(GlobalSandboxEnvVars, len(rows))
+	for i, row := range rows {
+		out[i] = GlobalSandboxEnvVar{
+			Name:      row.Name,
+			UpdatedAt: row.UpdatedAt,
+			Value:     decryptEnvValue("sandbox.global_env_vars", row.Name, row.Value),
+		}
+	}
+	*v = out
+	return nil
+}
+
+// MarshalGlobalSandboxEnv serialises the list into the encrypted JSON string
+// stored as the sandbox.global_env_vars system setting value.
+func MarshalGlobalSandboxEnv(v GlobalSandboxEnvVars) (string, error) {
+	raw, err := v.Value()
+	if err != nil {
+		return "", err
+	}
+	if raw == nil {
+		return "", nil
+	}
+	b, ok := raw.([]byte)
+	if !ok {
+		return "", fmt.Errorf("unexpected global env value type %T", raw)
+	}
+	return string(b), nil
+}
+
+// ParseGlobalSandboxEnv decrypts the stored blob back into plaintext values. An
+// empty blob yields an empty list. Undecryptable entries come back unset.
+func ParseGlobalSandboxEnv(raw string) (GlobalSandboxEnvVars, error) {
+	if raw == "" {
+		return GlobalSandboxEnvVars{}, nil
+	}
+	var v GlobalSandboxEnvVars
+	if err := v.Scan([]byte(raw)); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// PlainMap projects the list into the name -> value map the runtime resolver
+// injects. Unset (undecryptable or empty) entries are skipped so an unconfigured
+// variable is never injected as "".
+func (v GlobalSandboxEnvVars) PlainMap() map[string]string {
+	out := make(map[string]string, len(v))
+	for _, entry := range v {
+		if entry.Value != "" {
+			out[entry.Name] = entry.Value
+		}
+	}
+	return out
+}
+
 // TenantUserEnvVar is one principal's own environment variable.
 //
 // An empty SkillID means the variable belongs to the whole sandbox config and

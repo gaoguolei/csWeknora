@@ -551,6 +551,7 @@ func BuildContainer(container *dig.Container) *dig.Container {
 		return handler.NewSandboxSkillHandler(s, streams)
 	}))
 	must(container.Provide(handler.NewMeEnvVarHandler))
+	must(container.Provide(handler.NewSystemSandboxEnvHandler))
 	must(container.Provide(handler.NewEvaluationHandler))
 	must(container.Provide(handler.NewInitializationHandler))
 	must(container.Provide(handler.NewAuthHandler))

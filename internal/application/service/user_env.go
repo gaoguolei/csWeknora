@@ -10,6 +10,7 @@ import (
 	"github.com/Tencent/WeKnora/internal/application/repository"
 	apperrors "github.com/Tencent/WeKnora/internal/errors"
 	"github.com/Tencent/WeKnora/internal/types"
+	"github.com/Tencent/WeKnora/internal/types/interfaces"
 )
 
 // Where the value a skill would actually receive comes from. The three states
@@ -66,13 +67,17 @@ type ConfigEnvGroup struct {
 type UserEnvService struct {
 	skills  repository.TenantSkillRepository
 	configs repository.TenantSandboxConfigRepository
+	// systemSettingSvc backs the platform-wide global sandbox secrets
+	// (sandbox.global_env_vars). It is unused by the per-member /me surface.
+	systemSettingSvc interfaces.SystemSettingService
 }
 
 func NewUserEnvService(
 	skills repository.TenantSkillRepository,
 	configs repository.TenantSandboxConfigRepository,
+	systemSettingSvc interfaces.SystemSettingService,
 ) *UserEnvService {
-	return &UserEnvService{skills: skills, configs: configs}
+	return &UserEnvService{skills: skills, configs: configs, systemSettingSvc: systemSettingSvc}
 }
 
 // caller resolves whose values this call may touch. A missing principal is an
@@ -473,4 +478,131 @@ func (s *UserEnvService) findVisibleSkill(
 // skill mid-upgrade still runs its previous version, so it still counts.
 func skillAcceptsUserEnvs(row *types.TenantSkillEntity) bool {
 	return row != nil && row.Enabled && row.ServedView() != nil
+}
+
+// ---------------------------------------------------------------------------
+// Platform-wide global sandbox secrets (super-admin only).
+//
+// Unlike the /me surface these are one encrypted store shared by every
+// workspace; the runtime resolver treats them as the sole source of injected
+// values. Values are encrypted at rest and never read back out.
+// ---------------------------------------------------------------------------
+
+// GlobalEnvKey is the system setting that holds the encrypted global list.
+const GlobalEnvKey = "sandbox.global_env_vars"
+
+// globalEnvEnvName is the legacy ENV fallback for the global list.
+const globalEnvEnvName = "WEKNORA_SANDBOX_GLOBAL_ENV_VARS"
+
+// GlobalEnvView is one platform-wide secret as the super admin may see it. There
+// is deliberately no value field: only whether it is set and when it changed.
+type GlobalEnvView struct {
+	Name      string     `json:"name"`
+	HasValue  bool       `json:"has_value"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+}
+
+// readGlobal loads and decrypts the current global list. A nil service or an
+// unset setting yields an empty list.
+func (s *UserEnvService) readGlobal(ctx context.Context) (types.GlobalSandboxEnvVars, error) {
+	raw := ""
+	if s.systemSettingSvc != nil {
+		raw = s.systemSettingSvc.GetString(ctx, GlobalEnvKey, globalEnvEnvName, "")
+	}
+	return types.ParseGlobalSandboxEnv(raw)
+}
+
+// writeGlobal re-encrypts and persists the whole list through the settings
+// service (which validates the key against the registry and audits the change).
+func (s *UserEnvService) writeGlobal(ctx context.Context, list types.GlobalSandboxEnvVars) error {
+	if s.systemSettingSvc == nil {
+		return apperrors.NewInternalServerError("system settings are unavailable")
+	}
+	blob, err := types.MarshalGlobalSandboxEnv(list)
+	if err != nil {
+		return err
+	}
+	_, err = s.systemSettingSvc.Update(ctx, GlobalEnvKey, blob)
+	return err
+}
+
+// ListGlobal returns every global secret as a name + set/unset + updated_at
+// view, ordered by name. Values are never included.
+func (s *UserEnvService) ListGlobal(ctx context.Context) ([]GlobalEnvView, error) {
+	list, err := s.readGlobal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	views := make([]GlobalEnvView, 0, len(list))
+	for _, entry := range list {
+		view := GlobalEnvView{Name: entry.Name, HasValue: entry.Value != ""}
+		if !entry.UpdatedAt.IsZero() {
+			updated := entry.UpdatedAt
+			view.UpdatedAt = &updated
+		}
+		views = append(views, view)
+	}
+	sort.Slice(views, func(i, j int) bool { return views[i].Name < views[j].Name })
+	return views, nil
+}
+
+// SetGlobal stores or rotates one global secret. A blank value is refused: clearing
+// is a delete, so there is one unambiguous way to revoke.
+func (s *UserEnvService) SetGlobal(ctx context.Context, name, value string) error {
+	name = strings.TrimSpace(name)
+	if err := validateUserEnvName(name); err != nil {
+		return apperrors.NewBadRequestError(err.Error())
+	}
+	if value == "" {
+		return apperrors.NewBadRequestError(
+			fmt.Sprintf("a value is required; delete %s to clear it", name))
+	}
+	if len(value) > MaxEnvValueBytes {
+		return apperrors.NewBadRequestError(
+			fmt.Sprintf("value of %s cannot exceed %d bytes", name, MaxEnvValueBytes))
+	}
+	list, err := s.readGlobal(ctx)
+	if err != nil {
+		return err
+	}
+	now := time.Now().UTC()
+	replaced := false
+	for i := range list {
+		if list[i].Name == name {
+			list[i].Value = value
+			list[i].UpdatedAt = now
+			replaced = true
+			break
+		}
+	}
+	if !replaced {
+		list = append(list, types.GlobalSandboxEnvVar{Name: name, Value: value, UpdatedAt: now})
+	}
+	return s.writeGlobal(ctx, list)
+}
+
+// DeleteGlobal removes one global secret. Deleting a name that is not set is a
+// not-found so the caller learns the entry was already gone.
+func (s *UserEnvService) DeleteGlobal(ctx context.Context, name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return apperrors.NewBadRequestError("name is required")
+	}
+	list, err := s.readGlobal(ctx)
+	if err != nil {
+		return err
+	}
+	out := make(types.GlobalSandboxEnvVars, 0, len(list))
+	found := false
+	for _, entry := range list {
+		if entry.Name == name {
+			found = true
+			continue
+		}
+		out = append(out, entry)
+	}
+	if !found {
+		return types.ErrEnvVarNotFound
+	}
+	return s.writeGlobal(ctx, out)
 }

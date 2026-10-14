@@ -16,6 +16,18 @@ export const INTEGRATION_TAB_MIN_ROLE: Partial<Record<IntegrationTab, Integratio
   api: 'owner',
 }
 
+/**
+ * Integration tabs that are a pure platform super-administrator concern. Unlike
+ * the per-tenant role ladder in INTEGRATION_TAB_MIN_ROLE, these are gated
+ * strictly on `isSystemAdmin` — cross-tenant superusers (canAccessAllTenants)
+ * do NOT bypass them, mirroring how GLOBAL_MODEL_ADMIN_SECTIONS / 
+ * SUPER_ADMIN_ONLY_SECTIONS gate the model / sandbox-secret pages.
+ *
+ * chrome: 浏览器插件的 API 凭证下发收归平台超管统一配置，普通用户与空间
+ * owner/admin 不再看到该引导页。
+ */
+export const SYSTEM_ADMIN_INTEGRATION_TABS = new Set<IntegrationTab>(['chrome'])
+
 export const INTEGRATION_TAB_CAPABILITY: Partial<Record<IntegrationTab, DeploymentCapabilityKey>> = {
   im: 'integrations.im',
   embed: 'integrations.embed',

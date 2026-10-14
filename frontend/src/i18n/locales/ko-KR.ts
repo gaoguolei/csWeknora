@@ -5275,7 +5275,9 @@ export default {
   memorySettings: {
     title: '내 기억',
     description: '어시스턴트가 대화를 넘어 기억하고 있는 내용입니다. 언제든지 확인, 수정, 삭제할 수 있으며 삭제한 기억은 다시 사용되지 않습니다.',
-    workspaceDisabled: '이 워크스페이스에서는 장기 기억이 꺼져 있습니다. 관리자가 켜야 이 스위치가 적용됩니다.',
+    workspaceDisabled: '장기 기억 기능이 비활성화되어 있습니다. 플랫폼 관리자가 활성화하면 여기서 기억을 확인하고 관리할 수 있습니다.',
+    enableGlobalLabel: '장기 기억 활성화',
+    enableGlobalDescription: '켜면 플랫폼의 모든 워크스페이스에서 장기 기억을 사용할 수 있습니다. 끄면 각 워크스페이스의 「내 기억」과 에이전트 장기 기억이 비활성화됩니다. 플랫폼 슈퍼 관리자만 설정할 수 있습니다.',
     enableLabel: '내 장기 기억 사용',
     enableDescription: '끄면 어시스턴트가 기억을 읽거나 추가하지 않습니다. 기존 기억은 유지되며 다시 켜면 계속 사용됩니다.',
     agentDisabledHint: '개별 에이전트도 장기 기억을 따로 끌 수 있습니다. 꺼 둔 에이전트와의 대화에서는 기억을 읽지도 추가하지도 않으며, 다른 에이전트는 영향을 받지 않습니다.',
@@ -5413,12 +5415,12 @@ export default {
   },
   envVarSettings: {
     title: '샌드박스 키',
-    description: '스킬과 샌드박스에 쓰는 개인 키이며, WeKnora 시스템이나 배포 설정이 아닙니다.',
+    description: '슈퍼 관리자가 플랫폼 전체를 위해 한 번 설정하는 암호화 키이며, 모든 워크스페이스의 스킬과 샌드박스 실행 시 기본적으로 사용됩니다.',
     helpAria: '샌드박스 키 설명',
-    introPersonalTitle: '나만의 값',
-    introPersonalBody: '내 대화와 실행에만 주입됩니다. 다른 구성원은 볼 수 없고, 그들의 값이 내 값을 대체하지도 않습니다.',
+    introGlobalTitle: '플랫폼 공용 저장소',
+    introGlobalBody: '슈퍼 관리자가 한 번 설정하고 암호화하여 보관합니다. 모든 워크스페이스의 스킬과 샌드박스 실행에 적용되며, 구성원과 워크스페이스 관리자는 더 이상 개별 설정하지 않고 실행 시 항상 이 값을 사용합니다.',
     introRuntimeTitle: '실행할 때만 전달',
-    introRuntimeBody: '스킬이 실행되거나 해당 샌드박스에서 명령을 실행할 때 주입됩니다. 대화에서 바로 제공할 수도 있습니다. 저장한 뒤에는 다시 표시되지 않습니다.',
+    introRuntimeBody: '스킬이 실행되거나 샌드박스에서 명령을 실행할 때 주입됩니다. 저장한 뒤에는 다시 표시되지 않으며 새 값으로만 덮어쓸 수 있습니다.',
     loading: '불러오는 중…',
     loadFailed: '샌드박스 키를 불러오지 못했습니다.',
     retry: '다시 시도',
@@ -5460,7 +5462,14 @@ export default {
     clear: '내 값 삭제',
     clearConfirm: '{name}에 설정한 내 값을 삭제할까요? 이후에는 워크스페이스 공용 값이 있으면 다시 적용됩니다.',
     clearSuccess: '내 값을 삭제했습니다.',
-    updatedAt: '{time}에 설정함'
+    secretListTitle: '전역 키',
+    globalHint: '모든 워크스페이스와 사용자가 실행 시 기본적으로 사용하는 키입니다. 저장한 값은 다시 표시되지 않으며 새 값으로만 덮어쓸 수 있습니다.',
+    addSecret: '새 키',
+    hasValue: '설정됨',
+    noValue: '미설정',
+    globalEmptyTitle: '아직 전역 키가 없습니다',
+    globalEmptyDesc: '“새 키”를 클릭하여 이름과 값을 추가하세요. 저장하면 모든 워크스페이스에서 기본적으로 사용됩니다.',
+    updatedAt: '{time}에 업데이트'
   },
   memoryWorkspaceSettings: {
     title: '장기 기억',

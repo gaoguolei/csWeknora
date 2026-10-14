@@ -2972,7 +2972,7 @@ export default {
     selectTheme: "选择主题",
   },
   general: {
-    title: "常规设置",
+    title: "外观设置",
     allSettings: "全部设置",
     personalSettings: "个人设置",
     helpAndDocs: "帮助与文档",
@@ -5656,7 +5656,10 @@ export default {
     description:
       "这里是助手跨会话记住的关于你的内容。你可以随时查看、修改和删除，删除后不会再被使用。",
     workspaceDisabled:
-      "当前空间尚未开启长期记忆，管理员开启后这里的开关才会生效。",
+      "长期记忆功能未启用，平台管理员开启后可在此查看和管理你的记忆。",
+    enableGlobalLabel: "启用长期记忆",
+    enableGlobalDescription:
+      "开启后全平台所有工作空间都可使用长期记忆；关闭后各空间的「我的记忆」与智能体长期记忆均停用。仅平台超级管理员可设置。",
     enableLabel: "为我启用长期记忆",
     enableDescription:
       "关闭后助手不再读取或新增你的记忆，已有记忆会保留，重新开启即可继续使用。",
@@ -5809,14 +5812,14 @@ export default {
   },
   envVarSettings: {
     title: "沙箱密钥",
-    description: "给技能和沙箱用的个人密钥，不是 WeKnora 的系统或部署配置。",
+    description: "由超级管理员全平台统一配置的加密密钥，所有空间的技能与沙箱运行时默认使用。",
     helpAria: "沙箱密钥说明",
-    introPersonalTitle: "只属于你",
-    introPersonalBody:
-      "只注入到你自己的对话和执行里，空间里的其他人看不到，也不会改成他们的值。",
+    introGlobalTitle: "全平台统一密钥",
+    introGlobalBody:
+      "由超级管理员统一配置，值以加密方式保存，对所有工作空间的技能与沙箱运行时生效；成员与空间管理员都不再单独设置，运行时一律使用这里的值。",
     introRuntimeTitle: "用的时候才带上",
     introRuntimeBody:
-      "技能运行或在沙箱里执行命令时才会注入；对话里也可以当场提供。保存后不再显示明文。",
+      "技能运行或在沙箱里执行命令时才会注入。保存后不再显示明文，只能覆盖成新值。",
     loading: "加载中…",
     loadFailed: "沙箱密钥加载失败。",
     retry: "重试",
@@ -5862,7 +5865,14 @@ export default {
     clearConfirm:
       "清除你为 {name} 设置的值？之后会重新使用空间共用值（如果有）。",
     clearSuccess: "已清除你的值。",
-    updatedAt: "你于 {time} 设置",
+    secretListTitle: "全局密钥",
+    globalHint: "所有空间与用户运行时默认使用的密钥。值保存后不再显示，只能覆盖成新值。",
+    addSecret: "新建密钥",
+    hasValue: "已设置",
+    noValue: "未设置",
+    globalEmptyTitle: "还没有全局密钥",
+    globalEmptyDesc: "点击「新建密钥」添加名称与值；保存后所有空间都会默认使用它。",
+    updatedAt: "更新于 {time}",
   },
   memoryWorkspaceSettings: {
     title: "长期记忆",

@@ -6,42 +6,33 @@ import (
 	"github.com/Tencent/WeKnora/internal/types"
 )
 
-// userEnvReader is the slice of the repository this resolver needs. Narrowing it
-// keeps the resolver testable without a database and makes the queries it
-// issues per execution visible in the type.
-type userEnvReader interface {
-	ListUserEnvVars(
-		ctx context.Context, tenantID uint64, p types.Principal, configID, skillID string,
-	) ([]*types.TenantUserEnvVar, error)
-}
-
 // userEnvResolver answers skills.SkillEnvResolver from the skill rows this turn
-// already loaded plus the caller's own values.
+// already loaded plus the platform-wide global secrets the super admin set.
+//
+// Long-term memory of the per-workspace admin values and per-member overrides
+// was retired in favour of a single global store: the resolver now injects only
+// the global values, so every workspace and every user runs with the same
+// super-admin-configured credentials.
 type userEnvResolver struct {
 	// byName indexes the rows by the name the model addresses skills with.
-	byName   map[string]*types.TenantSkillEntity
-	userEnvs userEnvReader
+	byName map[string]*types.TenantSkillEntity
 	// containerEnv is the sandbox config's env_vars, already loaded by the
 	// caller. They were baked into the container at creation and only
 	// participate in the required check — they are not copied into the
 	// per-exec map.
 	containerEnv map[string]string
-	// tenantID and configID are the scope the rows came from, not whatever the
-	// context happens to hold, so a lookup cannot resolve into another
-	// workspace or another config.
-	tenantID uint64
-	configID string
+	// globalEnv is the decrypted platform-wide name -> value map from
+	// sandbox.global_env_vars. It is the sole source of injected values.
+	globalEnv map[string]string
 }
 
 // NewUserEnvResolver builds the resolver for one agent run. rows are this run's
-// installed skills, already carrying their declarations and admin values; they
-// may be empty, in which case only config-wide variables are resolved.
+// installed skills, already carrying their declarations; they may be empty, in
+// which case only the global config-wide variables are resolved.
 func NewUserEnvResolver(
 	rows []*types.TenantSkillEntity,
-	userEnvs userEnvReader,
 	containerEnv map[string]string,
-	tenantID uint64,
-	configID string,
+	globalEnv map[string]string,
 ) *userEnvResolver {
 	byName := make(map[string]*types.TenantSkillEntity, len(rows))
 	for _, row := range rows {
@@ -51,53 +42,37 @@ func NewUserEnvResolver(
 	}
 	return &userEnvResolver{
 		byName:       byName,
-		userEnvs:     userEnvs,
 		containerEnv: containerEnv,
-		tenantID:     tenantID,
-		configID:     configID,
+		globalEnv:    globalEnv,
 	}
 }
 
-// ResolveEnv layers the sources in a fixed order, each overwriting the last:
-// the admin's workspace-wide skill values, then this caller's config-wide
-// variables, then this caller's values for that skill. Mine beat the
-// workspace's; among mine, the skill-specific one beats the config-wide one.
+// ResolveEnv injects the global values. When a skill is named, only the names it
+// declared are taken from the global store, so an unrelated secret is not handed
+// to a skill that never asked for it. When no skill is named (shell_exec, or an
+// unknown name whose host-staged skill carries no declaration), every global
+// value is injected as the config-wide analog.
 //
-// An empty skillName resolves only the config-wide variables, which is what
-// shell_exec gets when the model names no skill. An unknown name behaves the
-// same way: host-staged skills carry no declaration.
-//
-// Sandbox-config env_vars (baked into the container at creation) are not in
-// that overlay. They still satisfy a required declaration so a key filled in
-// before the sandbox was created is not reported as unset.
+// Sandbox-config env_vars (baked into the container at creation) are not
+// injected — they were set before the sandbox existed and only satisfy a required
+// declaration so a key filled in earlier is not reported as unset.
 func (r *userEnvResolver) ResolveEnv(
-	ctx context.Context, skillName string,
+	_ context.Context, skillName string,
 ) (map[string]string, []string, error) {
-	// The identity is the Principal from the context and nothing else. A user
-	// id would give every IM caller in a workspace the same synthetic account
-	// and therefore the same values.
-	principal, hasPrincipal := types.PrincipalFromContext(ctx)
-	canReadMine := hasPrincipal && r.userEnvs != nil
-
 	env := map[string]string{}
 	row := r.byName[skillName]
 	if row != nil {
 		for _, declared := range row.Envs {
-			// An empty admin value means unset; injecting it would make an
+			// An empty global value means unset; injecting it would make an
 			// unconfigured variable indistinguishable from one set to "".
-			if declared.Value != "" {
-				env[declared.Name] = declared.Value
+			if value := r.globalEnv[declared.Name]; value != "" {
+				env[declared.Name] = value
 			}
 		}
-	}
-
-	if canReadMine {
-		if err := r.overlayMine(ctx, principal, "", env); err != nil {
-			return nil, nil, err
-		}
-		if row != nil {
-			if err := r.overlayMine(ctx, principal, row.ID, env); err != nil {
-				return nil, nil, err
+	} else {
+		for name, value := range r.globalEnv {
+			if value != "" {
+				env[name] = value
 			}
 		}
 	}
@@ -111,23 +86,4 @@ func (r *userEnvResolver) ResolveEnv(
 		}
 	}
 	return env, missing, nil
-}
-
-// overlayMine writes the caller's own values for one scope over env. A failure
-// is never degraded to the admin value: running a skill with somebody else's
-// key is worse than not running it.
-func (r *userEnvResolver) overlayMine(
-	ctx context.Context, principal types.Principal, skillID string, env map[string]string,
-) error {
-	owned, err := r.userEnvs.ListUserEnvVars(ctx, r.tenantID, principal, r.configID, skillID)
-	if err != nil {
-		return err
-	}
-	for _, value := range owned {
-		if value == nil || value.Value == "" {
-			continue
-		}
-		env[value.Name] = value.Value
-	}
-	return nil
 }

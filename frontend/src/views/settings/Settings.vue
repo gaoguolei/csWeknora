@@ -361,11 +361,13 @@ import {
   INTEGRATION_PREVIEW_ITEMS,
   INTEGRATION_TAB_CAPABILITY,
   INTEGRATION_TAB_MIN_ROLE,
+  SYSTEM_ADMIN_INTEGRATION_TABS,
 } from "@/config/integrations";
 import {
   SETTINGS_SECTION_MIN_ROLE,
   SYSTEM_ADMIN_SETTINGS_SECTIONS,
   GLOBAL_MODEL_ADMIN_SECTIONS,
+  SUPER_ADMIN_ONLY_SECTIONS,
 } from "@/config/settingsAccess";
 import { SETTINGS_SECTION_CAPABILITY } from "@/config/deploymentCapabilities";
 import { SKILL_ICON } from "@/types/mention";
@@ -464,7 +466,13 @@ const isSectionSupported = (key: string): boolean => {
 
 const canSeeSection = (key: string): boolean => {
   if (isIntegrationSection(key)) {
-    const min = INTEGRATION_TAB_MIN_ROLE[integrationTabFromSection(key)];
+    const tab = integrationTabFromSection(key);
+    // Chrome 插件等已收归平台超管专属：仅 isSystemAdmin 可见，
+    // canAccessAllTenants(跨空间超管)不 bypass，与 models / envvars 对齐。
+    if (SYSTEM_ADMIN_INTEGRATION_TABS.has(tab)) {
+      return authStore.isSystemAdmin;
+    }
+    const min = INTEGRATION_TAB_MIN_ROLE[tab];
     if (!min) return true;
     if (authStore.canAccessAllTenants) return true;
     return authStore.hasRole(min);
@@ -475,6 +483,11 @@ const canSeeSection = (key: string): boolean => {
   // 模型 / Ollama 配置已彻底收回到平台超级管理员：仅 isSystemAdmin 可见,
   // canAccessAllTenants(跨空间超管)不 bypass,与服务端 RequireSystemAdmin 对齐。
   if (GLOBAL_MODEL_ADMIN_SECTIONS.has(key)) {
+    return authStore.isSystemAdmin;
+  }
+  // 沙箱密钥是平台级超管统一配置的加密密钥库：仅 isSystemAdmin 可见，
+  // canAccessAllTenants(跨空间超管)不 bypass，与服务端 RequireSystemAdmin 对齐。
+  if (SUPER_ADMIN_ONLY_SECTIONS.has(key)) {
     return authStore.isSystemAdmin;
   }
   const min = SETTINGS_SECTION_MIN_ROLE[key] ?? "viewer";

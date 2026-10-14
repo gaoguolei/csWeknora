@@ -347,3 +347,21 @@ func RegisterSystemAdminRoutes(
 		}
 	}
 }
+
+// RegisterSystemSandboxEnvRoutes wires the platform-wide global sandbox secrets
+// under /system/admin/sandbox-env. These are gated to SystemAdmin: a super admin
+// sets one encrypted store that every workspace's runs read from, so no per-tenant
+// role applies. h may be nil in environments built without the dependency wired.
+func RegisterSystemSandboxEnvRoutes(
+	r *gin.RouterGroup, h *handler.SystemSandboxEnvHandler, g *rbacGuards,
+) {
+	if h == nil {
+		return
+	}
+	grp := r.Group("/system/admin", g.SystemAdmin())
+	{
+		grp.GET("/sandbox-env", h.List)
+		grp.PUT("/sandbox-env", h.Set)
+		grp.DELETE("/sandbox-env", h.Delete)
+	}
+}

@@ -269,6 +269,18 @@ var registry = map[string]settingSpec{
 		Description: "全平台长期记忆配置(JSON)。由超级管理员统一设定，对所有工作空间生效；" +
 			"enabled=false 时所有空间的「我的记忆」与智能体长记忆一并关闭。",
 	},
+	// sandbox.global_env_vars: platform-wide sandbox/skill secrets, carried as a
+	// single encrypted JSON blob. Chosen once by a super admin and injected into
+	// every workspace's skill and sandbox runs; individual values are AES-GCM
+	// encrypted at rest and never read back out. Read by the runtime env resolver
+	// as its sole source of injected values.
+	"sandbox.global_env_vars": {
+		Type:        "string",
+		EnvName:     "WEKNORA_SANDBOX_GLOBAL_ENV_VARS",
+		Default:     "",
+		Category:    "tenant",
+		Description: "全平台沙箱/技能密钥(JSON，值已加密)。由超级管理员统一设定，所有空间与用户默认使用。",
+	},
 	"asynq.core_concurrency": {
 		Type:            "int",
 		EnvName:         "WEKNORA_ASYNQ_CORE_CONCURRENCY",

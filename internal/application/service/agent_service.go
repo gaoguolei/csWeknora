@@ -111,6 +111,7 @@ type agentService struct {
 	tenantService        interfaces.TenantService
 	messageService       interfaces.MessageService
 	memoryService        interfaces.MemoryService
+	systemSettingSvc     interfaces.SystemSettingService
 	storageResolver      interfaces.StorageBackendResolver
 	toolApprovalGate     approval.MCPApproval
 	sandboxMgr           sandbox.Manager
@@ -138,6 +139,7 @@ func NewAgentService(
 	tenantService interfaces.TenantService,
 	messageService interfaces.MessageService,
 	memoryService interfaces.MemoryService,
+	systemSettingSvc interfaces.SystemSettingService,
 	storageResolver interfaces.StorageBackendResolver,
 	toolApprovalGate approval.MCPApproval,
 	sandboxMgr sandbox.Manager,
@@ -167,6 +169,7 @@ func NewAgentService(
 		tenantService:        tenantService,
 		messageService:       messageService,
 		memoryService:        memoryService,
+		systemSettingSvc:     systemSettingSvc,
 		storageResolver:      storageResolver,
 		toolApprovalGate:     toolApprovalGate,
 		sandboxMgr:           sandboxMgr,
@@ -760,15 +763,15 @@ func (s *agentService) loadInstalledSkillBundle(
 	return archive, nil
 }
 
-// userEnvResolver builds the per-caller environment resolver for this run, or
-// nil when there is no sandbox config to resolve against.
+// userEnvResolver builds the environment resolver for this run, or nil when
+// there is no sandbox config to resolve against.
 //
-// It is built even when the run has no installed skills: the caller's
-// config-wide variables are injected into every execution, skills or not.
+// It is built even when the run has no installed skills: the platform-wide
+// global values are injected into every execution, skills or not.
 //
-// The repository is constructed from s.db here rather than injected:
-// NewAgentService already takes 23 parameters, and this is the only place in
-// the agent path that touches the user env table.
+// The sandbox config's create-time env_vars are read from s.db here rather than
+// injected: NewAgentService already takes many parameters, and this is the only
+// place in the agent path that needs them (for the required check).
 func (s *agentService) userEnvResolver(
 	ctx context.Context, config *types.AgentConfig,
 ) skills.SkillEnvResolver {
@@ -779,8 +782,8 @@ func (s *agentService) userEnvResolver(
 	rows := config.TenantSkills
 	if s.db == nil {
 		// Unreachable in production, but a wiring regression here would drop
-		// every admin and user value silently and present to a member as "my
-		// key stopped working" with nothing in the logs.
+		// the create-time env the required check relies on and present to a
+		// member as "my key stopped working" with nothing in the logs.
 		logger.Warnf(ctx,
 			"[skill] no database handle: sandbox config %s will run without "+
 				"any configured environment variable", configID)
@@ -799,10 +802,26 @@ func (s *agentService) userEnvResolver(
 	}
 	return NewUserEnvResolver(
 		rows,
-		repository.NewTenantSkillRepository(s.db),
 		sandboxCreateTimeEnvVars(ctx, s.db, tenantID, configID),
-		tenantID, configID,
+		s.globalSandboxEnv(ctx),
 	)
+}
+
+// globalSandboxEnv reads and decrypts the platform-wide secret store
+// (sandbox.global_env_vars) that the resolver injects. A missing service or an
+// unreadable blob degrades to empty so a run simply gets no injected values
+// rather than failing; the required check then reports what is missing.
+func (s *agentService) globalSandboxEnv(ctx context.Context) map[string]string {
+	if s.systemSettingSvc == nil {
+		return nil
+	}
+	raw := s.systemSettingSvc.GetString(ctx, GlobalEnvKey, globalEnvEnvName, "")
+	list, err := types.ParseGlobalSandboxEnv(raw)
+	if err != nil {
+		logger.Warnf(ctx, "[skill] parse global sandbox env failed: %v", err)
+		return nil
+	}
+	return list.PlainMap()
 }
 
 // sandboxCreateTimeEnvVars loads the config's env_vars once per agent run for
@@ -845,6 +864,7 @@ func (s *agentService) skillEnvCapture(config *types.AgentConfig) tools.SkillEnv
 		svc := NewUserEnvService(
 			repository.NewTenantSkillRepository(s.db),
 			repository.NewTenantSandboxConfigRepository(s.db),
+			nil,
 		)
 		if err := svc.CaptureSkillEnv(ctx, configID, skillName, pairs); err != nil {
 			logger.Warnf(ctx, "[skill] capture env for %s failed: %v", skillName, err)
