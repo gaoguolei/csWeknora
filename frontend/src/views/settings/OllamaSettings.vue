@@ -1,5 +1,5 @@
 <template>
-  <div v-if="authStore.isSystemAdmin" class="ollama-settings">
+  <div v-if="authStore.isOperationsAdmin" class="ollama-settings">
     <div class="section-header">
       <h2>{{ $t('ollamaSettings.title') }}</h2>
       <p class="section-description">{{ $t('ollamaSettings.description') }}</p>
@@ -366,9 +366,10 @@ const initOllamaBaseUrl = async () => {
 
 // 组件挂载时自动检查连接
 onMounted(async () => {
-  // Defensive deep-link guard: the Ollama endpoints are SystemAdmin-only, so
-  // skip every probe for non-admins (their UI is replaced by an empty state).
-  if (!authStore.isSystemAdmin) return
+  // Defensive deep-link guard: the Ollama settings page is operations-admin
+  // only, so skip every probe for non-operations-admins (their UI is replaced
+  // by an empty state).
+  if (!authStore.isOperationsAdmin) return
   // 初始化服务地址，如果启用则直接使用返回的状态，避免重复调用
   await initOllamaBaseUrl()
 })

@@ -83,6 +83,12 @@ const (
 	LangfuseTraceContextKey ContextKey = "LangfuseTrace"
 	// SystemAdminContextKey is the context key indicating whether the user is a system administrator
 	SystemAdminContextKey ContextKey = "SystemAdmin"
+	// OperationsAdminContextKey is the context key indicating whether the user
+	// is an operations administrator (a level above system administrator).
+	// Distinct from SystemAdminContextKey: the auth layer folds operations
+	// admins into SystemAdminContextKey too (so they inherit all system-admin
+	// privileges), while this key gates the operations-admin-only surface.
+	OperationsAdminContextKey ContextKey = "OperationsAdmin"
 	// BackgroundTaskContextKey marks a context whose model calls originate from
 	// an asynq background worker (document parse / summary / question / graph /
 	// multimodal enrichment) rather than a user-facing HTTP request. The chat

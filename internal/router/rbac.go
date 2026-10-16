@@ -438,6 +438,13 @@ func (g *rbacGuards) SystemAdmin() gin.HandlerFunc {
 	return middleware.RequireSystemAdmin(g.cfg)
 }
 
+// OperationsAdmin gates the operations-admin-only surface (granting/revoking
+// the operations-admin role). Operations admins also satisfy SystemAdmin(),
+// since they inherit every system-admin privilege.
+func (g *rbacGuards) OperationsAdmin() gin.HandlerFunc {
+	return middleware.RequireOperationsAdmin(g.cfg)
+}
+
 // Ownership-or-role guards. Required role here is the privilege level
 // that bypasses the ownership check; Contributors ALWAYS pass when they
 // own the resource.

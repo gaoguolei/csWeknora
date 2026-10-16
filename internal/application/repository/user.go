@@ -17,6 +17,9 @@ var (
 	ErrCannotRevokeSelf   = errors.New("cannot revoke your own system admin privileges")
 	ErrLastSystemAdmin    = errors.New("cannot revoke the last remaining system administrator")
 	ErrUserNotSystemAdmin = errors.New("user is not a system administrator")
+	// Operations-admin variants (role one level above system admin).
+	ErrLastOperationsAdmin    = errors.New("cannot revoke the last remaining operations administrator")
+	ErrUserNotOperationsAdmin = errors.New("user is not an operations administrator")
 )
 
 // userRepository implements user repository interface
@@ -248,6 +251,96 @@ func (r *userRepository) RevokeSystemAdmin(ctx context.Context, userID, actorID 
 	// but emits an audit row with changed=false so a probing pattern
 	// ("revoke every random user id we know") still leaves a trail.
 	if errors.Is(err, ErrUserNotSystemAdmin) {
+		return revoked, err
+	}
+	if err != nil {
+		return nil, err
+	}
+	return revoked, nil
+}
+
+// ListOperationsAdmins lists users where is_operations_admin = true,
+// newest first. Mirrors ListSystemAdmins; walks idx_users_is_operations_admin.
+func (r *userRepository) ListOperationsAdmins(ctx context.Context, offset, limit int) ([]*types.User, int64, error) {
+	var users []*types.User
+	var total int64
+
+	base := r.db.WithContext(ctx).Model(&types.User{}).Where("is_operations_admin = ?", true)
+	if err := base.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	query := base.Order("created_at DESC, id ASC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+	if err := query.Find(&users).Error; err != nil {
+		return nil, 0, err
+	}
+	return users, total, nil
+}
+
+// RevokeOperationsAdmin revokes operations-admin privileges inside a
+// transaction, mirroring RevokeSystemAdmin's safety guards: the actor cannot
+// revoke their own privileges, and the last remaining operations admin cannot
+// be revoked (which would strand the platform with no way to manage the role).
+//
+// Return contract:
+//   - (user, nil): revoke actually happened; user.IsOperationsAdmin == false
+//   - (user, ErrUserNotOperationsAdmin): target was already not an operations
+//     admin; no row written (idempotent success for the handler).
+//   - (nil, ErrCannotRevokeSelf | ErrLastOperationsAdmin | ErrUserNotFound | …):
+//     hard rejection; no row written.
+func (r *userRepository) RevokeOperationsAdmin(ctx context.Context, userID, actorID string) (*types.User, error) {
+	if userID == actorID {
+		return nil, ErrCannotRevokeSelf
+	}
+
+	var revoked *types.User
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		locking := func(db *gorm.DB) *gorm.DB {
+			switch tx.Dialector.Name() {
+			case "postgres", "mysql":
+				return db.Clauses(clause.Locking{Strength: "UPDATE"})
+			default:
+				return db
+			}
+		}
+		var user types.User
+		if err := locking(tx).
+			Where("id = ?", userID).
+			First(&user).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrUserNotFound
+			}
+			return err
+		}
+		if !user.IsOperationsAdmin {
+			revoked = &user
+			return ErrUserNotOperationsAdmin
+		}
+
+		var admins []types.User
+		if err := locking(tx).
+			Where("is_operations_admin = ?", true).
+			Find(&admins).Error; err != nil {
+			return err
+		}
+		if len(admins) <= 1 {
+			return ErrLastOperationsAdmin
+		}
+
+		user.IsOperationsAdmin = false
+		if err := tx.Save(&user).Error; err != nil {
+			return err
+		}
+		revoked = &user
+		return nil
+	})
+	if errors.Is(err, ErrUserNotOperationsAdmin) {
 		return revoked, err
 	}
 	if err != nil {

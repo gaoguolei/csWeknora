@@ -54,7 +54,7 @@
                 <div class="landing-step-title">{{ $t(`integrations.chrome.steps.${step}.title`) }}</div>
                 <p class="landing-step-desc">{{ $t(`integrations.chrome.steps.${step}.desc`) }}</p>
                 <t-button
-                  v-if="step === 'api'"
+                  v-if="step === 'api' && canOpenApiSettings"
                   size="small"
                   variant="outline"
                   class="landing-step-action"
@@ -89,16 +89,19 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { copyWithToast } from '@/utils/clipboard'
 import { useRouter } from 'vue-router'
-import { CHROME_EXTENSION_URL } from '@/config/integrations'
+import { CHROME_EXTENSION_URL, INTEGRATION_TAB_MIN_ROLE } from '@/config/integrations'
 import { useApiBaseUrlDisplay } from '@/composables/useApiBaseUrlDisplay'
+import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
 import IntegrationLandingLayout from './IntegrationLandingLayout.vue'
 import IntegrationExternalCta from './IntegrationExternalCta.vue'
 
 const router = useRouter()
 const uiStore = useUIStore()
+const authStore = useAuthStore()
 const { apiBaseUrlDisplay } = useApiBaseUrlDisplay()
 
 const capabilityKeys = ['qa', 'clip', 'notes', 'shortcuts'] as const
@@ -115,6 +118,16 @@ const capabilityIcons: Record<(typeof capabilityKeys)[number], string> = {
 const openChromeStore = () => {
   window.open(CHROME_EXTENSION_URL, '_blank', 'noopener,noreferrer')
 }
+
+// 「API 集成」是 owner 专属（INTEGRATION_TAB_MIN_ROLE.api），普通成员与空间
+// 管理员点进去会命中 settings 的 role-denied 兜底，所以只对能看到该页面的人
+// 渲染跳转按钮；引导页本身对所有成员开放。
+const canOpenApiSettings = computed(() => {
+  const min = INTEGRATION_TAB_MIN_ROLE.api
+  if (!min) return true
+  if (authStore.canAccessAllTenants) return true
+  return authStore.hasRole(min)
+})
 
 const openApiSettings = () => {
   router.push({ path: '/platform/settings', query: { section: 'integration-api' } })

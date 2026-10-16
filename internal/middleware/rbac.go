@@ -186,6 +186,55 @@ func RequireSystemAdmin(cfg *config.Config) gin.HandlerFunc {
 	}
 }
 
+// RequireOperationsAdmin returns a gin middleware that aborts the request
+// with HTTP 403 unless the caller is an operations administrator
+// (User.IsOperationsAdmin = true) — the platform role one level above
+// system administrator.
+//
+// Operations admins already satisfy RequireSystemAdmin (the auth layer
+// folds them into SystemAdminContextKey so they inherit every system-admin
+// privilege). This stricter guard is reserved for the operations-admin-only
+// surface: granting and revoking the operations-admin role itself, so that a
+// system admin cannot escalate themselves (or others) up to operations admin.
+//
+// Unlike RequireSystemAdmin, machine principals (API keys) are always
+// rejected here — the operations-admin role is a human-only escalation and
+// must not be reachable via a platform API key. The check is always
+// enforced, independent of the per-tenant RBAC rollout switch.
+func RequireOperationsAdmin(cfg *config.Config) gin.HandlerFunc {
+	warnOnNilConfig(cfg)
+	return func(c *gin.Context) {
+		ctx := c.Request.Context()
+		// API-key principals never qualify as operations admins.
+		if _, isAPIKey := types.TenantAPIKeyScopeFromContext(ctx); isAPIKey {
+			logger.Warnf(ctx,
+				"[rbac] operations admin required: API-key principal denied path=%s",
+				c.Request.URL.Path)
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "Forbidden: API keys cannot access this endpoint",
+			})
+			c.Abort()
+			return
+		}
+		if types.IsOperationsAdminFromContext(ctx) {
+			c.Next()
+			return
+		}
+		uid, _ := types.UserIDFromContext(ctx)
+		logger.Warnf(ctx,
+			"[rbac] operations admin required: user=%s path=%s",
+			uid, c.Request.URL.Path)
+		if svc := AuditServiceFromContext(c); svc != nil {
+			tenantID := types.CallerFromContext(ctx).TenantID
+			_ = svc.LogDenied(ctx, c, tenantID, uid, "user", "operations_admin")
+		}
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Forbidden: operations administrator required",
+		})
+		c.Abort()
+	}
+}
+
 // RequireOwnershipOrRole guards endpoints whose access is allowed for
 // either (a) callers whose role is at least min, or (b) the original
 // creator of the resource being touched.

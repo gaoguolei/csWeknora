@@ -285,6 +285,7 @@ export interface SystemAdminUser {
   avatar?: string
   is_active: boolean
   is_system_admin: boolean
+  is_operations_admin?: boolean
   created_at: string
   updated_at: string
 }
@@ -359,6 +360,49 @@ export async function listSystemAdmins(
   const suffix = qs.toString() ? `?${qs.toString()}` : ''
   const response = await get(`/api/v1/system/admin/list${suffix}`)
   return response as unknown as ListSystemAdminsResponse
+}
+
+// ---- Operations Admin Management (platform role one level above system admin) ----
+//
+// Operations admins inherit every system-admin privilege AND additionally own
+// this surface: only an operations admin may grant/revoke the operations-admin
+// role, so a system admin can never escalate themselves or others up a level.
+// Backend routes are gated to RequireOperationsAdmin (human-only; API keys
+// rejected). Same unwrapping convention as the system-admin helpers above.
+
+export interface PromoteUserToOperationsAdminRequest {
+  /** UUID of the user to promote. Optional; supply this OR `email`. */
+  user_id?: string
+  /** Email address of the user to promote. Optional; supply this OR `user_id`. */
+  email?: string
+}
+
+export interface ListOperationsAdminsResponse {
+  total: number
+  admins: SystemAdminUser[]
+}
+
+export async function promoteUserToOperationsAdmin(
+  req: PromoteUserToOperationsAdminRequest,
+): Promise<SystemAdminUser> {
+  const response = await post('/api/v1/system/operations-admin/promote', req)
+  return response as unknown as SystemAdminUser
+}
+
+export async function revokeOperationsAdmin(userId: string): Promise<SystemAdminUser> {
+  const response = await post('/api/v1/system/operations-admin/revoke', { user_id: userId })
+  return response as unknown as SystemAdminUser
+}
+
+export async function listOperationsAdmins(
+  params?: { offset?: number; limit?: number },
+): Promise<ListOperationsAdminsResponse> {
+  const qs = new URLSearchParams()
+  if (params?.offset != null) qs.set('offset', String(params.offset))
+  if (params?.limit != null) qs.set('limit', String(params.limit))
+  const suffix = qs.toString() ? `?${qs.toString()}` : ''
+  const response = await get(`/api/v1/system/operations-admin/list${suffix}`)
+  return response as unknown as ListOperationsAdminsResponse
 }
 
 export interface ResetUserPasswordRequest {

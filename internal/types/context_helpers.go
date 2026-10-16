@@ -207,6 +207,20 @@ func IsSystemAdminFromContext(ctx context.Context) bool {
 	return v
 }
 
+// IsOperationsAdminFromContext extracts the operations admin flag from ctx.
+// Operations admins are a level above system admins; the auth layer also
+// folds them into SystemAdminContextKey so they inherit every system-admin
+// privilege, so this key is only consulted by the operations-admin-only
+// surface (granting/revoking operations admins). Returns false (fail-closed)
+// when the key is absent.
+func IsOperationsAdminFromContext(ctx context.Context) bool {
+	v, ok := ctx.Value(OperationsAdminContextKey).(bool)
+	if !ok {
+		return false
+	}
+	return v
+}
+
 // SessionTenantIDFromContext extracts the session-owner tenant ID from ctx.
 // Falls back to TenantIDFromContext when the session key is absent.
 func SessionTenantIDFromContext(ctx context.Context) (uint64, bool) {

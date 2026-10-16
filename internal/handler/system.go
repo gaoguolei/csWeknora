@@ -1520,6 +1520,223 @@ func (h *SystemHandler) ListSystemAdmins(c *gin.Context) {
 	})
 }
 
+// ============================================================================
+// Operations-administrator role management (platform role one level ABOVE
+// system administrator). Operations admins inherit every system-admin
+// privilege (folded in at the auth layer), and additionally own this surface:
+// only an operations admin may grant or revoke the operations-admin role, so a
+// system admin can never escalate themselves or others up a level.
+// ============================================================================
+
+// PromoteUserToOperationsAdminRequest identifies the user to grant the
+// operations-admin role to. Either user_id (UUID) or email must be supplied;
+// when both are present user_id wins (mirrors PromoteUserToSystemAdminRequest).
+type PromoteUserToOperationsAdminRequest struct {
+	UserID string `json:"user_id"`
+	Email  string `json:"email"`
+}
+
+// PromoteUserToOperationsAdmin godoc
+// @Summary      Promote a user to operations administrator
+// @Description  Grant the operations-administrator role (above system admin) to a user. OperationsAdmin only.
+// @Description  Idempotent: re-promoting an existing operations admin returns 200 with no DB write.
+// @Description  Identify the user by email (preferred for human operators) or user_id (UUID, for API clients).
+// @Tags         Operations Admin
+// @Accept       json
+// @Produce      json
+// @Param        request body PromoteUserToOperationsAdminRequest true "User promotion request"
+// @Success      200  {object}  types.UserInfo  "User promoted successfully"
+// @Failure      400  {object}  map[string]interface{}  "Bad request"
+// @Failure      403  {object}  map[string]interface{}  "Forbidden: not an operations admin"
+// @Failure      404  {object}  map[string]interface{}  "User not found"
+// @Router       /system/operations-admin/promote [post]
+func (h *SystemHandler) PromoteUserToOperationsAdmin(c *gin.Context) {
+	ctx := logger.CloneContext(c.Request.Context())
+
+	var req PromoteUserToOperationsAdminRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		return
+	}
+
+	userID := strings.TrimSpace(req.UserID)
+	email := strings.TrimSpace(req.Email)
+	if userID == "" && email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Either user_id or email is required"})
+		return
+	}
+
+	var (
+		user *types.User
+		err  error
+	)
+	switch {
+	case userID != "":
+		user, err = h.userSvc.GetUserByID(ctx, userID)
+	default:
+		user, err = h.userSvc.GetUserByEmail(ctx, email)
+	}
+	if err != nil {
+		logger.Errorf(ctx, "Error fetching user (id=%q email=%q): %v", userID, email, err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+	if user == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	if user.IsOperationsAdmin {
+		// Idempotent: re-promoting an existing operations admin is a no-op
+		// success, but still emit an audit row so probing leaves a trail.
+		h.emitAdminAudit(ctx, types.AuditActionOperationsAdminPromoted, user, map[string]any{
+			"target_email":    user.Email,
+			"target_username": user.Username,
+			"idempotent":      true,
+		})
+		c.JSON(http.StatusOK, user.ToUserInfo())
+		return
+	}
+	user.IsOperationsAdmin = true
+	if err := h.userSvc.UpdateUser(ctx, user); err != nil {
+		logger.Errorf(ctx, "Error promoting user %s to operations admin: %v", user.ID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to promote user"})
+		return
+	}
+
+	logger.Infof(ctx, "User %s (ID: %s) promoted to operations admin", user.Username, user.ID)
+	h.emitAdminAudit(ctx, types.AuditActionOperationsAdminPromoted, user, map[string]any{
+		"target_email":    user.Email,
+		"target_username": user.Username,
+		"idempotent":      false,
+	})
+	c.JSON(http.StatusOK, user.ToUserInfo())
+}
+
+// RevokeOperationsAdminRequest defines the request for revoking operations-admin privileges.
+type RevokeOperationsAdminRequest struct {
+	UserID string `json:"user_id" binding:"required"`
+}
+
+// RevokeOperationsAdmin godoc
+// @Summary      Revoke operations administrator privileges from a user
+// @Description  Remove the operations-administrator role from a user. OperationsAdmin only.
+// @Description  Safety guards: the caller cannot revoke their own privileges, and revoking the last remaining operations admin is rejected.
+// @Description  Idempotent on already-non-operations-admin users.
+// @Tags         Operations Admin
+// @Accept       json
+// @Produce      json
+// @Param        request body RevokeOperationsAdminRequest true "User revocation request"
+// @Success      200  {object}  types.UserInfo  "Privileges revoked successfully"
+// @Failure      400  {object}  map[string]interface{}  "Bad request / would remove last admin / self-revoke"
+// @Failure      403  {object}  map[string]interface{}  "Forbidden: not an operations admin"
+// @Failure      404  {object}  map[string]interface{}  "User not found"
+// @Router       /system/operations-admin/revoke [post]
+func (h *SystemHandler) RevokeOperationsAdmin(c *gin.Context) {
+	ctx := logger.CloneContext(c.Request.Context())
+
+	var req RevokeOperationsAdminRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		return
+	}
+
+	callerID, _ := types.UserIDFromContext(ctx)
+	user, err := h.userSvc.RevokeOperationsAdmin(ctx, req.UserID, callerID)
+	switch {
+	case err == nil:
+		logger.Infof(ctx, "Operations admin privileges revoked from user %s (ID: %s)", user.Username, user.ID)
+		h.emitAdminAudit(ctx, types.AuditActionOperationsAdminRevoked, user, map[string]any{
+			"target_email":    user.Email,
+			"target_username": user.Username,
+			"changed":         true,
+		})
+		c.JSON(http.StatusOK, user.ToUserInfo())
+		return
+	case errors.Is(err, repository.ErrUserNotOperationsAdmin):
+		// Idempotent: target was already not an operations admin.
+		if user == nil {
+			logger.Errorf(ctx, "RevokeOperationsAdmin returned nil user with ErrUserNotOperationsAdmin for %s", req.UserID)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to revoke operations admin privileges"})
+			return
+		}
+		logger.Infof(ctx, "Revoke noop (user %s was not an operations admin)", user.ID)
+		h.emitAdminAudit(ctx, types.AuditActionOperationsAdminRevoked, user, map[string]any{
+			"target_email":    user.Email,
+			"target_username": user.Username,
+			"changed":         false,
+		})
+		c.JSON(http.StatusOK, user.ToUserInfo())
+		return
+	case errors.Is(err, repository.ErrCannotRevokeSelf):
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Cannot revoke your own operations admin privileges",
+		})
+		return
+	case errors.Is(err, repository.ErrLastOperationsAdmin):
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Cannot revoke the last remaining operations administrator",
+		})
+		return
+	case errors.Is(err, repository.ErrUserNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	default:
+		logger.Errorf(ctx, "Error revoking operations admin from user %s: %v", req.UserID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to revoke operations admin privileges"})
+		return
+	}
+}
+
+// ListOperationsAdminsResponse defines the response structure for listing operations admins.
+type ListOperationsAdminsResponse struct {
+	Total  int64             `json:"total"`
+	Admins []*types.UserInfo `json:"admins"`
+}
+
+// ListOperationsAdmins godoc
+// @Summary      List all operations administrators
+// @Description  Retrieve a paginated list of users with the operations-administrator role. OperationsAdmin only.
+// @Tags         Operations Admin
+// @Produce      json
+// @Param        offset query int false "Page offset" default(0)
+// @Param        limit  query int false "Page size (max 200)" default(50)
+// @Success      200  {object}  ListOperationsAdminsResponse  "Operations admins retrieved successfully"
+// @Failure      403  {object}  map[string]interface{}  "Forbidden: not an operations admin"
+// @Router       /system/operations-admin/list [get]
+func (h *SystemHandler) ListOperationsAdmins(c *gin.Context) {
+	ctx := logger.CloneContext(c.Request.Context())
+
+	offset := 0
+	limit := 50
+	if v, err := strconv.Atoi(c.Query("offset")); err == nil && v >= 0 {
+		offset = v
+	}
+	if v, err := strconv.Atoi(c.Query("limit")); err == nil && v > 0 {
+		limit = v
+	}
+	if limit > 200 {
+		limit = 200
+	}
+
+	users, total, err := h.userSvc.ListOperationsAdmins(ctx, offset, limit)
+	if err != nil {
+		logger.Errorf(ctx, "Error listing operations admins: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list operations admins"})
+		return
+	}
+
+	infos := make([]*types.UserInfo, 0, len(users))
+	for _, u := range users {
+		infos = append(infos, u.ToUserInfo())
+	}
+
+	c.JSON(http.StatusOK, ListOperationsAdminsResponse{
+		Total:  total,
+		Admins: infos,
+	})
+}
+
 // ResetUserPasswordRequest defines the system-administrator password-reset
 // payload. Email is intentionally the only user-facing identifier: the UI is
 // an operator tool and emails are easier to verify than UUIDs. The password is

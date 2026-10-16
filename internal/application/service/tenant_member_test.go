@@ -302,6 +302,12 @@ func (r *cleanupUserRepo) ListSystemAdmins(context.Context, int, int) ([]*types.
 func (r *cleanupUserRepo) RevokeSystemAdmin(context.Context, string, string) (*types.User, error) {
 	return nil, nil
 }
+func (r *cleanupUserRepo) ListOperationsAdmins(context.Context, int, int) ([]*types.User, int64, error) {
+	return nil, 0, nil
+}
+func (r *cleanupUserRepo) RevokeOperationsAdmin(context.Context, string, string) (*types.User, error) {
+	return nil, nil
+}
 func (r *cleanupUserRepo) SearchUsers(context.Context, string, int) ([]*types.User, error) {
 	return nil, nil
 }

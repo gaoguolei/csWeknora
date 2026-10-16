@@ -5275,7 +5275,7 @@ export default {
   ollamaSettings: {
     title: 'Ollama Settings',
     description: 'Manage local Ollama service and view/download models',
-    noAccess: 'Only platform system administrators can manage Ollama settings.',
+    noAccess: 'Only platform operations administrators can manage Ollama settings.',
     status: {
       label: 'Ollama Service Status',
       desc: 'Automatically detect local Ollama service availability. If the service is down or the URL is incorrect, status will be "Unavailable".',

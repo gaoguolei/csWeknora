@@ -89,6 +89,11 @@ type UserService interface {
 	// callers pass offset/limit to page through results. Used by the
 	// /api/v1/system/admin/list endpoint, gated to SystemAdmin callers.
 	ListSystemAdmins(ctx context.Context, offset, limit int) ([]*types.User, int64, error)
+	// ListOperationsAdmins lists users with IsOperationsAdmin=true (the
+	// platform role one level above system admin). Returns the page plus the
+	// total count. Used by the /system/operations-admin/list endpoint, gated
+	// to OperationsAdmin callers.
+	ListOperationsAdmins(ctx context.Context, offset, limit int) ([]*types.User, int64, error)
 	// AdminCreateUser provisions a new local user on behalf of a
 	// SystemAdmin. When req.Password is nil, a random password is generated
 	// and returned exactly once as the second result. provisioning is
@@ -99,6 +104,9 @@ type UserService interface {
 	// RevokeSystemAdmin removes system-admin privileges with the
 	// last-admin/self-revoke checks performed atomically.
 	RevokeSystemAdmin(ctx context.Context, userID, actorID string) (*types.User, error)
+	// RevokeOperationsAdmin removes operations-admin privileges with the
+	// last-admin/self-revoke checks performed atomically.
+	RevokeOperationsAdmin(ctx context.Context, userID, actorID string) (*types.User, error)
 	// UpdateUserPreferences partially updates the calling user's
 	// preferences blob (PATCH semantics: only keys present in `patch`
 	// overwrite existing values). Returns the updated, persisted prefs.
@@ -134,6 +142,12 @@ type UserRepository interface {
 	// RevokeSystemAdmin removes system-admin privileges with the
 	// last-admin/self-revoke checks performed atomically.
 	RevokeSystemAdmin(ctx context.Context, userID, actorID string) (*types.User, error)
+	// ListOperationsAdmins lists users where is_operations_admin = true.
+	// Mirrors ListSystemAdmins for the operations-admin management endpoint.
+	ListOperationsAdmins(ctx context.Context, offset, limit int) ([]*types.User, int64, error)
+	// RevokeOperationsAdmin removes operations-admin privileges with the
+	// last-admin/self-revoke checks performed atomically.
+	RevokeOperationsAdmin(ctx context.Context, userID, actorID string) (*types.User, error)
 	// SearchUsers searches users by username or email
 	SearchUsers(ctx context.Context, query string, limit int) ([]*types.User, error)
 }

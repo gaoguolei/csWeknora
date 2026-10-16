@@ -239,7 +239,7 @@ func (h *TenantHandler) CreateTenant(c *gin.Context) {
 	}
 	apiKeyScope, hasAPIKeyScope := types.TenantAPIKeyScopeFromContext(ctx)
 	platformCaller := hasAPIKeyScope && apiKeyScope.IsPlatform()
-	catalogManager := caller.CanAccessAllTenants || platformCaller
+	catalogManager := caller.IsGlobalWorkspaceOperator() || platformCaller
 
 	// Deployment-level policy: ordinary users may be restricted to joining
 	// existing workspaces by invitation. This check is authoritative; the
@@ -387,7 +387,7 @@ func (h *TenantHandler) CreateTenant(c *gin.Context) {
 		// tenant + its membership so the bound holds in steady state.
 		// We only do this for non-superusers (the only path that has
 		// a cap) — superusers are exempt above.
-		if !caller.CanAccessAllTenants {
+		if !caller.IsGlobalWorkspaceOperator() {
 			memberships, listErr := h.memberService.ListByUser(ctx, caller.ID)
 			if listErr != nil {
 				logger.Errorf(ctx, "Post-create quota recount failed for user %s tenant %d: %v",

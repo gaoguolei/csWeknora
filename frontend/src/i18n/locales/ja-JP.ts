@@ -5275,7 +5275,7 @@ export default {
   ollamaSettings: {
     title: 'Ollama設定',
     description: 'ローカルのOllamaサービスを管理し、モデルの確認やダウンロードを行います',
-    noAccess: 'プラットフォームのシステム管理者のみがOllama設定を管理できます。',
+    noAccess: 'プラットフォームの運営管理者のみがOllama設定を管理できます。',
     status: {
       label: 'Ollamaサービスのステータス',
       desc: 'ローカルのOllamaサービスが利用可能かを自動検出します。サービスが停止しているかURLが誤っている場合は「利用不可」と表示されます。',

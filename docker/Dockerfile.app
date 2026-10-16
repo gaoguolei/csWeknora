@@ -1,16 +1,24 @@
 # Build extension and daemon from the same pinned source on the runtime architecture.
+# Toggle WITH_BROWSERSKILL=0 to skip the heavy Rust/npm/github build (needs network to
+# crates.io / npm / github). The server still compiles the browserskill Go package; only
+# the external `bsk` daemon binary is omitted, so that feature is unavailable until a
+# full build is run. Default is 1 to preserve the original image behavior.
 FROM --platform=$TARGETPLATFORM node:24-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS browserskill
+ARG WITH_BROWSERSKILL=1
 WORKDIR /build
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends git python3 ca-certificates curl build-essential cmake pkg-config && \
-    rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /opt/weknora/browserskill
 ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
 ENV PATH=/usr/local/cargo/bin:$PATH
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
 COPY scripts/build_browserskill.sh scripts/browserskill-release.json ./scripts/
 ARG TARGETOS
 ARG TARGETARCH
-RUN bash scripts/build_browserskill.sh /opt/weknora/browserskill "${TARGETOS}/${TARGETARCH}"
+RUN if [ "$WITH_BROWSERSKILL" = "1" ]; then \
+      apt-get update && \
+      apt-get install -y --no-install-recommends git python3 ca-certificates curl build-essential cmake pkg-config && \
+      rm -rf /var/lib/apt/lists/* && \
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable && \
+      bash scripts/build_browserskill.sh /opt/weknora/browserskill "${TARGETOS}/${TARGETARCH}"; \
+    fi
 
 # Build stage
 FROM golang:1.26-bookworm AS builder

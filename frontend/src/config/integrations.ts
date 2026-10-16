@@ -22,11 +22,10 @@ export const INTEGRATION_TAB_MIN_ROLE: Partial<Record<IntegrationTab, Integratio
  * strictly on `isSystemAdmin` — cross-tenant superusers (canAccessAllTenants)
  * do NOT bypass them, mirroring how GLOBAL_MODEL_ADMIN_SECTIONS / 
  * SUPER_ADMIN_ONLY_SECTIONS gate the model / sandbox-secret pages.
- *
- * chrome: 浏览器插件的 API 凭证下发收归平台超管统一配置，普通用户与空间
- * owner/admin 不再看到该引导页。
+ * chrome: 「Chrome 插件」引导页对全部成员开放（普通成员、空间管理员、owner
+ * 均可见），因此不在本集合内；页面内跳转「API 集成」的入口仍按 owner-only 控制。
  */
-export const SYSTEM_ADMIN_INTEGRATION_TABS = new Set<IntegrationTab>(['chrome'])
+export const SYSTEM_ADMIN_INTEGRATION_TABS = new Set<IntegrationTab>([])
 
 export const INTEGRATION_TAB_CAPABILITY: Partial<Record<IntegrationTab, DeploymentCapabilityKey>> = {
   im: 'integrations.im',

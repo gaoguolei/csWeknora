@@ -367,6 +367,7 @@ import {
   SETTINGS_SECTION_MIN_ROLE,
   SYSTEM_ADMIN_SETTINGS_SECTIONS,
   GLOBAL_MODEL_ADMIN_SECTIONS,
+  OPERATIONS_ADMIN_ONLY_SECTIONS,
   SUPER_ADMIN_ONLY_SECTIONS,
 } from "@/config/settingsAccess";
 import { SETTINGS_SECTION_CAPABILITY } from "@/config/deploymentCapabilities";
@@ -467,8 +468,9 @@ const isSectionSupported = (key: string): boolean => {
 const canSeeSection = (key: string): boolean => {
   if (isIntegrationSection(key)) {
     const tab = integrationTabFromSection(key);
-    // Chrome 插件等已收归平台超管专属：仅 isSystemAdmin 可见，
-    // canAccessAllTenants(跨空间超管)不 bypass，与 models / envvars 对齐。
+    // 超管专属集成 tab（当前集合为空，Chrome 插件已对全部成员开放）：
+    // 仅 isSystemAdmin 可见，canAccessAllTenants(跨空间超管)不 bypass，
+    // 与 models / envvars 对齐。
     if (SYSTEM_ADMIN_INTEGRATION_TABS.has(tab)) {
       return authStore.isSystemAdmin;
     }
@@ -480,10 +482,16 @@ const canSeeSection = (key: string): boolean => {
   if (SYSTEM_ADMIN_SECTIONS.has(key)) {
     return authStore.isSystemAdmin;
   }
-  // 模型 / Ollama 配置已彻底收回到平台超级管理员：仅 isSystemAdmin 可见,
+  // 模型配置已彻底收回到平台超级管理员：仅 isSystemAdmin 可见,
   // canAccessAllTenants(跨空间超管)不 bypass,与服务端 RequireSystemAdmin 对齐。
   if (GLOBAL_MODEL_ADMIN_SECTIONS.has(key)) {
     return authStore.isSystemAdmin;
+  }
+  // Ollama 设置页收归运营管理员专属（高于超管的平台角色）：仅 isOperationsAdmin
+  // 可见。Ollama 是运维在部署时经 .env 预先配置好的系统级设置,此页只对运营管理员
+  // 露出。后端 Ollama 接口仍保持 SystemAdmin 门控,因为超管的模型编辑器会复用。
+  if (OPERATIONS_ADMIN_ONLY_SECTIONS.has(key)) {
+    return authStore.isOperationsAdmin;
   }
   // 沙箱密钥是平台级超管统一配置的加密密钥库：仅 isSystemAdmin 可见，
   // canAccessAllTenants(跨空间超管)不 bypass，与服务端 RequireSystemAdmin 对齐。

@@ -2535,7 +2535,7 @@ export default {
   ollamaSettings: {
     title: "Ollama 配置",
     description: "管理本地 Ollama 服务，查看和下载模型",
-    noAccess: "仅平台超级管理员可管理 Ollama 配置。",
+    noAccess: "仅平台运营管理员可管理 Ollama 配置。",
     toasts: {
       connected: "连接成功",
       connectFailed: "连接失败，请检查 Ollama 是否运行",

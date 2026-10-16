@@ -569,6 +569,7 @@ const toolboxPreview = computed(() =>
     canAccessToolboxSection(item.key, {
       currentTenantRole: authStore.currentTenantRole,
       canAccessAllTenants: authStore.canAccessAllTenants,
+      isOperationsAdmin: authStore.isOperationsAdmin,
       hasRole: (role) => authStore.hasRole(role),
       isSupported: (capability) =>
         deploymentCapabilities.isSupported(capability),

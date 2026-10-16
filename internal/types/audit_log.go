@@ -117,6 +117,16 @@ const (
 	// TenantID=0 because the change is system-scope.
 	AuditActionSystemAdminRevoked AuditAction = "system.admin_revoked"
 
+	// AuditActionOperationsAdminPromoted fires when an operations admin grants
+	// the operations-administrator role (one level above system admin) to
+	// another user via POST /api/v1/system/operations-admin/promote. Details
+	// carry {target_email, target_username, idempotent}. TenantID=0 (system-scope).
+	AuditActionOperationsAdminPromoted AuditAction = "system.operations_admin_promoted"
+	// AuditActionOperationsAdminRevoked fires when an operations admin removes
+	// the operations-administrator role via POST /api/v1/system/operations-admin/revoke.
+	// Details carry {target_email, target_username, changed}. TenantID=0 (system-scope).
+	AuditActionOperationsAdminRevoked AuditAction = "system.operations_admin_revoked"
+
 	// AuditActionSystemUserPasswordReset fires when a SystemAdmin replaces
 	// another user's local password. Details identify the target and record
 	// session revocation, but never contain the old or new password.

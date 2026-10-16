@@ -29,6 +29,12 @@ type authSession struct {
 	// TenantRoleFromContext's fail-closed Viewer default.
 	Role        types.TenantRole
 	SystemAdmin bool
+	// OperationsAdmin marks the platform role one level above system
+	// administrator. The auth layer sets SystemAdmin=true for operations
+	// admins too (so they inherit every system-admin privilege); this flag
+	// carries the distinct signal needed to gate the operations-admin-only
+	// management surface. Machine/API-key principals are always false here.
+	OperationsAdmin bool
 	// APIKeyScope marks machine principals; the APIKeyGate authorizes them
 	// per-route from this scope.
 	APIKeyScope *types.TenantAPIKeyScope
@@ -70,6 +76,7 @@ func applyAuthSession(c *gin.Context, s authSession) {
 		set(types.TenantRoleContextKey, s.Role)
 	}
 	set(types.SystemAdminContextKey, s.SystemAdmin)
+	set(types.OperationsAdminContextKey, s.OperationsAdmin)
 	if s.APIKeyScope != nil {
 		ctx = types.WithTenantAPIKeyScope(ctx, *s.APIKeyScope)
 	}

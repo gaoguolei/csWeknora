@@ -49,15 +49,21 @@ import (
 // `error.code`.
 
 // IsCrossTenantSuperuser reports whether ctx carries a user that is
-// authorised for cross-tenant access at this moment. Both the user
-// attribute and the cluster-wide flag must be true; either alone is
-// not enough.
+// authorised for cross-tenant access at this moment. For ordinary users both
+// the user attribute and the cluster-wide flag must be true; either alone is
+// not enough. Operations administrators are the platform's highest role and
+// always qualify, independent of the EnableCrossTenantAccess flag.
 func IsCrossTenantSuperuser(ctx context.Context, cfg *config.Config) bool {
-	if cfg == nil || cfg.Tenant == nil || !cfg.Tenant.EnableCrossTenantAccess {
-		return false
-	}
 	u, ok := ctx.Value(types.UserContextKey).(*types.User)
 	if !ok || u == nil {
+		return false
+	}
+	// Operations admins bypass the cluster-wide kill-switch entirely: they are
+	// cross-tenant superusers by definition (see User.IsGlobalWorkspaceOperator).
+	if u.IsOperationsAdmin {
+		return true
+	}
+	if cfg == nil || cfg.Tenant == nil || !cfg.Tenant.EnableCrossTenantAccess {
 		return false
 	}
 	return u.CanAccessAllTenants
@@ -85,6 +91,11 @@ func IsTenantAccessible(
 		return false
 	}
 	if user.TenantID == targetTenantID {
+		return true
+	}
+	// Operations admins can reach every workspace unconditionally — the
+	// platform's highest role is not gated by EnableCrossTenantAccess.
+	if user.IsOperationsAdmin {
 		return true
 	}
 	if cfg != nil && cfg.Tenant != nil && cfg.Tenant.EnableCrossTenantAccess && user.CanAccessAllTenants {
@@ -115,6 +126,14 @@ func RequireCrossTenantAccess(cfg *config.Config) gin.HandlerFunc {
 			c.Next()
 			return
 		}
+		u, ok := ctx.Value(types.UserContextKey).(*types.User)
+		// Operations admins are exempt from the cluster-wide EnableCrossTenantAccess
+		// kill-switch below: as the platform's highest role they always have
+		// cross-workspace reach.
+		if ok && u != nil && u.IsOperationsAdmin {
+			c.Next()
+			return
+		}
 		// First the cluster-wide flag — if it's off, nobody gets through,
 		// not even users with CanAccessAllTenants=true. This mirrors the
 		// "must require BOTH" rule that previously lived in tenant.go.
@@ -127,7 +146,6 @@ func RequireCrossTenantAccess(cfg *config.Config) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		u, ok := ctx.Value(types.UserContextKey).(*types.User)
 		if !ok || u == nil || !u.CanAccessAllTenants {
 			uid, _ := types.UserIDFromContext(ctx)
 			logger.Warnf(ctx,

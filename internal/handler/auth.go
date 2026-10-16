@@ -653,11 +653,15 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 		}
 	}
 	userInfo := user.ToUserInfo()
-	userInfo.CanAccessAllTenants = user.CanAccessAllTenants && h.configInfo.Tenant.EnableCrossTenantAccess
+	// Operations admins always have cross-workspace reach, independent of the
+	// cluster-wide EnableCrossTenantAccess flag (mirrors the middleware's
+	// operations-admin bypass); ordinary superusers still need the flag on.
+	userInfo.CanAccessAllTenants = user.IsOperationsAdmin ||
+		(user.CanAccessAllTenants && h.configInfo.Tenant.EnableCrossTenantAccess)
 	// 同步返回当前用户的 memberships，让前端在页面刷新（仅命中 /auth/me）
 	// 后也能恢复 currentTenantRole，避免角色信息只在 login 那一刻可用。
 	memberships := h.userService.BuildLoginMemberships(ctx, user, tenant)
-	canCreateTenant := user.CanAccessAllTenants ||
+	canCreateTenant := user.IsGlobalWorkspaceOperator() ||
 		resolveTenantSelfServiceCreationEnabled(ctx, h.configInfo, h.systemSettingSvc)
 	autoAcceptInvitation := h.systemSettingSvc != nil &&
 		h.systemSettingSvc.GetBool(ctx, "tenant.auto_accept_invitation", "WEKNORA_TENANT_AUTO_ACCEPT_INVITATION", false)

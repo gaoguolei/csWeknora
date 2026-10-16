@@ -263,7 +263,7 @@
 
     <!-- 模型编辑器抽屉 -->
     <ModelEditorDialog v-model:visible="showDialog" :model-type="currentModelType" :model-data="editingModel"
-      :can-manage-default="authStore.isSystemAdmin" :save-model="handleModelSave" />
+      :can-manage-default="authStore.isSystemAdmin" :can-manage-ollama="authStore.isOperationsAdmin" :save-model="handleModelSave" />
     <ModelDebugDrawer v-model:visible="showDebugDrawer" :models="allModels" />
 
   </div>

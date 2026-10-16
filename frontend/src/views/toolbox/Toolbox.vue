@@ -86,6 +86,7 @@ const sandboxId = computed(() => typeof route.query.sandboxId === 'string' ? rou
 const visibleItems = computed(() => TOOLBOX_ITEMS.filter((item) => canAccessToolboxSection(item.key, {
   currentTenantRole: authStore.currentTenantRole,
   canAccessAllTenants: authStore.canAccessAllTenants,
+  isOperationsAdmin: authStore.isOperationsAdmin,
   hasRole: (role) => authStore.hasRole(role),
   isSupported: (capability) => capabilities.isSupported(capability),
 })))

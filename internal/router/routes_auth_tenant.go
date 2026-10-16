@@ -346,6 +346,19 @@ func RegisterSystemAdminRoutes(
 				apiKeyPlatform(types.APIKeyCapabilitySystemAuditRead), auditLogHandler.ListSystemAuditLog)
 		}
 	}
+
+	// Operations-administrator role management. This is the platform role one
+	// level ABOVE system admin; operations admins already satisfy the
+	// /system/admin group above (they inherit every system-admin privilege),
+	// but ONLY an operations admin may grant/revoke this role — so a system
+	// admin can never escalate themselves or others up a level. Gated to
+	// OperationsAdmin (human-only; API keys are rejected outright).
+	opsAdminRoutes := r.Group("/system/operations-admin", g.OperationsAdmin())
+	{
+		opsAdminRoutes.POST("/promote", handler.PromoteUserToOperationsAdmin)
+		opsAdminRoutes.POST("/revoke", handler.RevokeOperationsAdmin)
+		opsAdminRoutes.GET("/list", handler.ListOperationsAdmins)
+	}
 }
 
 // RegisterSystemSandboxEnvRoutes wires the platform-wide global sandbox secrets

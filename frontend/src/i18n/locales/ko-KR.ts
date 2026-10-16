@@ -2345,7 +2345,7 @@ export default {
   ollamaSettings: {
     title: 'Ollama 설정',
     description: '로컬 Ollama 서비스를 관리하고 모델을 보고 다운로드합니다',
-    noAccess: '플랫폼 시스템 관리자만 Ollama 설정을 관리할 수 있습니다.',
+    noAccess: '플랫폼 운영 관리자만 Ollama 설정을 관리할 수 있습니다.',
     toasts: {
       connected: '연결 성공',
       connectFailed: '연결 실패, Ollama가 실행 중인지 확인해주세요',

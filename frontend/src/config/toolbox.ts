@@ -1,4 +1,4 @@
-import { SETTINGS_SECTION_MIN_ROLE, type SettingsRoleKey } from './settingsAccess'
+import { SETTINGS_SECTION_MIN_ROLE, OPERATIONS_ADMIN_ONLY_SECTIONS, type SettingsRoleKey } from './settingsAccess'
 import { SETTINGS_SECTION_CAPABILITY, type DeploymentCapabilityKey } from './deploymentCapabilities'
 import { SKILL_ICON } from '../types/mention'
 
@@ -44,11 +44,18 @@ export function canAccessToolboxSection(
   access: {
     currentTenantRole: string | null | undefined
     canAccessAllTenants: boolean
+    isOperationsAdmin: boolean
     hasRole: (role: SettingsRoleKey) => boolean
     isSupported: (capability?: DeploymentCapabilityKey) => boolean
   },
 ): boolean {
+  if (!access.isSupported(SETTINGS_SECTION_CAPABILITY[section])) return false
+  // Operations-admin-only tools (skills / mcp — the same set as `ollama`, see
+  // OPERATIONS_ADMIN_ONLY_SECTIONS) are hidden from every other role, with no
+  // tenant-role or cross-tenant-superuser bypass. Keeping this in sync with the
+  // Settings.vue canSeeSection guard means the toolbox and the settings nav
+  // never disagree about who can see these entries.
+  if (OPERATIONS_ADMIN_ONLY_SECTIONS.has(section)) return access.isOperationsAdmin
   if (!access.currentTenantRole && !access.canAccessAllTenants) return false
-  return (access.canAccessAllTenants || access.hasRole(SETTINGS_SECTION_MIN_ROLE[section] ?? 'viewer'))
-    && access.isSupported(SETTINGS_SECTION_CAPABILITY[section])
+  return access.canAccessAllTenants || access.hasRole(SETTINGS_SECTION_MIN_ROLE[section] ?? 'viewer')
 }

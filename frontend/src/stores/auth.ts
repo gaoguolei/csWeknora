@@ -103,7 +103,12 @@ export const useAuthStore = defineStore('auth', () => {
   })
 
   const canAccessAllTenants = computed(() => {
-    return user.value?.can_access_all_tenants || false
+    // Operations admins are the platform's highest role: they can reach every
+    // workspace unconditionally, NOT gated by the cluster-wide
+    // EnableCrossTenantAccess flag (see middleware/access.go's operations-admin
+    // bypass). So the workspace switcher / "all workspaces" UI must show for
+    // them even when can_access_all_tenants is false.
+    return user.value?.can_access_all_tenants === true || user.value?.is_operations_admin === true
   })
 
   // isSystemAdmin reflects the platform-wide system-administrator flag
@@ -112,6 +117,12 @@ export const useAuthStore = defineStore('auth', () => {
   // global settings, built-in models, and other system admins regardless
   // of which tenant they're currently scoped into.
   //
+  // Operations admins (is_operations_admin) are a level ABOVE system admins
+  // and inherit every system-admin privilege, so they satisfy this flag too —
+  // mirroring the server-side auth layer folding is_operations_admin into
+  // SystemAdminContextKey. Use isOperationsAdmin for the operations-admin-only
+  // surface (granting/revoking operations admins).
+  //
   // SECURITY: same caveat as currentTenantRole — this value is hydrated
   // from localStorage on reload and is therefore tamper-prone client-side.
   // Use it ONLY to gate UI visibility (menu entries, route guards). All
@@ -119,7 +130,15 @@ export const useAuthStore = defineStore('auth', () => {
   // middleware (see internal/middleware/rbac.go). A user who flips this
   // bit in DevTools will get a 403 the moment they hit a guarded endpoint.
   const isSystemAdmin = computed(() => {
-    return user.value?.is_system_admin === true
+    return user.value?.is_system_admin === true || user.value?.is_operations_admin === true
+  })
+
+  // isOperationsAdmin reflects the platform role one level above system
+  // administrator (User.IsOperationsAdmin). It gates the operations-admin-only
+  // management surface; every system-admin capability is already covered by
+  // isSystemAdmin (which operations admins satisfy).
+  const isOperationsAdmin = computed(() => {
+    return user.value?.is_operations_admin === true
   })
 
   // currentTenantRole returns the user's role in the active tenant
@@ -141,6 +160,12 @@ export const useAuthStore = defineStore('auth', () => {
   // the role from tenant_members on every request). Never branch
   // security-sensitive logic on this value alone.
   const currentTenantRole = computed(() => {
+    // Operations admins hold Owner in EVERY workspace (see auth.go
+    // resolveTenantRole step0), overriding any lower real membership row they
+    // happen to have in the active tenant. Kept ahead of the membership lookup
+    // so Owner-only UI (tenant deletion, ownership transfer, API keys) lines up
+    // with the server, which grants them Owner unconditionally.
+    if (user.value?.is_operations_admin === true) return 'owner'
     const tid =
       selectedTenantId.value !== null && selectedTenantId.value !== undefined
         ? String(selectedTenantId.value)
@@ -565,6 +590,7 @@ export const useAuthStore = defineStore('auth', () => {
     currentUserId,
     canAccessAllTenants,
     isSystemAdmin,
+    isOperationsAdmin,
     currentTenantRole,
     hasRole,
     effectiveTenantId,

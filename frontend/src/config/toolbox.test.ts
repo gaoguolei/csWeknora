@@ -8,9 +8,10 @@ import { TOOLBOX_ITEMS, canAccessToolboxSection, isToolboxSection, toolboxLocati
 import zhCN from '../i18n/locales/zh-CN'
 
 const roles = ['viewer', 'contributor', 'admin', 'owner']
-const access = (role: string | null, unsupported: string[] = [], superuser = false) => ({
+const access = (role: string | null, unsupported: string[] = [], superuser = false, ops = false) => ({
   currentTenantRole: role,
   canAccessAllTenants: superuser,
+  isOperationsAdmin: ops,
   hasRole: (min: string) => roles.indexOf(role || '') >= roles.indexOf(min),
   isSupported: (capability?: string) => !capability || !unsupported.includes(capability),
 })
@@ -29,22 +30,29 @@ test('toolbox contains only the agreed tools; infrastructure and secrets stay in
   }
 })
 
-test('toolbox preserves role and deployment gates, including workspace switches', () => {
-  for (const role of ['viewer', 'contributor']) {
+test('toolbox gates skills/mcp to operations admins; browserconnection stays on the role ladder', () => {
+  // skills / mcp moved to OPERATIONS_ADMIN_ONLY_SECTIONS (like ollama): every
+  // tenant role — even owner and cross-tenant superusers — is locked out.
+  for (const role of ['viewer', 'contributor', 'admin', 'owner']) {
     assert.equal(canAccessToolboxSection('skills', access(role)), false)
     assert.equal(canAccessToolboxSection('mcp', access(role)), false)
+  }
+  // The cross-tenant superuser bypass no longer applies to these tools.
+  assert.equal(canAccessToolboxSection('mcp', access(null, [], true)), false)
+  // A tenantless operations admin still gets them (isOperationsAdmin wins).
+  assert.equal(canAccessToolboxSection('skills', access(null, [], false, true)), true)
+  assert.equal(canAccessToolboxSection('mcp', access(null, [], false, true)), true)
+  // Deployment capability still gates ahead of the role check.
+  assert.equal(canAccessToolboxSection('skills', access('owner', ['settings.sandbox'], false, true)), false)
+  assert.equal(canAccessToolboxSection('mcp', access('owner', ['settings.mcp'], false, true)), false)
+  // browserconnection is NOT operations-only: it follows the tenant role ladder.
+  for (const role of ['viewer', 'contributor', 'admin', 'owner']) {
     assert.equal(canAccessToolboxSection('browserconnection', access(role)), true)
   }
-  assert.equal(canAccessToolboxSection('skills', access('admin')), true)
-  assert.equal(canAccessToolboxSection('skills', access('owner', ['settings.sandbox'])), false)
-  assert.equal(canAccessToolboxSection('mcp', access('owner', ['settings.mcp'])), false)
-  assert.equal(canAccessToolboxSection('mcp', access(null)), false)
-  assert.equal(canAccessToolboxSection('mcp', access(null, [], true)), true)
-  assert.equal(canAccessToolboxSection('mcp', access(null, ['settings.mcp'], true)), false)
-  const role = ref('admin')
+  assert.equal(canAccessToolboxSection('browserconnection', access(null)), false)
+  // Reactivity: an owner who is not an operations admin never unlocks skills.
+  const role = ref('owner')
   const allowed = computed(() => canAccessToolboxSection('skills', access(role.value)))
-  assert.equal(allowed.value, true)
-  role.value = 'viewer'
   assert.equal(allowed.value, false)
 })
 

@@ -168,7 +168,7 @@ func terminalMembershipStillValid(
 	if member != nil && member.Status == types.TenantMemberStatusActive {
 		return nil
 	}
-	if user.CanAccessAllTenants {
+	if user.IsGlobalWorkspaceOperator() {
 		return nil
 	}
 	if !rbacEnforced {

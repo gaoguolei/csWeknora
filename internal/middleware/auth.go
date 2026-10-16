@@ -108,7 +108,7 @@ func attachTenantlessUserContext(c *gin.Context, user *types.User) {
 	applyAuthSession(c, authSession{
 		User:        user,
 		Principal:   types.Principal{Type: types.PrincipalWebUser, ID: user.ID},
-		SystemAdmin: user.IsSystemAdmin,
+		SystemAdmin: user.IsSystemAdmin || user.IsOperationsAdmin,
 	})
 }
 
@@ -261,7 +261,12 @@ func authenticateJWTUser(
 		TenantID:    targetTenantID,
 		Tenant:      tenant,
 		Role:        role,
-		SystemAdmin: user.IsSystemAdmin,
+		// Operations admins are a level above system admins and inherit every
+		// system-admin privilege, so they satisfy SystemAdminContextKey too.
+		// OperationsAdminContextKey carries the distinct signal for the
+		// operations-admin-only grant surface (see RequireOperationsAdmin).
+		SystemAdmin:     user.IsSystemAdmin || user.IsOperationsAdmin,
+		OperationsAdmin: user.IsOperationsAdmin,
 	})
 	return true
 }
@@ -725,6 +730,12 @@ func principalTenantIDFromClaims(claims jwt.MapClaims) uint64 {
 // resolveTenantRole determines the caller's TenantRole inside targetTenantID.
 //
 // Order of resolution:
+//  0. Operations administrator (User.IsOperationsAdmin=true) → Owner, everywhere.
+//     The platform's highest role short-circuits every rule below: it is not
+//     bounded by tenant_members, crossTenantSwitch, or EnableCrossTenantAccess,
+//     and — unlike the ordinary cross-tenant superuser in step 2 — is promoted
+//     all the way to Owner so it can exercise every workspace capability
+//     (including tenant deletion / ownership transfer).
 //  1. Active TenantMember row → return that role.
 //  2. Cross-tenant superuser switch (X-Tenant-ID with CanAccessAllTenants=true)
 //     → grant Admin in the target tenant. Org admins are intentionally not
@@ -757,6 +768,17 @@ func resolveTenantRole(
 	crossTenantSwitch bool,
 	cfg *config.Config,
 ) (types.TenantRole, bool) {
+	// 0. 运营管理员(平台最高角色)在任何空间都视为 Owner。无视 tenant_members 行、
+	//    crossTenantSwitch 与 EnableCrossTenantAccess 开关,直接拿到最高空间权限
+	//    (含删除空间/转让 Owner)。置于成员关系查询之前,确保即便其在目标空间有
+	//    较低角色的真实 membership 也会被提权到 Owner —— 这是“运营管理员拥有
+	//    超管和空管所有权限”设计的落地。
+	if user.IsOperationsAdmin {
+		logger.Infof(ctx,
+			"[auth] resolveTenantRole step0 (operations admin) -> Owner: user=%s tenant=%d",
+			user.ID, targetTenantID)
+		return types.TenantRoleOwner, true
+	}
 	// 1. 正常成员关系
 	member, err := memberService.GetMembership(ctx, user.ID, targetTenantID)
 	if err == nil && member != nil && member.Status == types.TenantMemberStatusActive {

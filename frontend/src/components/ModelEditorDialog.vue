@@ -111,7 +111,9 @@
             class="ollama-unavailable-tip">
             <t-icon name="error-circle-filled" class="tip-icon" />
             <span class="tip-text">{{ $t('model.editor.ollamaUnavailable') }}</span>
-            <t-button variant="text" size="small" @click="goToOllamaSettings" class="tip-link">
+            <!-- 跳转“前往 Ollama 设置”只对运营管理员露出：Ollama 配置页已收归运营管理员
+                 专属（超管/空管进去只会看到无权限空态），所以非运营管理员不显示这个入口。 -->
+            <t-button v-if="canManageOllama" variant="text" size="small" @click="goToOllamaSettings" class="tip-link">
               <template #icon><t-icon name="jump" /></template>
               {{ $t('model.editor.goToOllamaSettings') }}
             </t-button>
@@ -728,6 +730,12 @@ interface Props {
   // rather than reading the auth store directly to keep this component free of
   // the global auth dependency.
   canManageDefault?: boolean
+  // Gates the "前往 Ollama 设置" jump in the Ollama-unavailable tip. The Ollama
+  // settings page is operations-admin-only (see settingsAccess.ts
+  // OPERATIONS_ADMIN_ONLY_SECTIONS), so only operations admins should see a
+  // link into it; super / workspace admins get the tip text without the dead
+  // jump. Parent passes authStore.isOperationsAdmin.
+  canManageOllama?: boolean
 }
 
 const { t, locale } = useI18n()
@@ -737,7 +745,8 @@ const providersStore = useModelProvidersStore()
 const props = withDefaults(defineProps<Props>(), {
   visible: false,
   modelData: null,
-  canManageDefault: false
+  canManageDefault: false,
+  canManageOllama: false
 })
 
 const emit = defineEmits<{

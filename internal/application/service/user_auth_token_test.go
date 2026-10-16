@@ -88,6 +88,12 @@ func (s *stubUserRepoForAuth) ListSystemAdmins(context.Context, int, int) ([]*ty
 func (s *stubUserRepoForAuth) RevokeSystemAdmin(context.Context, string, string) (*types.User, error) {
 	return nil, nil
 }
+func (s *stubUserRepoForAuth) ListOperationsAdmins(context.Context, int, int) ([]*types.User, int64, error) {
+	return nil, 0, nil
+}
+func (s *stubUserRepoForAuth) RevokeOperationsAdmin(context.Context, string, string) (*types.User, error) {
+	return nil, nil
+}
 func (s *stubUserRepoForAuth) SearchUsers(context.Context, string, int) ([]*types.User, error) {
 	return nil, nil
 }

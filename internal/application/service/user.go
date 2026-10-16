@@ -610,6 +610,21 @@ func (s *userService) RevokeSystemAdmin(ctx context.Context, userID, actorID str
 	return s.userRepo.RevokeSystemAdmin(ctx, userID, actorID)
 }
 
+// ListOperationsAdmins lists users with IsOperationsAdmin=true. Thin
+// pass-through to the repository; the handler enforces OperationsAdmin gating.
+func (s *userService) ListOperationsAdmins(
+	ctx context.Context, offset, limit int,
+) ([]*types.User, int64, error) {
+	return s.userRepo.ListOperationsAdmins(ctx, offset, limit)
+}
+
+// RevokeOperationsAdmin removes operations-admin privileges through the
+// repository's transactional guard so concurrent revokes cannot remove
+// the final operations administrator.
+func (s *userService) RevokeOperationsAdmin(ctx context.Context, userID, actorID string) (*types.User, error) {
+	return s.userRepo.RevokeOperationsAdmin(ctx, userID, actorID)
+}
+
 // UpdateUserPreferences applies a partial update over the user's
 // preferences blob. PATCH semantics: only keys present in `patch`
 // (non-nil pointer fields) replace the existing value; everything else
@@ -906,7 +921,9 @@ func (s *userService) resolveLoginTenantID(ctx context.Context, user *types.User
 
 	// Membership (or cross-tenant superuser) must still be valid. Mirrors
 	// the gate in SwitchTenant so the two entry points stay consistent.
-	if !user.CanAccessAllTenants {
+	// Operations admins are treated as global operators (see
+	// User.IsGlobalWorkspaceOperator) and skip the membership check.
+	if !user.IsGlobalWorkspaceOperator() {
 		if s.memberService == nil {
 			logger.Warnf(ctx,
 				"resolveLoginTenantID: member service unavailable; falling back to home for user %s",
@@ -949,7 +966,7 @@ func (s *userService) homeOrFirstMembershipTenant(ctx context.Context, user *typ
 	if user.TenantID == 0 {
 		return s.resolveFirstMembershipTenant(ctx, user)
 	}
-	if user.CanAccessAllTenants || s.memberService == nil {
+	if user.IsGlobalWorkspaceOperator() || s.memberService == nil {
 		return user.TenantID
 	}
 	member, err := s.memberService.GetMembership(ctx, user.ID, user.TenantID)
@@ -1138,9 +1155,10 @@ func (s *userService) SwitchTenant(
 		return nil, errors.New("target workspace ID is required")
 	}
 
-	// Verify membership unless the caller is a cross-tenant superuser
-	// switching outside their home tenant.
-	if !user.CanAccessAllTenants || targetTenantID == user.TenantID {
+	// Verify membership unless the caller is a cross-tenant superuser (or an
+	// operations admin, who is always a global operator) switching outside
+	// their home tenant.
+	if !user.IsGlobalWorkspaceOperator() || targetTenantID == user.TenantID {
 		if s.memberService == nil {
 			return nil, errors.New("workspace membership service unavailable")
 		}

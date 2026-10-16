@@ -102,6 +102,11 @@ type User struct {
 	CanAccessAllTenants bool `json:"can_access_all_tenants" gorm:"default:false"`
 	// Whether the user is a system administrator (independent of workspace roles)
 	IsSystemAdmin bool `json:"is_system_admin" gorm:"default:false;index"`
+	// Whether the user is an operations administrator — a platform role one
+	// level ABOVE system administrator. Operations admins automatically
+	// inherit every system-admin privilege (folded in at the auth layer) and
+	// additionally gate the operations-admin management surface.
+	IsOperationsAdmin bool `json:"is_operations_admin" gorm:"default:false;index"`
 	// Per-user UI/feature preferences.
 	// Stored as JSON (jsonb on Postgres, TEXT on SQLite) via the
 	// driver.Valuer / sql.Scanner methods on UserPreferences.
@@ -266,9 +271,30 @@ type UserInfo struct {
 	IsActive            bool            `json:"is_active"`
 	CanAccessAllTenants bool            `json:"can_access_all_tenants"`
 	IsSystemAdmin       bool            `json:"is_system_admin"`
+	IsOperationsAdmin   bool            `json:"is_operations_admin"`
 	Preferences         UserPreferences `json:"preferences"`
 	CreatedAt           time.Time       `json:"created_at"`
 	UpdatedAt           time.Time       `json:"updated_at"`
+}
+
+// IsGlobalWorkspaceOperator reports whether this user may operate inside ANY
+// workspace, i.e. should be treated as a cross-tenant superuser by the
+// membership / catalog gates. Two identities qualify:
+//
+//   - explicit cross-tenant superusers (User.CanAccessAllTenants), whose reach
+//     is additionally modulated by the cluster-wide EnableCrossTenantAccess
+//     flag at the middleware layer; and
+//   - operations administrators (User.IsOperationsAdmin) — the platform's
+//     highest role. They are global operators by definition and are NOT gated
+//     by EnableCrossTenantAccess, so callers that consult this predicate
+//     (service-layer membership skips, tenant-catalog management) always
+//     honour them, while the few flag-aware middleware helpers keep their own
+//     explicit operations-admin bypass.
+//
+// The receiver is nil-safe so it can be used directly on a possibly-nil
+// *types.User resolved from a context.
+func (u *User) IsGlobalWorkspaceOperator() bool {
+	return u != nil && (u.CanAccessAllTenants || u.IsOperationsAdmin)
 }
 
 // ToUserInfo converts User to UserInfo (without sensitive data)
@@ -282,6 +308,7 @@ func (u *User) ToUserInfo() *UserInfo {
 		IsActive:            u.IsActive,
 		CanAccessAllTenants: u.CanAccessAllTenants,
 		IsSystemAdmin:       u.IsSystemAdmin,
+		IsOperationsAdmin:   u.IsOperationsAdmin,
 		Preferences:         u.Preferences,
 		CreatedAt:           u.CreatedAt,
 		UpdatedAt:           u.UpdatedAt,
