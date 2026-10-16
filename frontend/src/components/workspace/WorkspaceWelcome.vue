@@ -7,9 +7,7 @@
     </header> -->
     <main class="welcome-content">
       <div class="welcome-intro">
-        <div class="welcome-symbol" aria-hidden="true">
-          <span></span><span></span><span></span>
-        </div>
+        <img class="welcome-symbol" :src="thinkerflowMark" alt="" aria-hidden="true" />
         <p class="welcome-eyebrow">{{ t("workspace.eyebrow") }}</p>
         <h1>{{ t("workspace.title") }}</h1>
         <p class="welcome-description">{{ t("workspace.description") }}</p>
@@ -64,6 +62,7 @@
 
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
+import thinkerflowMark from "@/assets/img/thinkerflow-mark.png";
 import type { WorkspaceIntent } from "@/utils/workspaceEvents";
 defineProps<{ mode?: WorkspaceIntent }>();
 defineEmits<{ select: [intent: WorkspaceIntent]; knowledge: [] }>();
@@ -168,30 +167,11 @@ button {
 }
 
 .welcome-symbol {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  height: 36px;
+  /* 品牌标记：透明底蓝色双条图（左高右矮、右条偏下），与侧边栏 logo 同图 */
+  display: block;
+  width: 40px;
+  height: 40px;
   margin: 0 auto 20px;
-  transform: rotate(-12deg);
-
-  span {
-    display: block;
-    width: 7px;
-    height: 27px;
-    background: var(--td-text-color-primary);
-    border-radius: var(--app-radius-sm);
-
-    &:nth-child(2) {
-      height: 38px;
-    }
-
-    &:last-child {
-      height: 19px;
-      align-self: flex-end;
-    }
-  }
 }
 
 .welcome-eyebrow {

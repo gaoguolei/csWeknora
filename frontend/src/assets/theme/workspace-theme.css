@@ -76,8 +76,10 @@
   --td-bg-color-secondarycontainer: #1a1d24;
   --td-bg-color-secondarycontainer-hover: #20242d;
   --td-bg-color-secondarycontainer-active: #272c38;
-  --td-component-stroke: #242833;
-  --td-component-border: #303542;
+  /* 描边/边框：需比容器底 #16181e、页面底 #0d0f13 明显跳出，
+     否则输入框等卡片边框在近黑底上不可见（TDesign 暗色默认 stroke 为 #4c4c4c）。 */
+  --td-component-stroke: #383f4e;
+  --td-component-border: #4a5265;
   --td-text-color-primary: rgba(255, 255, 255, 0.92);
   --td-text-color-secondary: rgba(255, 255, 255, 0.65);
   --td-text-color-placeholder: rgba(255, 255, 255, 0.4);

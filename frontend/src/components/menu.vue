@@ -13,7 +13,8 @@
         @click="router.push('/platform/creatChat')"
         style="cursor: pointer"
       >
-        <img class="logo" :src="logoSrc" alt="" />
+        <img class="logo_mark" :src="thinkerflowMark" alt="" />
+        <span class="logo_wordmark">ThinkerFlow</span>
         <sup v-if="isLiteEdition" class="lite-badge">Lite</sup>
       </div>
       <div class="logo_actions">
@@ -753,9 +754,7 @@ import {
 } from './sessionFolderState'
 import PanelResizeHandle from './PanelResizeHandle.vue'
 import ThemeToggle from './ThemeToggle.vue'
-import allthinkerLogo from '@/assets/img/allthinker.png'
-import allthinkerLogoDark from '@/assets/img/allthinker-dark.png'
-import { useTheme } from '@/composables/useTheme'
+import thinkerflowMark from '@/assets/img/thinkerflow-mark.png'
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_MIN_WIDTH,
@@ -848,16 +847,6 @@ const PLATFORM_LOGO: Record<string, string> = {
 const platformLogo = (p: string): string => (p ? PLATFORM_LOGO[p] || '' : '')
 
 const { t } = useI18n()
-const { currentTheme } = useTheme()
-// 侧边栏 logo：浅色用深色文字原图，深色用白字版（竖线保持 #507aff），
-// 替代旧的 invert 滤镜方案——文字更纯白、竖线不偏色。
-const logoSrc = computed(() => {
-  if (currentTheme.value === 'light') return allthinkerLogo
-  if (currentTheme.value === 'dark') return allthinkerLogoDark
-  return document.documentElement.getAttribute('theme-mode') === 'dark'
-    ? allthinkerLogoDark
-    : allthinkerLogo
-})
 const usemenuStore = useMenuStore()
 const sessionActivity = useSessionActivityStore()
 const { entries: sessionActivityEntries, unread: sessionUnread } =
@@ -2535,65 +2524,29 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
   }
 
   .logo_box {
-    .logo { width: 128px; height: auto; }
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    min-width: 0;
-    // 不能裁切：品牌标记带 -12° 旋转，包围盒比布局盒宽/高约 2px，
-    // overflow:hidden 会把它的左缘和上下缘削平。文案改由省略号截断。
-    overflow: visible;
-
-    // 品牌标记沿用「新对话」首页的三道圆角短线，用 currentColor 跟随主题，
-    // 侧栏因此不再依赖位图 logo，也不必再做深色模式的反转滤镜。
-    .brand-mark {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 2.5px;
-      height: 18px;
+    /* 品牌标记：透明底蓝色双条图（左高右矮、右条偏下） */
+    .logo_mark {
+      display: block;
+      width: 24px;
+      height: 24px;
       flex-shrink: 0;
-      // 右移一点：抵消旋转带来的左侧外扩，与下方菜单图标列对齐，
-      // 同时避免标记贴住侧栏左缘显得被“切掉”。
-      margin-left: 2px;
-      color: var(--td-text-color-primary);
-      transform: rotate(-12deg);
-
-      > span {
-        display: block;
-        width: 3.5px;
-        background: currentColor;
-        border-radius: var(--app-radius-pill);
-
-        &:nth-child(1) {
-          height: 12px;
-        }
-
-        &:nth-child(2) {
-          height: 18px;
-        }
-
-        &:last-child {
-          height: 9px;
-          align-self: flex-end;
-        }
-      }
     }
 
-    // 与标记并排的文字字标，模仿 Manus 侧栏的紧凑品牌锁定。
-    .brand-wordmark {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: var(--app-text-lg);
-      font-weight: 600;
-      line-height: 1;
+    .logo_wordmark {
+      font-size: 17px;
+      font-weight: 700;
       letter-spacing: -0.2px;
       color: var(--td-text-color-primary);
       white-space: nowrap;
-      user-select: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: 1;
+    min-width: 0;
+    overflow: visible;
 
     .lite-badge {
       margin-left: 2px;

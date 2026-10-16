@@ -4322,7 +4322,9 @@ const getImgSrc = (url: string) => {
   user-select: none;
   flex-shrink: 0;
 
-  &:hover {
+  /* 发送/停止是实心蓝圆，不能被通用 hover 灰底盖掉（否则悬停时
+     蓝底变浅灰、白箭头“消失”）。 */
+  &:not(.send-btn):not(.stop-btn):hover {
     background: var(--td-bg-color-secondarycontainer-hover);
   }
 
@@ -4707,6 +4709,10 @@ const getImgSrc = (url: string) => {
 .send-btn {
   background-color: var(--td-brand-color);
   color: var(--td-text-color-anti);
+
+  &:hover:not(.disabled):not(:disabled) {
+    background-color: var(--td-brand-color-hover);
+  }
 
   &.disabled {
     opacity: 1;
