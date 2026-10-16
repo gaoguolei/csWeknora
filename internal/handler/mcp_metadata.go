@@ -7,6 +7,7 @@ import (
 
 	"github.com/Tencent/WeKnora/internal/errors"
 	"github.com/Tencent/WeKnora/internal/logger"
+	"github.com/Tencent/WeKnora/internal/mcp"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
@@ -117,6 +118,19 @@ func mcpMetadataAppError(err error, refresh bool) *errors.AppError {
 		return errors.NewConflictError("MCP connection changed during refresh; save the configuration and sync again")
 	case stderrors.Is(err, types.ErrMCPMetadataTooLarge), stderrors.Is(err, types.ErrMCPMetadataInvalidTools):
 		return errors.NewBadRequestError("MCP directory is invalid or too large")
+	case stderrors.Is(err, secutils.ErrSSRFHostNotWhitelisted):
+		// Whitelist-only mode refuses the host before any DNS query. Say so
+		// explicitly: the generic refresh text below reads as "the server is
+		// down", which sends users looking at the wrong end of the connection.
+		return errors.NewBadRequestError(
+			"MCP 服务地址未通过安全校验：服务端开启了「仅允许白名单出站」" +
+				"（SSRF_DNS_WHITELIST_ONLY），该主机不在白名单内。" +
+				"请联系运维把域名加入 SSRF_WHITELIST_EXTRA 后重试。")
+	case stderrors.Is(err, mcp.ErrOutboundURLBlocked):
+		return errors.NewBadRequestError(
+			"MCP 服务地址被出站安全策略拦截（不可直连 IP、端口受限或不在白名单内）。" +
+				"请联系运维将其加入 SSRF_WHITELIST_EXTRA" +
+				"（支持精确域名 / *.example.com 通配 / IP / CIDR）后重试。")
 	default:
 		if refresh {
 			return errors.NewBadRequestError("Failed to refresh MCP tools. Check the connection and try again.")

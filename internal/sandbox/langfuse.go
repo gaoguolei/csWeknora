@@ -5,7 +5,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/Tencent/WeKnora/internal/tracing/langfuse"
-	"github.com/gorilla/websocket"
 )
 
 const sandboxSpanPreviewRunes = 256
@@ -345,46 +344,18 @@ func (c *langfuseRemoteClient) OpenTerminal(
 	return session, err
 }
 
-// DialDesktop forwards the desktop capability so wrapping does not hide
-// RemoteDesktopManager from DesktopManagerFrom.
-//
-// It lives on the base decorator (not on a dedicated one like
-// langfuseSnapshotClient) so *every* wrapping shape exposes the capability:
-// langfuseSnapshotClient embeds this type, so it inherits the method.
-// Whether a backend actually supports desktops stays delegated to the inner
-// client's SupportsDesktop flag, which the *From helpers check.
-func (c *langfuseRemoteClient) DialDesktop(
-	ctx context.Context,
-	handle RemoteSandboxHandle,
-	opts RemoteDesktopOptions,
-) (*websocket.Conn, error) {
-	inner, ok := c.inner.(RemoteDesktopManager)
-	if !ok {
-		return nil, &RemoteError{
-			Kind:    RemoteErrorKindUnsupported,
-			Op:      "DialDesktop",
-			Message: "inner client has no desktop manager",
-		}
-	}
-	ctx, span := startSandboxSpan(ctx, "sandbox.dial_desktop", sandboxHandleOut(handle), nil)
-	conn, err := inner.DialDesktop(ctx, handle, opts)
-	span.Finish(sandboxHandleOut(handle), nil, err)
-	return conn, err
-}
-
-func (c *langfuseRemoteClient) StartDesktopTTLRefresh(ctx context.Context, handle RemoteSandboxHandle) {
-	inner, ok := c.inner.(RemoteDesktopTTLRefresher)
+func (c *langfuseRemoteClient) StartTTLRefresh(ctx context.Context, handle RemoteSandboxHandle) {
+	inner, ok := c.inner.(RemoteTTLRefresher)
 	if !ok {
 		return
 	}
-	inner.StartDesktopTTLRefresh(ctx, handle)
+	inner.StartTTLRefresh(ctx, handle)
 }
 
 var (
-	_ RemoteSandboxClient       = (*langfuseRemoteClient)(nil)
-	_ RemoteSnapshotManager     = (*langfuseSnapshotClient)(nil)
-	_ forkSnapshotCreator       = (*langfuseSnapshotClient)(nil)
-	_ RemoteTerminalManager     = (*langfuseRemoteClient)(nil)
-	_ RemoteDesktopManager      = (*langfuseRemoteClient)(nil)
-	_ RemoteDesktopTTLRefresher = (*langfuseRemoteClient)(nil)
+	_ RemoteSandboxClient   = (*langfuseRemoteClient)(nil)
+	_ RemoteSnapshotManager = (*langfuseSnapshotClient)(nil)
+	_ forkSnapshotCreator   = (*langfuseSnapshotClient)(nil)
+	_ RemoteTerminalManager = (*langfuseRemoteClient)(nil)
+	_ RemoteTTLRefresher    = (*langfuseRemoteClient)(nil)
 )

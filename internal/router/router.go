@@ -103,6 +103,9 @@ type RouterParams struct {
 func NewRouter(params RouterParams) *gin.Engine {
 	r := gin.New()
 	r.ContextWithFallback = true
+	if params.ProgrammingHandler != nil {
+		r.Use(params.ProgrammingHandler.WebPreviewMiddleware(params.RedisClient))
+	}
 	// 清理 FormFile/MultipartForm 解析产生的 multipart 临时文件，避免容器 /tmp 持续增长。
 	r.Use(middleware.MultipartFormCleanup())
 
@@ -130,7 +133,7 @@ func NewRouter(params RouterParams) *gin.Engine {
 			"X-Embed-Session", "X-External-User-ID", "X-External-User-Token", "X-WeKnora-Desktop-Token",
 			// Streamable HTTP MCP clients running in a browser send these on
 			// the /mcp/:endpoint_id surface.
-			"MCP-Protocol-Version", "Mcp-Session-Id", "Last-Event-ID",
+			"MCP-Protocol-Version", "Mcp-Method", "Mcp-Name", "Mcp-Session-Id", "Last-Event-ID",
 		},
 		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin", "Mcp-Session-Id"},
 		AllowCredentials: true,
@@ -202,7 +205,6 @@ func NewRouter(params RouterParams) *gin.Engine {
 	// auth headers on the WS handshake, so this must precede the global Auth
 	// middleware). The ticket is minted by an authenticated POST.
 	RegisterSandboxTerminalRoutes(r, params.SessionHandler)
-	RegisterSandboxDesktopRoutes(r, params.SessionHandler)
 	r.GET("/api/v1/local-browser/extension", params.SessionHandler.BrowserSkillExtension)
 	r.POST("/api/v1/local-browser/extension/authorize", params.SessionHandler.BrowserSkillAuthorize)
 	r.POST("/api/v1/local-browser/internal", params.SessionHandler.BrowserSkillInternal)
@@ -263,6 +265,7 @@ func NewRouter(params RouterParams) *gin.Engine {
 		RegisterTenantRoutes(v1, params.TenantHandler, params.TenantMemberHandler, params.TenantInvitationHandler, params.AuditLogHandler, rbacGuards)
 		RegisterMyInvitationRoutes(v1, params.TenantInvitationHandler)
 		RegisterKnowledgeBaseRoutes(v1, params.KBHandler, rbacGuards)
+		RegisterImageAttrRoutes(v1, params.KBHandler, rbacGuards)
 		RegisterKnowledgeBaseActivityRoutes(v1, params.AuditLogHandler, rbacGuards)
 		// KB-scoped image proxy: lets tenants render images embedded in
 		// org-shared / agent-visible KB content, which the tenant-scoped

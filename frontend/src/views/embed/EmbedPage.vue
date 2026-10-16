@@ -4,12 +4,16 @@
     <template v-else-if="config">
       <header v-if="sessionId" class="embed-header">
         <span class="embed-header__badge" :style="badgeStyle">
-          <span v-if="config.agent_avatar" class="embed-header__avatar">{{ config.agent_avatar }}</span>
+          <span v-if="config.agent_avatar" class="embed-header__avatar">{{
+            config.agent_avatar
+          }}</span>
           <t-icon v-else :name="headerIcon" size="18px" />
         </span>
         <div class="embed-header__text">
           <h1 class="embed-header__title">{{ headerTitle }}</h1>
-          <p v-if="headerSubtitle" class="embed-header__subtitle">{{ headerSubtitle }}</p>
+          <p v-if="headerSubtitle" class="embed-header__subtitle">
+            {{ headerSubtitle }}
+          </p>
         </div>
         <t-button
           variant="text"
@@ -45,26 +49,30 @@
         @session-title="sessionTitle = $event"
         @messages-state="chatHasMessages = $event"
       />
-      <div v-else class="embed-loading">{{ $t('embedPublish.loading') }}</div>
+      <div v-else class="embed-loading">{{ $t("embedPublish.loading") }}</div>
     </template>
-    <div v-else-if="awaitingToken" class="embed-loading">{{ $t('embedPublish.awaitingToken') }}</div>
-    <div v-else-if="bootstrapping" class="embed-loading">{{ $t('embedPublish.loading') }}</div>
+    <div v-else-if="awaitingToken" class="embed-loading">
+      {{ $t("embedPublish.awaitingToken") }}
+    </div>
+    <div v-else-if="bootstrapping" class="embed-loading">
+      {{ $t("embedPublish.loading") }}
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch, watchEffect } from 'vue'
-import { useRoute } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import EmbedChatView from '@/views/embed/EmbedChatView.vue'
-import { useEmbedBridge } from '@/composables/useEmbedBridge'
-import { setDefaultProtectedFileAccess } from '@/utils/protectedFileAccess'
+import { computed, onUnmounted, ref, watch, watchEffect } from "vue";
+import { useRoute } from "vue-router";
+import { useI18n } from "vue-i18n";
+import EmbedChatView from "@/views/embed/EmbedChatView.vue";
+import { useEmbedBridge } from "@/composables/useEmbedBridge";
+import { setDefaultProtectedFileAccess } from "@/utils/protectedFileAccess";
 
-const { t } = useI18n()
-const route = useRoute()
-const channelId = ref(String(route.params.channelId || ''))
-const sessionTitle = ref('')
-const chatHasMessages = ref(false)
+const { t } = useI18n();
+const route = useRoute();
+const channelId = ref(String(route.params.channelId || ""));
+const sessionTitle = ref("");
+const chatHasMessages = ref(false);
 
 const {
   token,
@@ -77,7 +85,7 @@ const {
   bootstrapping,
   hostContext,
   startNewSession,
-} = useEmbedBridge(channelId)
+} = useEmbedBridge(channelId);
 
 // An embed visitor has no Bearer/tenant credentials, so every protected file in
 // this document must go through the channel-scoped proxy. Registering the plane
@@ -86,89 +94,95 @@ const {
 watchEffect(() => {
   setDefaultProtectedFileAccess(
     channelId.value && token.value
-      ? { mode: 'embed', channelId: channelId.value, token: token.value }
+      ? { mode: "embed", channelId: channelId.value, token: token.value }
       : null,
-  )
-})
+  );
+});
 
-onUnmounted(() => setDefaultProtectedFileAccess(null))
+onUnmounted(() => setDefaultProtectedFileAccess(null));
 
 const handleNewChat = () => {
   // The current session is already empty — reuse it instead of spawning yet
   // another blank session (which would otherwise pile up server-side).
-  if (!chatHasMessages.value) return
-  sessionTitle.value = ''
-  startNewSession()
-}
+  if (!chatHasMessages.value) return;
+  sessionTitle.value = "";
+  startNewSession();
+};
 
-const kbIds = computed(() => config.value?.knowledge_base_ids ?? [])
+const kbIds = computed(() => config.value?.knowledge_base_ids ?? []);
 
 const pageStyle = computed(() => {
-  const color = config.value?.primary_color
-  if (!color) return {}
+  const color = config.value?.primary_color;
+  if (!color) return {};
   return {
-    '--embed-primary': color,
-    '--td-brand-color': color,
-    '--td-brand-color-hover': color,
-    '--td-brand-color-active': color,
-  } as Record<string, string>
-})
+    "--embed-primary": color,
+    "--td-brand-color": color,
+    "--td-brand-color-hover": color,
+    "--td-brand-color-active": color,
+  } as Record<string, string>;
+});
 
 const badgeStyle = computed(() => {
-  const color = config.value?.primary_color
-  if (!color) return {}
+  const color = config.value?.primary_color;
+  if (!color) return {};
   return {
     background: `color-mix(in srgb, ${color} 12%, transparent)`,
     color,
-  } as Record<string, string>
-})
+  } as Record<string, string>;
+});
 
 const channelDisplayTitle = computed(() => {
-  const cfg = config.value
-  if (!cfg) return ''
+  const cfg = config.value;
+  if (!cfg) return "";
   return (
-    cfg.display_title?.trim()
-    || cfg.page_title?.trim()
-    || cfg.name?.trim()
-    || cfg.agent_name?.trim()
-    || t('embedPublish.defaultChatTitle')
-  )
-})
+    cfg.display_title?.trim() ||
+    cfg.page_title?.trim() ||
+    cfg.name?.trim() ||
+    cfg.agent_name?.trim() ||
+    t("embedPublish.defaultChatTitle")
+  );
+});
 
 const useSessionHeaderTitle = computed(
-  () => config.value?.header_title_mode === 'session',
-)
+  () => config.value?.header_title_mode === "session",
+);
 
 const headerTitle = computed(() => {
   if (useSessionHeaderTitle.value && sessionTitle.value.trim()) {
-    return sessionTitle.value.trim()
+    return sessionTitle.value.trim();
   }
-  return channelDisplayTitle.value
-})
+  return channelDisplayTitle.value;
+});
 
 const headerSubtitle = computed(() => {
-  const cfg = config.value
-  if (!cfg?.agent_name) return ''
+  const cfg = config.value;
+  if (!cfg?.agent_name) return "";
   if (useSessionHeaderTitle.value && sessionTitle.value.trim()) {
-    const fallback = channelDisplayTitle.value
+    const fallback = channelDisplayTitle.value;
     if (fallback && fallback !== sessionTitle.value.trim()) {
-      return fallback
+      return fallback;
     }
-    return cfg.agent_name
+    return cfg.agent_name;
   }
-  const channelName = cfg.name?.trim()
-  if (!channelName || channelName === channelDisplayTitle.value) return ''
-  return cfg.agent_name
-})
+  const channelName = cfg.name?.trim();
+  if (!channelName || channelName === channelDisplayTitle.value) return "";
+  return cfg.agent_name;
+});
 
 const headerIcon = computed(() => {
-  const agentId = config.value?.agent_id || ''
-  return agentId && agentId !== 'builtin-quick-answer' ? 'control-platform' : 'chat'
-})
+  const agentId = config.value?.agent_id || "";
+  return agentId && agentId !== "builtin-quick-answer"
+    ? "control-platform"
+    : "chat";
+});
 
-watch(headerTitle, (title) => {
-  if (title) document.title = title
-}, { immediate: true })
+watch(
+  headerTitle,
+  (title) => {
+    if (title) document.title = title;
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped lang="less">

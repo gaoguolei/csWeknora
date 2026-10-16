@@ -299,6 +299,7 @@ func (t *WriteSandboxFileTool) Execute(ctx context.Context, args json.RawMessage
 	defer lockSandboxFile(sessionID, clean)()
 
 	content := chunk
+	previous := ""
 	if mode == writeModeAppend {
 		existing, appendErr := t.readForAppend(ctx, sessionID, clean)
 		if appendErr != "" {
@@ -316,6 +317,9 @@ func (t *WriteSandboxFileTool) Execute(ctx context.Context, args json.RawMessage
 		content = make([]byte, 0, len(existing)+len(chunk))
 		content = append(content, existing...)
 		content = append(content, chunk...)
+		previous = string(existing)
+	} else if prior, ok := t.readForOverwrite(ctx, sessionID, clean); ok {
+		previous = prior
 	}
 
 	if err := t.sink.WriteSessionWorkspaceFile(ctx, sessionID, clean, content); err != nil {
@@ -346,6 +350,7 @@ func (t *WriteSandboxFileTool) Execute(ctx context.Context, args json.RawMessage
 			"syntax_error": true,
 		}
 		attachSandboxDiffStats(data, added, 0)
+		attachSandboxDiffContent(data, previous, string(content))
 		return &types.ToolResult{
 			Success: false,
 			Error:   hint,
@@ -373,6 +378,7 @@ func (t *WriteSandboxFileTool) Execute(ctx context.Context, args json.RawMessage
 		"appended":     len(chunk),
 	}
 	attachSandboxDiffStats(data, added, 0)
+	attachSandboxDiffContent(data, previous, string(content))
 	return &types.ToolResult{
 		Success:     true,
 		Output:      output,
@@ -417,6 +423,26 @@ func (t *WriteSandboxFileTool) readForAppend(
 		return nil, fmt.Sprintf("cannot append to %s: reading the current contents failed: %v", filePath, err)
 	}
 	return existing, ""
+}
+
+// readForOverwrite returns the bytes the client should show as removed. Unlike
+// append this is best-effort: replacing a file that is missing, oversized, or
+// unreadable still succeeds, it just has no "before" side to diff against.
+func (t *WriteSandboxFileTool) readForOverwrite(
+	ctx context.Context, sessionID, filePath string,
+) (string, bool) {
+	stat, err := t.sink.StatSessionFile(ctx, sessionID, filePath)
+	if err != nil || stat == nil || stat.Type != sandbox.RemoteEntryFile {
+		return "", false
+	}
+	if stat.Size > int64(sandboxDiffPayloadMaxBytes) {
+		return "", false
+	}
+	raw, err := t.sink.ReadSessionFile(ctx, sessionID, filePath)
+	if err != nil {
+		return "", false
+	}
+	return string(raw), true
 }
 
 // Cleanup releases any resources.

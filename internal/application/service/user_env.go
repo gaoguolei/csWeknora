@@ -9,6 +9,7 @@ import (
 
 	"github.com/Tencent/WeKnora/internal/application/repository"
 	apperrors "github.com/Tencent/WeKnora/internal/errors"
+	"github.com/Tencent/WeKnora/internal/sandbox"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
 )
@@ -70,14 +71,16 @@ type UserEnvService struct {
 	// systemSettingSvc backs the platform-wide global sandbox secrets
 	// (sandbox.global_env_vars). It is unused by the per-member /me surface.
 	systemSettingSvc interfaces.SystemSettingService
+	hostOnly         bool
 }
 
 func NewUserEnvService(
 	skills repository.TenantSkillRepository,
 	configs repository.TenantSandboxConfigRepository,
 	systemSettingSvc interfaces.SystemSettingService,
+	host HostSandboxManager,
 ) *UserEnvService {
-	return &UserEnvService{skills: skills, configs: configs, systemSettingSvc: systemSettingSvc}
+	return &UserEnvService{skills: skills, configs: configs, systemSettingSvc: systemSettingSvc, hostOnly: host.Desktop}
 }
 
 // caller resolves whose values this call may touch. A missing principal is an
@@ -112,7 +115,7 @@ func (s *UserEnvService) ListMine(ctx context.Context) ([]ConfigEnvGroup, error)
 	if err != nil {
 		return nil, err
 	}
-	configs, err := s.configs.ListByTenant(ctx, tenantID)
+	configs, err := s.visibleConfigs(ctx, tenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -425,6 +428,18 @@ func (s *UserEnvService) upsertMine(
 	})
 }
 
+// visibleConfigs is what the env-var page groups by. Lite has one target.
+func (s *UserEnvService) visibleConfigs(
+	ctx context.Context, tenantID uint64,
+) ([]*types.TenantSandboxConfigEntity, error) {
+	if s.hostOnly {
+		return []*types.TenantSandboxConfigEntity{{
+			ID: sandbox.HostSkillTargetID, TenantID: tenantID, Name: hostSkillTargetName,
+		}}, nil
+	}
+	return s.configs.ListByTenant(ctx, tenantID)
+}
+
 // visibleConfigID resolves a sandbox config against the caller's own workspace.
 // Without it an ID from another workspace would be accepted and a row written
 // against it, which that workspace's runs would then read.
@@ -434,6 +449,13 @@ func (s *UserEnvService) visibleConfigID(
 	configID = strings.TrimSpace(configID)
 	if configID == "" {
 		return "", apperrors.NewBadRequestError("sandbox_config_id is required")
+	}
+	if s.hostOnly {
+		if !sandbox.IsHostSkillTarget(configID) {
+			return "", apperrors.NewBadRequestError(
+				fmt.Sprintf("sandbox config %s is not available in this workspace", configID))
+		}
+		return sandbox.HostSkillTargetID, nil
 	}
 	cfg, err := s.configs.GetByID(ctx, tenantID, configID)
 	if err != nil {

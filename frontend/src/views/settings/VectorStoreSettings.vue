@@ -1177,43 +1177,43 @@ onMounted(async () => {
 
 .vectorstore-drawer--qdrant .setting-drawer__header-icon {
   background: rgba(225, 38, 38, 0.12);
-  color: #E12626;
+  color: color-mix(in srgb, #E12626 var(--app-provider-tint), var(--td-text-color-primary));
 }
 .vectorstore-drawer--milvus .setting-drawer__header-icon {
   background: rgba(0, 137, 255, 0.12);
-  color: #0089FF;
+  color: color-mix(in srgb, #0089FF var(--app-provider-tint), var(--td-text-color-primary));
 }
 .vectorstore-drawer--weaviate .setting-drawer__header-icon {
   background: color-mix(in srgb, var(--td-brand-color) 12%, transparent);
-  color: #07A050;
+  color: color-mix(in srgb, #07A050 var(--app-provider-tint), var(--td-text-color-primary));
 }
 .vectorstore-drawer--elasticsearch .setting-drawer__header-icon,
 .vectorstore-drawer--elasticfaiss .setting-drawer__header-icon {
   background: rgba(255, 153, 0, 0.12);
-  color: #D97706;
+  color: color-mix(in srgb, #D97706 var(--app-provider-tint), var(--td-text-color-primary));
 }
 .vectorstore-drawer--postgres .setting-drawer__header-icon {
   background: rgba(0, 82, 217, 0.1);
-  color: #0052D9;
+  color: color-mix(in srgb, #0052D9 var(--app-provider-tint), var(--td-text-color-primary));
 }
 .vectorstore-drawer--opensearch .setting-drawer__header-icon {
   background: rgba(98, 53, 187, 0.12);
-  color: #6235BB;
+  color: color-mix(in srgb, #6235BB var(--app-provider-tint), var(--td-text-color-primary));
 }
 .vectorstore-drawer--infinity .setting-drawer__header-icon {
   background: rgba(98, 53, 187, 0.12);
-  color: #6235BB;
+  color: color-mix(in srgb, #6235BB var(--app-provider-tint), var(--td-text-color-primary));
 }
 .vectorstore-drawer--tencent_vectordb .setting-drawer__header-icon {
   background: rgba(0, 82, 217, 0.1);
-  color: #0052D9;
+  color: color-mix(in srgb, #0052D9 var(--app-provider-tint), var(--td-text-color-primary));
 }
 .vectorstore-drawer--doris .setting-drawer__header-icon {
   background: rgba(255, 90, 0, 0.12);
-  color: #E55A00;
+  color: color-mix(in srgb, #E55A00 var(--app-provider-tint), var(--td-text-color-primary));
 }
 .vectorstore-drawer--sqlite .setting-drawer__header-icon {
   background: rgba(70, 70, 70, 0.1);
-  color: #464646;
+  color: color-mix(in srgb, #464646 var(--app-provider-tint), var(--td-text-color-primary));
 }
 </style>

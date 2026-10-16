@@ -31,6 +31,18 @@ type MCPServiceHandler struct {
 	agents access.SharedAgentLookup
 }
 
+// Security policy refusals can also surface from service-layer revalidation
+// or OAuth requests after the handler's initial validation has passed.
+func mcpOperationAppError(prefix string, err error) *errors.AppError {
+	message := prefix + err.Error()
+	if stderrors.Is(err, mcpsecurity.ErrOutboundURLBlocked) ||
+		stderrors.Is(err, secutils.ErrSSRFHostNotWhitelisted) ||
+		stderrors.Is(err, secutils.ErrSSRFRedirectBlocked) {
+		return errors.NewBadRequestError(message)
+	}
+	return errors.NewInternalServerError(message)
+}
+
 // NewMCPServiceHandler creates a new MCP service handler
 func NewMCPServiceHandler(
 	mcpServiceService interfaces.MCPServiceService,
@@ -81,7 +93,7 @@ func (h *MCPServiceHandler) mcpServiceResponses(
 func (h *MCPServiceHandler) CreateMCPService(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	var service types.MCPService
+	service := types.MCPService{Enabled: true}
 	if err := c.ShouldBindJSON(&service); err != nil {
 		logger.Error(ctx, "Failed to parse MCP service request", err)
 		c.Error(errors.NewBadRequestError(err.Error()))
@@ -112,7 +124,7 @@ func (h *MCPServiceHandler) CreateMCPService(c *gin.Context) {
 
 	if err := h.mcpServiceService.CreateMCPService(ctx, &service); err != nil {
 		logger.ErrorWithFields(ctx, err, map[string]interface{}{"service_name": secutils.SanitizeForLog(service.Name)})
-		c.Error(errors.NewInternalServerError("Failed to create MCP service: " + err.Error()))
+		c.Error(mcpOperationAppError("Failed to create MCP service: ", err))
 		return
 	}
 
@@ -376,8 +388,8 @@ func (h *MCPServiceHandler) UpdateMCPService(c *gin.Context) {
 	}
 	if authConfig, ok := updateData["auth_config"].(map[string]interface{}); ok {
 		service.AuthConfig = &types.MCPAuthConfig{}
-		// Secret fields (api_key, token) are intentionally NOT read from the
-		// main PUT body — they live behind the /credentials subresource so
+		// Secret fields (api_key, token, client_secret) are intentionally NOT
+		// read from the main PUT body — they live behind the /credentials subresource so
 		// editing unrelated config (timeout, enabled, etc.) cannot
 		// accidentally clobber a stored credential. Log a warning when a
 		// client still tries to send them so we can spot stale callers.
@@ -427,6 +439,12 @@ func (h *MCPServiceHandler) UpdateMCPService(c *gin.Context) {
 		if metaURL, ok := authConfig["auth_server_metadata_url"].(string); ok {
 			service.AuthConfig.AuthServerMetadataURL = metaURL
 		}
+		// client_id is non-secret; present-and-empty returns the service to
+		// dynamic client registration. Its secret goes through /credentials.
+		if clientID, ok := authConfig["client_id"].(string); ok {
+			service.AuthConfig.ClientID = strings.TrimSpace(clientID)
+			updateFields["client_id"] = true
+		}
 	}
 	if advancedConfig, ok := updateData["advanced_config"].(map[string]interface{}); ok {
 		service.AdvancedConfig = &types.MCPAdvancedConfig{}
@@ -448,7 +466,7 @@ func (h *MCPServiceHandler) UpdateMCPService(c *gin.Context) {
 
 	if err := h.mcpServiceService.UpdateMCPService(ctx, &service, updateFields); err != nil {
 		logger.ErrorWithFields(ctx, err, map[string]interface{}{"service_id": secutils.SanitizeForLog(serviceID)})
-		c.Error(errors.NewInternalServerError("Failed to update MCP service: " + err.Error()))
+		c.Error(mcpOperationAppError("Failed to update MCP service: ", err))
 		return
 	}
 
@@ -574,7 +592,7 @@ func (h *MCPServiceHandler) GetMCPServiceTools(c *gin.Context) {
 	tools, err := h.mcpServiceService.GetMCPServiceTools(ctx, tenantID, serviceID)
 	if err != nil {
 		logger.ErrorWithFields(ctx, err, map[string]interface{}{"service_id": secutils.SanitizeForLog(serviceID)})
-		c.Error(errors.NewInternalServerError("Failed to get MCP service tools: " + err.Error()))
+		c.Error(mcpOperationAppError("Failed to get MCP service tools: ", err))
 		return
 	}
 
@@ -610,7 +628,7 @@ func (h *MCPServiceHandler) GetMCPServiceResources(c *gin.Context) {
 	resources, err := h.mcpServiceService.GetMCPServiceResources(ctx, tenantID, serviceID)
 	if err != nil {
 		logger.ErrorWithFields(ctx, err, map[string]interface{}{"service_id": secutils.SanitizeForLog(serviceID)})
-		c.Error(errors.NewInternalServerError("Failed to get MCP service resources: " + err.Error()))
+		c.Error(mcpOperationAppError("Failed to get MCP service resources: ", err))
 		return
 	}
 

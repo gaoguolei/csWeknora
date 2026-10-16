@@ -41,7 +41,7 @@ withDefaults(
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 56px 20px;
+  padding: 64px 24px;
 
   &--compact {
     padding: 32px 16px;
@@ -55,7 +55,8 @@ withDefaults(
   width: 64px;
   height: 64px;
   margin-bottom: 16px;
-  border-radius: 50%;
+  border-radius: var(--app-radius-2xl);
+  border: 1px solid var(--td-component-stroke);
   background: var(--td-bg-color-secondarycontainer);
   color: var(--td-text-color-placeholder);
   font-size: 30px;
@@ -75,9 +76,10 @@ withDefaults(
 
 .wk-empty-state__title {
   color: var(--td-text-color-primary);
-  font-size: var(--app-text-lg);
-  font-weight: 600;
-  line-height: 22px;
+  font-family: var(--app-font-family-display);
+  font-size: var(--app-text-3xl);
+  font-weight: 500;
+  line-height: 1.5;
 }
 
 .wk-empty-state__desc {
@@ -85,13 +87,15 @@ withDefaults(
   max-width: 360px;
   color: var(--td-text-color-secondary);
   font-size: var(--app-text-md);
-  line-height: 20px;
+  line-height: 1.7;
 }
 
 .wk-empty-state__actions {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
   margin-top: 20px;
 }
 </style>

@@ -6,14 +6,28 @@
     <t-alert v-if="policyError" theme="error" :message="policyError">
       <template #operation><t-button variant="text" size="small" @click="loadPolicies">{{ t('mcpMetadata.retry') }}</t-button></template>
     </t-alert>
-    <div v-if="visibleTools.length" class="tools-list">
+    <div v-if="visibleTools.length" class="tools-list" :class="{ 'has-controls': !!serviceId }">
+      <div class="tools-list__header">
+        <span class="tools-list__header-tool">
+          {{ t('mcpMetadata.columnTool') }}
+          <t-tooltip v-if="serviceId" :content="t('mcpMetadata.policyHint')" placement="top"
+            :overlay-inner-style="{ maxWidth: '280px', whiteSpace: 'normal' }">
+            <t-icon name="help-circle" size="14px" class="tools-list__help" />
+          </t-tooltip>
+        </span>
+        <template v-if="serviceId">
+          <span class="tools-list__header-col">{{ t('mcpMetadata.columnEnabled') }}</span>
+          <span class="tools-list__header-col">{{ t('mcpMetadata.columnApproval') }}</span>
+        </template>
+      </div>
       <article v-for="tool in visibleTools" :key="tool.name" class="tool-row">
+        <div class="tool-main">
         <div class="tool-heading">
           <span class="tool-name">{{ tool.name }}</span>
           <t-popup
             :visible="openTool === tool.name"
             trigger="click"
-            placement="bottom-right"
+              placement="bottom-left"
             attach="body"
             destroy-on-close
             overlay-class-name="mcp-tool-detail-popup"
@@ -66,16 +80,17 @@
           </t-popup>
         </div>
         <p v-if="tool.description" class="tool-description">{{ tool.description }}</p>
-        <div v-if="serviceId" class="tool-controls">
-          <label class="tool-control"><span>{{ t('mcpMetadata.enabled') }}</span>
+        </div>
+        <template v-if="serviceId">
+          <div class="tool-cell">
             <t-switch :value="policy(tool.name).enabled" size="small" :disabled="loading || !!policyError || !!busy.get(tool.name)" :loading="busy.get(tool.name) === 'enabled'"
               :aria-label="`${tool.name} ${t('mcpMetadata.enabled')}`" @change="(value: boolean) => savePolicy(tool.name, 'enabled', value)" />
-          </label>
-          <label class="tool-control"><span>{{ t('mcpMetadata.approval') }}</span>
+          </div>
+          <div class="tool-cell">
             <t-switch :value="policy(tool.name).require_approval" size="small" :disabled="loading || !!policyError || !!busy.get(tool.name)" :loading="busy.get(tool.name) === 'require_approval'"
               :aria-label="`${tool.name} ${t('mcpMetadata.approval')}`" @change="(value: boolean) => savePolicy(tool.name, 'require_approval', value)" />
-          </label>
         </div>
+        </template>
       </article>
     </div>
     <t-empty v-else :description="t('mcpMetadata.noTools')" size="small" />
@@ -158,7 +173,7 @@ async function savePolicy(name: string, field: 'enabled' | 'require_approval', v
     if (field === 'enabled') await setMCPToolEnabled(props.serviceId, name, value)
     else await setMCPToolApproval(props.serviceId, name, value)
     if (current === generation) policies.value.set(name, { ...policy(name), [field]: value })
-  } catch { if (current === generation) MessagePlugin.error(t('mcpMetadata.policySaveFailed')) }
+  } catch (error: any) { if (current === generation) MessagePlugin.error(error?.message || t('mcpMetadata.policySaveFailed')) }
   finally {
     if (current === generation) { busy.value.delete(name); emit('busy', busy.value.size > 0) }
   }
@@ -168,10 +183,36 @@ onBeforeUnmount(() => { generation++; emit('busy', false) })
 
 <style scoped lang="less">
 .tools-directory { display: flex; flex-direction: column; gap: 12px; margin-top: 0; min-width: 0; }
-.tools-list { border-top: 1px solid var(--td-component-stroke); }
-.tool-row { padding: 14px 0; min-width: 0; border-bottom: 1px solid var(--td-component-stroke); }
-.tool-row:last-child { border-bottom: 0; padding-bottom: 0; }
-.tool-heading { display: flex; width: 100%; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.tools-list {
+  --tool-columns: minmax(0, 1fr);
+  border: 1px solid var(--td-component-stroke);
+  border-radius: var(--app-radius-md);
+  overflow: hidden;
+}
+.tools-list.has-controls { --tool-columns: minmax(0, 1fr) 64px 64px; }
+.tools-list__header,
+.tool-row {
+  display: grid;
+  grid-template-columns: var(--tool-columns);
+  column-gap: 8px;
+  padding: 0 14px;
+}
+.tools-list__header {
+  align-items: center;
+  height: 34px;
+  font-size: var(--app-text-sm);
+  color: var(--td-text-color-secondary);
+  background: var(--td-bg-color-secondarycontainer);
+  border-bottom: 1px solid var(--td-component-stroke);
+}
+.tools-list__header-tool { display: inline-flex; align-items: center; gap: 4px; }
+.tools-list__header-col { text-align: center; white-space: nowrap; }
+.tools-list__help { color: var(--td-text-color-placeholder); cursor: help; }
+.tool-row { padding-top: 12px; padding-bottom: 12px; min-width: 0; border-bottom: 1px solid var(--td-component-stroke); }
+.tool-row:last-child { border-bottom: 0; }
+.tool-main { min-width: 0; }
+.tool-cell { display: flex; justify-content: center; align-items: flex-start; padding-top: 2px; }
+.tool-heading { display: flex; min-width: 0; align-items: baseline; gap: 8px; }
 .tool-name { min-width: 0; font-size: var(--app-text-md); font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
 .tool-details {
   flex-shrink: 0;
@@ -188,7 +229,7 @@ onBeforeUnmount(() => { generation++; emit('busy', false) })
 .tool-details.is-open,
 .tool-details:focus-visible { color: var(--td-brand-color); }
 .tool-description {
-  margin: 6px 0 0;
+  margin: 2px 0 0;
   font-size: var(--app-text-sm);
   line-height: 1.65;
   color: var(--td-text-color-secondary);
@@ -199,8 +240,6 @@ onBeforeUnmount(() => { generation++; emit('busy', false) })
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.tool-controls { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; margin-top: 10px; }
-.tool-control { display: inline-flex; align-items: center; gap: 8px; font-size: var(--app-text-sm); line-height: 20px; color: var(--td-text-color-secondary); cursor: pointer; }
 .tools-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 8px; font-size: var(--app-text-sm); color: var(--td-text-color-secondary); }
 </style>
 
@@ -211,33 +250,45 @@ onBeforeUnmount(() => { generation++; emit('busy', false) })
 
   .t-popup__content {
     padding: 0 !important;
-    width: 400px;
+    width: 380px;
     max-width: calc(100vw - 24px);
-    border-radius: var(--app-radius-md) !important;
+    border-radius: var(--app-radius-xl) !important;
     background: var(--td-bg-color-container) !important;
-    border: 1px solid var(--td-component-stroke) !important;
-    box-shadow: var(--td-shadow-2) !important;
+    border: 0.5px solid var(--td-component-stroke) !important;
+    box-shadow:
+      0 0 0 0.5px rgba(0, 0, 0, 0.03),
+      0 2px 4px rgba(0, 0, 0, 0.04),
+      0 8px 24px rgba(0, 0, 0, 0.1) !important;
+    overflow: hidden;
   }
 }
 
+:root[theme-mode='dark'] .mcp-tool-detail-popup .t-popup__content {
+  background: rgba(36, 36, 36, 0.92) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
 .tool-detail__tabs {
-  display: flex;
-  gap: 16px;
-  padding: 0 14px;
-  border-bottom: 1px solid var(--td-component-stroke);
+  display: inline-flex;
+  gap: 2px;
+  margin: 10px 12px 0;
+  padding: 2px;
+  border-radius: var(--app-radius-md);
+  background: var(--td-bg-color-secondarycontainer);
 }
 
 .tool-detail__tab {
-  margin-bottom: -1px;
-  padding: 10px 0 8px;
+  height: 24px;
+  padding: 0 10px;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-radius: var(--app-radius-sm);
   background: transparent;
   font: inherit;
-  font-size: var(--app-text-md);
-  line-height: 1.2;
+  font-size: var(--app-text-sm);
+  line-height: 24px;
   color: var(--td-text-color-secondary);
   cursor: pointer;
+  transition: background-color var(--app-motion-fast) ease, color var(--app-motion-fast) ease;
 }
 
 .tool-detail__tab:hover {
@@ -247,20 +298,21 @@ onBeforeUnmount(() => { generation++; emit('busy', false) })
 .tool-detail__tab.is-active {
   color: var(--td-brand-color);
   font-weight: 500;
-  border-bottom-color: var(--td-brand-color);
+  background: var(--td-bg-color-container);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .tool-detail__body {
-  padding: 12px 14px 14px;
+  padding: 10px 14px 14px;
   max-height: min(50vh, 360px);
   overflow: auto;
 }
 
 .tool-detail__desc {
   margin: 0;
-  font-size: var(--app-text-sm);
+  font-size: var(--app-text-md);
   line-height: 1.65;
-  color: var(--td-text-color-secondary);
+  color: var(--td-text-color-primary);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }

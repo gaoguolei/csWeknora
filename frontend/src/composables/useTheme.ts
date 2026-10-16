@@ -47,9 +47,9 @@ function getSystemTheme(): 'light' | 'dark' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-/** Wails：与原生窗口底色 / 系统深浅色一致，减轻 Ctrl+R 整窗白闪（浅色与 --td-bg-color-page #eee 对齐） */
+/** Keep browser and native window backgrounds on the same workspace surface. */
 function syncWailsNativeChrome(effective: 'light' | 'dark') {
-  const bg = effective === 'dark' ? '#181818' : '#eeeeee'
+  const bg = 'var(--td-bg-color-page)'
   document.documentElement.style.background = bg
   document.documentElement.style.minHeight = '100%'
   document.documentElement.style.colorScheme = effective === 'dark' ? 'dark' : 'light'
@@ -73,10 +73,12 @@ function syncWailsNativeChrome(effective: 'light' | 'dark') {
   try {
     if (effective === 'dark') {
       w.WindowSetDarkTheme?.()
-      w.WindowSetBackgroundColour(24, 24, 24, 255)
     } else {
       w.WindowSetLightTheme?.()
-      w.WindowSetBackgroundColour(238, 238, 238, 255)
+    }
+    const rgb = getComputedStyle(document.documentElement).backgroundColor.match(/[\d.]+/g)
+    if (rgb && rgb.length >= 3) {
+      w.WindowSetBackgroundColour(Number(rgb[0]), Number(rgb[1]), Number(rgb[2]), 255)
     }
   } catch {
     /* 非桌面壳或未注入 runtime */

@@ -270,3 +270,60 @@ builtin_agents:
       reflection_enabled: false
       multi_turn_enabled: true
 
+  - id: "builtin-coding-assistant"
+    avatar: "💻"
+    is_builtin: true
+    i18n:
+      default:
+        name: "Coding Assistant"
+        description: "Programming assistant: reads and explains code, diagnoses defects, reviews changes and writes code"
+      zh-CN:
+        name: "编程助手"
+        description: "面向编程任务的智能体，支持阅读与解释代码、定位缺陷、审查改动并编写代码"
+      zh-TW:
+        name: "程式設計助手"
+        description: "面向程式開發任務的智能體，支援閱讀與解說程式碼、定位缺陷、審查變更並撰寫程式碼"
+      ja-JP:
+        name: "コーディングアシスタント"
+        description: "コードの読解・解説、不具合の特定、変更のレビュー、コード作成に対応するプログラミング支援エージェント"
+      ko-KR:
+        name: "코딩 어시스턴트"
+        description: "코드 읽기와 설명, 결함 파악, 변경 검토, 코드 작성에 대응하는 프로그래밍 지원 에이전트"
+    config:
+      agent_mode: "smart-reasoning"
+      agent_type: "custom"
+      system_prompt_id: "coding_assistant"
+      temperature: 0.3
+      max_completion_tokens: 0
+      max_iterations: 30
+      # 关联知识库默认「不使用知识库」：前端按此值直接禁用知识库选择器，
+      # 检索类工具随之失效，后端也不要求 rerank 模型
+      # （agent_share.go agentRequiresRerankModel 对 "none" 短路）。
+      kb_selection_mode: "none"
+      retrieve_kb_only_when_mentioned: false
+      # Shell and workspace file tools are deliberately not listed — they
+      # follow the session sandbox / skills switches, not this allowlist
+      # (see internal/agent/tools/definitions.go).
+      allowed_tools:
+        - "thinking"
+        - "todo_write"
+        - "search_knowledge"
+        - "read_document"
+        - "list_documents"
+        - "search_conversations"
+      # 默认使用全部 MCP 服务与技能（编辑智能体时这两项默认选「使用全部」）。
+      # MCP 的运行时空值本就等同 "all"（agent_service.go），显式写出来是为了
+      # 编辑器显示一致；技能则不同，"" 与 "none" 都会关闭
+      # （session_agent_qa.go configureSkillsFromAgent），必须显式 "all"。
+      # 技能来自会话沙箱镜像；未配置沙箱时按禁用沙箱降级，不报错。
+      mcp_selection_mode: "all"
+      skills_selection_mode: "all"
+      web_search_enabled: true
+      web_search_max_results: 5
+      multi_turn_enabled: true
+      embedding_top_k: 10
+      keyword_threshold: 0.3
+      vector_threshold: 0.5
+      rerank_top_k: 10
+      rerank_threshold: 0.3
+

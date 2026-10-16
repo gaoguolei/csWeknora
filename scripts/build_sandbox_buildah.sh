@@ -7,7 +7,7 @@
 #
 # 依赖: buildah (brew install buildah)
 # 用法:
-#   ./scripts/build_sandbox_buildah.sh --target desktop-cube --registry ccr.ccs.tencentyun.com/your-ns
+#   ./scripts/build_sandbox_buildah.sh --target cube --registry ccr.ccs.tencentyun.com/your-ns
 #   ./scripts/build_sandbox_buildah.sh --target all --registry your-registry.example.com/weknora
 # =============================================================================
 
@@ -30,7 +30,7 @@ usage() {
 用法: $0 --target <target> --registry <registry> [选项]
 
 必填:
-  --target    构建目标: sandbox | cube | desktop | desktop-cube | all
+  --target    构建目标: sandbox | cube | all
   --registry  推送的目标仓库地址 (如 ccr.ccs.tencentyun.com/my-ns)
 
 可选:
@@ -40,20 +40,20 @@ usage() {
   -h, --help  显示帮助
 
 示例:
-  # 构建 desktop-cube 并推送到腾讯云 CCR
-  $0 --target desktop-cube --registry ccr.ccs.tencentyun.com/my-namespace
+  # 构建 cube 并推送到腾讯云 CCR
+  $0 --target cube --registry ccr.ccs.tencentyun.com/my-namespace
 
   # 构建所有沙箱镜像
   $0 --target all --registry harbor.internal.example.com/weknora
 
   # 仅本地构建，不推送
-  $0 --target desktop-cube --registry ccr.ccs.tencentyun.com/my-ns --no-push
+  $0 --target cube --registry ccr.ccs.tencentyun.com/my-ns --no-push
 
 说明:
   此脚本使用 buildah 构建 OCI 镜像，完全不需要 Docker daemon。
   构建完成后推送到指定的私有仓库，Cube 集群从该仓库拉取镜像。
-  之后在 WeKnora「设置 → 沙箱 → 编辑 → 模板 → 桌面模板构建镜像」中
-  填入完整镜像引用，如: ccr.ccs.tencentyun.com/my-ns/weknora-sandbox:main-desktop-cube
+  之后在 WeKnora「设置 → 沙箱 → 编辑 → 模板」中
+  填入完整镜像引用，如: ccr.ccs.tencentyun.com/my-ns/weknora-sandbox:main-cube
 EOF
     exit 0
 }
@@ -160,16 +160,6 @@ main() {
         log_error "找不到 docker/Dockerfile.sandbox，请在项目根目录运行"
         exit 1
     fi
-    # 不需要运行 start-desktop.sh 脚本，但 Dockerfile COPY 时会校验
-    if [[ ! -f "docker/scripts/start-desktop.sh" ]]; then
-        log_error "找不到 docker/scripts/start-desktop.sh"
-        exit 1
-    fi
-    if [[ ! -f "docker/desktop/xfce4-desktop.xml" ]]; then
-        log_error "找不到 docker/desktop/xfce4-desktop.xml"
-        exit 1
-    fi
-
     case "$TARGET" in
         sandbox)
             # 基础 CLI 镜像，多架构
@@ -181,17 +171,6 @@ main() {
         cube)
             # Cube CLI 模板，仅 amd64
             build_and_push "cube" "linux/amd64" "-cube"
-            ;;
-        desktop)
-            # 桌面环境（E2B/未来 Docker desktop），多架构
-            local plat
-            plat="$(uname -m)"
-            [[ "$plat" == "arm64" ]] && plat="linux/arm64" || plat="linux/amd64"
-            build_and_push "desktop" "$plat" "-desktop"
-            ;;
-        desktop-cube)
-            # Cube 桌面模板，仅 amd64
-            build_and_push "desktop-cube" "linux/amd64" "-desktop-cube"
             ;;
         all)
             log_info "构建全部沙箱镜像..."
@@ -205,35 +184,17 @@ main() {
             # Cube 变体: 固定 amd64（envd 来源 cubesandbox-base 只有 amd64）
             build_and_push "cube" "linux/amd64" "-cube"
 
-            # 桌面环境: 使用本机架构
-            build_and_push "desktop" "$plat" "-desktop"
-
-            # Cube 桌面: 固定 amd64
-            build_and_push "desktop-cube" "linux/amd64" "-desktop-cube"
-
             log_ok "全部镜像构建完成！"
             ;;
         *)
             log_error "未知 target: $TARGET"
-            log_error "可选: sandbox | cube | desktop | desktop-cube | all"
+            log_error "可选: sandbox | cube | all"
             exit 1
             ;;
     esac
 
     echo ""
     log_info "=== 下一步操作 ==="
-    if [[ "$TARGET" == "desktop-cube" || "$TARGET" == "all" ]]; then
-        echo ""
-        echo "1. 在 WeKnora 管理后台中："
-        echo "   「设置 → 沙箱 → 编辑 → 模板 → 桌面模板构建镜像」"
-        echo "   填入: ${IMAGE_PREFIX}:${TAG}-desktop-cube"
-        echo ""
-        echo "2. 或者通过 API 更新 Cube 沙箱配置："
-        echo "   PATCH /api/v1/workspaces/{id}/sandbox"
-        echo '   { "cube": { "desktop_template_image": "'"${IMAGE_PREFIX}:${TAG}-desktop-cube"'" } }'
-        echo ""
-        echo "3. 在失败的桌面模板卡片上点击「重建」"
-    fi
     if [[ "$TARGET" == "cube" || "$TARGET" == "all" ]]; then
         echo ""
         echo "CLI Cube 模板镜像也已构建: ${IMAGE_PREFIX}:${TAG}-cube"

@@ -409,8 +409,9 @@ const handleCancel = () => {
 }
 
 .setting-drawer__title {
-  font-size: var(--app-text-lg);
-  font-weight: 600;
+  font-family: var(--app-font-family-display);
+  font-size: var(--app-text-3xl);
+  font-weight: 500;
   line-height: 1.4;
   color: var(--td-text-color-primary);
   overflow: hidden;

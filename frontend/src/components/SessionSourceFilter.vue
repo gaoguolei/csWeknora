@@ -183,6 +183,10 @@ onBeforeUnmount(() => {
     color: var(--td-text-color-primary);
   }
 
+  &:focus-visible {
+    outline: none;
+  }
+
   .session-source-filter--inline & {
     width: auto;
     max-width: 100%;

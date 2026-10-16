@@ -103,7 +103,35 @@ export interface UserPreferences {
   last_active_tenant_id?: number | null
   // oidc_only_login 为 true 表示账号由 OIDC 自动开通且用户尚未设置已知密码。
   oidc_only_login?: boolean
+  // session_folders 保存侧栏「项目」的文件夹组织，按空间 id 分区。存在服务端
+  // 而不是 localStorage，换设备登录才能恢复。字段名与后端 JSON tag 一致。
+  session_folders?: SessionFoldersPreference | null
+  // gallery 记录图库的个人状态：搜索激活模式与逐字段开/关（按属性 ID）。
+  // 每次变更整体覆盖该块；后端会校验 mode 与 status 取值。
+  gallery?: {
+    mode?: 'all' | 'custom'
+    status?: Record<string, string>
+  }
 }
+
+/** 侧栏「项目」里的一个文件夹。 */
+export interface SessionFolderEntry {
+  id: string
+  name: string
+  collapsed?: boolean
+}
+
+/** 单个空间下的文件夹组织。 */
+export interface SessionFolderState {
+  folders: SessionFolderEntry[]
+  /** session id → folder id；缺席表示未归档。 */
+  assignments?: Record<string, string>
+  sort_mode?: 'recent' | 'manual'
+  projects_collapsed?: boolean
+}
+
+/** 空间 id（字符串）→ 该空间的文件夹组织。 */
+export type SessionFoldersPreference = Record<string, SessionFolderState>
 
 // 用户信息接口
 export interface UserInfo {
@@ -259,13 +287,14 @@ export async function getOIDCConfig(): Promise<OIDCConfigResponse> {
  *
  * 后端通过 `auth.registration_mode` 控制是否允许自助注册：
  *   - "self_serve"  保留现有自助注册入口（默认）
- *   - "invite_only" 关闭注册，要求管理员邀请
+ *   - "invite_register" 仅持有效邀请链接可注册
+ *   - "invite_only" 禁止注册，已有账号仍可接受邀请
  *
- * 失败时回落到 self_serve，避免接口异常导致注册入口直接消失。
+ * 失败时隐藏注册入口，避免误展示不允许的注册流程。
  */
 export interface AuthConfigResponse {
   success: boolean
-  registration_mode: 'self_serve' | 'invite_only' | string
+  registration_mode: 'self_serve' | 'invite_register' | 'invite_only' | string
   complex_password_enabled: boolean
 }
 
@@ -274,7 +303,7 @@ export async function getAuthConfig(): Promise<AuthConfigResponse> {
     const response = await get('/api/v1/auth/config')
     return response as unknown as AuthConfigResponse
   } catch {
-    return { success: false, registration_mode: 'self_serve', complex_password_enabled: false }
+    return { success: false, registration_mode: '', complex_password_enabled: false }
   }
 }
 
@@ -296,7 +325,12 @@ export async function register(data: RegisterRequest): Promise<RegisterResponse>
 /**
  * Lite 版自动初始化（创建默认用户/空间 + 签发令牌）
  */
-export async function autoSetup(): Promise<LoginResponse> {
+let autoSetupPromise: Promise<LoginResponse> | null = null
+
+export function autoSetup(): Promise<LoginResponse> {
+  if (autoSetupPromise) return autoSetupPromise
+
+  const request = (async () => {
   try {
     const nativeApp = (window as any).go?.main?.App
     if (!nativeApp?.GetAutoSetupToken) return { success: false, message: 'Desktop authentication required' }
@@ -311,6 +345,14 @@ export async function autoSetup(): Promise<LoginResponse> {
       message: error.message || 'Auto-setup unavailable'
     }
   }
+  })()
+
+  autoSetupPromise = request
+  void request.then(
+    () => { if (autoSetupPromise === request) autoSetupPromise = null },
+    () => { if (autoSetupPromise === request) autoSetupPromise = null },
+  )
+  return request
 }
 
 /**

@@ -14,7 +14,6 @@ import (
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 )
 
 // Handler handles all HTTP requests related to conversation sessions
@@ -56,12 +55,7 @@ type Handler struct {
 	// selected agent so the sandbox is created with the same config a
 	// conversation turn would use.
 	terminalService *service.SandboxTerminalService
-	desktopService  *service.SandboxDesktopService
-	desktopTickets  service.SandboxDesktopTicketStore
-	desktopLast     service.SandboxDesktopLastStore
-	// redis backs the distributed desktop slot. Nil in Lite mode, where the
-	// in-process limiter is the correct degradation.
-	redis *redis.Client
+
 	// forkService branches a session at a chosen user message. May be nil in
 	// deployments where fork is not wired; ForkSession checks.
 	forkService sessionForker
@@ -101,10 +95,6 @@ func NewHandler(
 	memberService interfaces.TenantMemberService,
 	terminalService *service.SandboxTerminalService,
 	browserSkill *browserskill.Manager,
-	desktopService *service.SandboxDesktopService,
-	desktopTickets service.SandboxDesktopTicketStore,
-	desktopLast service.SandboxDesktopLastStore,
-	rdb *redis.Client,
 	forkService *service.SessionForkService,
 	rewindService *service.SessionRewindService,
 	approvedProjectDirs HostProjectDirsLoader,
@@ -133,10 +123,6 @@ func NewHandler(
 		userService:           userService,
 		memberService:         memberService,
 		terminalService:       terminalService,
-		desktopService:        desktopService,
-		desktopTickets:        desktopTickets,
-		desktopLast:           desktopLast,
-		redis:                 rdb,
 		approvedProjectDirs:   approvedProjectDirs,
 		attachmentProcessor: NewAttachmentProcessor(
 			fileService,

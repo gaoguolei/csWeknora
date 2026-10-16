@@ -19,6 +19,7 @@ import ResultRow from './ResultRow.vue'
 
 const props = defineProps<{
   data: WriteSandboxFileData | Record<string, unknown>
+  arguments?: Record<string, unknown>
 }>()
 
 const { t } = useI18n()

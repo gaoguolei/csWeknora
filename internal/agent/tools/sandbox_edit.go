@@ -302,6 +302,7 @@ func (t *EditSandboxFileTool) Execute(ctx context.Context, args json.RawMessage)
 			"syntax_error": true,
 		}
 		attachSandboxDiffStats(data, added, removed)
+		attachSandboxDiffContent(data, string(raw), updated)
 		return &types.ToolResult{
 			Success: false,
 			Error:   hint,
@@ -328,6 +329,7 @@ func (t *EditSandboxFileTool) Execute(ctx context.Context, args json.RawMessage)
 		"replacements": replacements,
 	}
 	attachSandboxDiffStats(data, added, removed)
+	attachSandboxDiffContent(data, string(raw), updated)
 	return &types.ToolResult{
 		Success:     true,
 		Output:      output,

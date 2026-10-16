@@ -2,6 +2,7 @@
   <SettingsModalShell
     :visible="visible"
     :title="$t('general.settings')"
+    overlay-class="all-settings-overlay"
     @close="modalShell.requestClose"
   >
     <template #nav>
@@ -9,6 +10,14 @@
         <div class="nav-group-title">{{ group.label }}</div>
         <template v-for="item in group.items" :key="item.key">
           <div
+            role="button"
+            tabindex="0"
+            :aria-current="currentSection === item.key ? 'page' : undefined"
+            :aria-expanded="
+              item.children?.length
+                ? expandedMenus.includes(item.key)
+                : undefined
+            "
             :class="[
               'nav-item',
               {
@@ -18,6 +27,8 @@
               },
             ]"
             @click="handleNavClick(item)"
+            @keydown.enter.prevent="handleNavClick(item)"
+            @keydown.space.prevent="handleNavClick(item)"
           >
             <!-- 网络搜索使用自定义 SVG 图标 -->
             <svg
@@ -156,11 +167,18 @@
               <div
                 v-for="(child, childIndex) in item.children"
                 :key="childIndex"
+                role="button"
+                tabindex="0"
+                :aria-current="
+                  currentSubSection === child.key ? 'page' : undefined
+                "
                 :class="[
                   'submenu-item',
                   { active: currentSubSection === child.key },
                 ]"
                 @click.stop="handleSubMenuClick(item.key, child.key)"
+                @keydown.enter.prevent="handleSubMenuClick(item.key, child.key)"
+                @keydown.space.prevent="handleSubMenuClick(item.key, child.key)"
               >
                 <span class="submenu-label">{{ child.label }}</span>
               </div>
@@ -173,6 +191,14 @@
       class="content-wrapper"
       :class="{
         'content-wrapper--wide': currentSection === 'members',
+        'content-wrapper--resource-list': [
+          'models',
+          'mymemory',
+          'platform-api-keys',
+          'model-catalog',
+          'members',
+          'sandbox',
+        ].includes(currentSection),
         'content-wrapper--full':
           SYSTEM_ADMIN_SECTIONS.has(currentSection) ||
           isIntegrationSection(currentSection),
@@ -271,6 +297,10 @@
           <SystemSettings />
         </div>
 
+        <div v-if="currentSection === 'model-catalog'" class="section">
+          <ModelCatalog />
+        </div>
+
         <!-- 系统管理员可见的任务队列运行状态 -->
         <div v-if="currentSection === 'runtime-queues'" class="section">
           <RuntimeQueues />
@@ -338,6 +368,7 @@ import GeneralSettings from "./GeneralSettings.vue";
 import BrowserConnectionSettings from "./BrowserConnectionSettings.vue";
 import BrowserIcon from "@/components/icons/BrowserIcon.vue";
 import ModelSettings from "./ModelSettings.vue";
+import ModelCatalog from "../system/ModelCatalog.vue";
 import OllamaSettings from "./OllamaSettings.vue";
 import McpSettings from "./McpSettings.vue";
 import WebSearchSettings from "./WebSearchSettings.vue";
@@ -370,7 +401,12 @@ import {
   OPERATIONS_ADMIN_ONLY_SECTIONS,
   SUPER_ADMIN_ONLY_SECTIONS,
 } from "@/config/settingsAccess";
-import { SETTINGS_SECTION_CAPABILITY } from "@/config/deploymentCapabilities";
+import {
+  SETTINGS_SECTION_CAPABILITY,
+  skillSettingsSupported,
+} from "@/config/deploymentCapabilities";
+import { isToolboxSection, toolboxLocation } from "@/config/toolbox";
+import { hostSkillsOnly } from "@/utils/skillTarget";
 import { SKILL_ICON } from "@/types/mention";
 import {
   buildSettingsRouteQuery,
@@ -386,7 +422,18 @@ const router = useRouter();
 const uiStore = useUIStore();
 const authStore = useAuthStore();
 const deploymentCapabilities = useDeploymentCapabilitiesStore();
-const { t } = useI18n();
+const { t, te } = useI18n();
+const hostSkills = computed(() =>
+  hostSkillsOnly(
+    deploymentCapabilities.isSupported("settings.sandbox.remote"),
+    deploymentCapabilities.isSupported("settings.sandbox.host"),
+  ),
+);
+function envNavLabel(): string {
+  const hostKey = "envVarSettings.host.title";
+  if (hostSkills.value && te(hostKey)) return t(hostKey);
+  return t("envVarSettings.title");
+}
 
 const currentSection = ref<string>("general");
 const currentSubSection = ref<string>("");
@@ -462,6 +509,9 @@ const isSectionSupported = (key: string): boolean => {
       INTEGRATION_TAB_CAPABILITY[integrationTabFromSection(key)],
     );
   }
+  if (key === "skills" || key === "envvars") {
+    return skillSettingsSupported(deploymentCapabilities.capabilities);
+  }
   return deploymentCapabilities.isSupported(SETTINGS_SECTION_CAPABILITY[key]);
 };
 
@@ -518,7 +568,7 @@ const navItems = computed(() => {
   const all: NavItem[] = [
     { key: "general", icon: "setting", label: t("general.title") },
     { key: "ollama", icon: "server", label: "Ollama" },
-    { key: "weknoracloud", icon: "", label: "WeKnora Cloud" },
+    // { key: "weknoracloud", icon: "", label: "WeKnora Cloud" },
     {
       key: "models",
       icon: "control-platform",
@@ -543,6 +593,11 @@ const navItems = computed(() => {
     { key: "mcp", icon: "tools", label: t("settings.mcpService") },
     { key: "system", icon: "info-circle", label: t("settings.versionInfo") },
     { key: "system-global", icon: "server", label: t("settings.system") },
+    {
+      key: "model-catalog",
+      icon: "control-platform",
+      label: t("modelCatalog.title"),
+    },
     { key: "runtime-queues", icon: "queue", label: t("settings.taskQueue") },
     {
       key: "platform-api-keys",
@@ -561,7 +616,7 @@ const navItems = computed(() => {
       label: t("localBrowser.settingsTitle"),
     },
     { key: "mymemory", icon: "bookmark", label: t("memorySettings.title") },
-    { key: "envvars", icon: "key", label: t("envVarSettings.title") },
+    { key: "envvars", icon: "key", label: envNavLabel() },
     { key: "tenant", icon: "user-circle", label: t("settings.tenantInfo") },
     { key: "members", icon: "usergroup", label: t("tenantMember.title") },
     ...integrationItems,
@@ -637,6 +692,7 @@ const navGroups = computed<NavGroup[]>(() => {
       label: t("settings.navGroups.systemAdministration"),
       items: pickItems([
         "system-global",
+        "model-catalog",
         "runtime-queues",
         "platform-api-keys",
         "system-audit-log",
@@ -701,6 +757,7 @@ const handleClose = () => {
   if (route.path === "/platform/settings") {
     const sec = route.query.section;
     if (
+      sec === "model-catalog" ||
       sec === "system-global" ||
       sec === "runtime-queues" ||
       sec === "platform-api-keys" ||
@@ -879,6 +936,13 @@ onUnmounted(() => {
 });
 </script>
 
+<style lang="less">
+.settings-modal-shell.all-settings-overlay > .settings-modal {
+  max-width: 1280px;
+  height: 900px;
+}
+</style>
+
 <style lang="less" scoped>
 /* 遮罩层 */
 /* 弹窗容器 */
@@ -951,28 +1015,36 @@ onUnmounted(() => {
 
 /* 右侧内容区域 */
 .content-wrapper {
-  // Bumped from 600 to 760 when the modal grew from 900→1080 (see
-  // .settings-modal). Without this, single-column panes (General,
-  // Tenant, API key, …) leave a wide right-hand gutter inside the
-  // wider modal. 760 keeps comfortable reading-width on long
-  // descriptions without the form fields stretching to the full
-  // panel width — which would look stranger than a small gutter.
-  max-width: 760px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 40px 48px;
 
-  /* 成员 / 审计表格列多，600px 会把操作列挤到贴边；铺满右侧内容列更稳。 */
+  /* 表格页面缩小内边距，为多列内容留出空间。 */
   &--wide {
-    max-width: none;
-    width: 100%;
     padding: 32px 36px 40px;
-    box-sizing: border-box;
   }
 
   &--full {
-    max-width: none;
-    width: 100%;
     padding: 30px 34px 40px;
-    box-sizing: border-box;
+  }
+
+  &--resource-list {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 28px 0;
+
+    > .section {
+      flex: 1;
+      min-height: 0;
+    }
+
+    @media (max-width: 720px) {
+      padding: 16px 16px 0;
+    }
   }
 }
 

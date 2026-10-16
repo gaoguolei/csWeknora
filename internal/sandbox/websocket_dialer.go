@@ -31,6 +31,7 @@ import (
 // WebsocketDialer dials one data-plane port of one sandbox over
 // WebSocket. Build it with SandboxGatewayTransportPool.WebsocketDialerFor.
 type WebsocketDialer struct {
+	httpTransport http.RoundTripper
 	// tokens is the registry of the pool that built this dialer.
 	tokens *InboundTokenRegistry
 	policy OutboundURLPolicy
@@ -58,6 +59,7 @@ func (p *SandboxGatewayTransportPool) WebsocketDialerFor(cfg *Config) *Websocket
 	}
 	gatewayURL, _ := gatewayEndpointFor(cfg)
 	d := &WebsocketDialer{
+		httpTransport: p.RoundTripperFor(cfg),
 		tokens:        p.inboundTokens,
 		policy:        p.policy,
 		scheme:        "wss",
@@ -95,15 +97,11 @@ func sandboxDomainFor(cfg *Config) string {
 
 // Dial opens a WebSocket to port/path of sandboxID.
 //
-// extraHeader carries credentials the caller owns — for the desktop that is
-// Authorization: Basic for websockify, and the handle's inbound traffic token
-// when the registry has not been written yet (Cube Create/Connect historically
-// skipped that Put). The registry fills the inbound header only if missing.
+// extraHeader carries credentials the caller owns. The pool registry fills
+// the sandbox inbound header only when the caller did not provide it.
 //
 // The negotiated subprotocol is pinned to "binary" and verified after the
-// handshake. If an upstream ever selected base64, the bytes on the sandbox
-// side would be base64 text and every byte offset the RFB parser computes
-// would be wrong — silently, and only under load.
+// handshake so the shared transport always carries bytes without re-encoding.
 func (d *WebsocketDialer) Dial(
 	ctx context.Context,
 	sandboxID string,
@@ -136,7 +134,7 @@ func (d *WebsocketDialer) Dial(
 		}
 	}
 	// Same rule as gatewaySplitTransport.withInboundToken: a caller-supplied
-	// header (the handle's traffic token on DialDesktop) wins over a stale
+	// header carrying the handle's traffic token wins over a stale
 	// registry copy. Fill only when missing so Cube/E2B HTTP and WS agree.
 	if header.Get(InboundTokenHeader) == "" && d.tokens != nil {
 		if token := d.tokens.Get(sandboxID); token != "" {

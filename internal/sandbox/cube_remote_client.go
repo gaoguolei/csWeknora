@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/Tencent/WeKnora/internal/logger"
-	"github.com/gorilla/websocket"
 	cubesandbox "github.com/tencentcloud/CubeSandbox/sdk/go"
 )
 
@@ -31,14 +30,10 @@ type CubeRemoteClient struct {
 	sandboxDomain string
 	httpTimeout   time.Duration
 
-	// wsDialer reaches non-envd data-plane ports (the desktop's websockify
-	// on 6080). It is nil only if construction could not attach a pool
-	// dialer, which DialDesktop reports as unsupported.
+	// wsDialer supplies the shared transport and routing domain for project previews.
 	wsDialer *WebsocketDialer
 
-	// inboundTokens is the same registry wsDialer reads. Cube's SDK already
-	// stamps envd HTTP with Sandbox.TrafficAccessToken, so exec never needed
-	// a Put here; DialDesktop does.
+	// inboundTokens shares the pool's per-sandbox credentials across data-plane requests.
 	inboundTokens *InboundTokenRegistry
 }
 
@@ -171,9 +166,6 @@ func (c *CubeRemoteClient) Capabilities() RemoteSandboxCapabilities {
 		SupportsVolumes: false,
 		// envd exposes an interactive PTY service that the Cube SDK wraps.
 		SupportsTerminals: true,
-		// CubeProxy routes any {port}-{id}.{domain} authority, so 6080
-		// (websockify) is reachable with the same inbound token as envd.
-		SupportsDesktop: true,
 	}
 }
 
@@ -204,28 +196,15 @@ func (c *CubeRemoteClient) ListTemplates(ctx context.Context) ([]RemoteTemplate,
 		// Cube only reports a name when the template carries an alias, so fall
 		// back to the image before falling back to the opaque ID: recognising
 		// our own template is what keeps EnsureStandardTemplate idempotent.
-		standard, desktop := classifyWeKnoraTemplate(name, item.ImageInfo)
-		// Cube can omit aliases and append a resolved digest to imageInfo.
-		// A digest-only desktop reference has no tag to distinguish it from
-		// the CLI image, so the explicitly configured source takes precedence
-		// over repository-only classification (but not an explicit CLI alias).
-		image := strings.TrimSpace(item.ImageInfo)
-		desktopImage := c.desktopTemplateImage()
-		matchesDesktopImage := image == desktopImage ||
-			(!strings.Contains(desktopImage, "@") && strings.HasPrefix(image, desktopImage+"@sha256:"))
-		if !desktop && !isStandardTemplate(name) && matchesDesktopImage {
-			standard, desktop = false, true
-		}
+		standard := classifyWeKnoraTemplate(name, item.ImageInfo)
 		if name == "" {
-			switch {
-			case desktop:
-				name = DesktopTemplateName
-			case standard:
+			if standard {
 				name = StandardTemplateName
-			default:
+			} else {
 				name = item.TemplateID
 			}
 		}
+
 		result = append(result, RemoteTemplate{
 			ID:                  item.TemplateID,
 			Name:                name,
@@ -234,7 +213,6 @@ func (c *CubeRemoteClient) ListTemplates(ctx context.Context) ([]RemoteTemplate,
 			Image:               item.ImageInfo,
 			CreatedAt:           item.CreatedAt,
 			Standard:            standard,
-			Desktop:             desktop,
 			Error:               strings.TrimSpace(item.LastError),
 			InstanceType:        item.InstanceType,
 			NetworkType:         item.NetworkType,
@@ -342,89 +320,6 @@ func (c *CubeRemoteClient) ReplaceStandardTemplate(ctx context.Context) (*Remote
 	return c.buildStandardTemplate(ctx)
 }
 
-// EnsureDesktopTemplate returns the cluster's WeKnora desktop template,
-// rebuilding a failed one or building it when absent. A cluster may hold
-// both the CLI and desktop templates; the admin picks which ID a config boots.
-func (c *CubeRemoteClient) EnsureDesktopTemplate(ctx context.Context) (*RemoteTemplate, error) {
-	items, err := c.ListTemplates(ctx)
-	if err != nil {
-		return nil, err
-	}
-	var failed *RemoteTemplate
-	for i := range items {
-		if !items[i].Desktop {
-			continue
-		}
-		if !IsTemplateBuildFailed(items[i].Status) {
-			return &items[i], nil
-		}
-		if failed == nil {
-			failed = &items[i]
-		}
-	}
-	if failed != nil {
-		return c.rebuildDesktopTemplate(ctx, *failed)
-	}
-	return c.buildDesktopTemplate(ctx)
-}
-
-// ReplaceDesktopTemplate applies the current spec to the cluster's desktop
-// template. Same persist-then-delete contract as ReplaceStandardTemplate.
-func (c *CubeRemoteClient) ReplaceDesktopTemplate(ctx context.Context) (*RemoteTemplate, error) {
-	items, err := c.ListTemplates(ctx)
-	if err != nil {
-		return nil, err
-	}
-	var current *RemoteTemplate
-	for i := range items {
-		if !items[i].Desktop || strings.TrimSpace(items[i].ID) == "" {
-			continue
-		}
-		item := items[i]
-		if current == nil {
-			current = &item
-			continue
-		}
-		if IsTemplateBuildFailed(current.Status) && !IsTemplateBuildFailed(item.Status) {
-			current = &item
-		}
-	}
-	if current != nil {
-		rebuilt, err := c.tryRebuildDesktopTemplate(ctx, *current)
-		if err == nil {
-			return rebuilt, nil
-		}
-		logger.Warnf(ctx,
-			"cube in-place rebuild of desktop template %s failed: %v; building a replacement",
-			current.ID, err)
-	}
-	return c.buildDesktopTemplate(ctx)
-}
-
-// DeleteSupersededDesktopTemplates drops desktop templates other than keepID.
-func (c *CubeRemoteClient) DeleteSupersededDesktopTemplates(ctx context.Context, keepID string) error {
-	keepID = strings.TrimSpace(keepID)
-	if keepID == "" {
-		return cubeInvalidRequest("DeleteSupersededDesktopTemplates", "template ID is required", nil)
-	}
-	items, err := c.ListTemplates(ctx)
-	if err != nil {
-		return err
-	}
-	for _, item := range items {
-		if !item.Desktop || strings.TrimSpace(item.ID) == "" || item.ID == keepID {
-			continue
-		}
-		logger.Infof(ctx, "cube deleting superseded desktop template %s", item.ID)
-		if err := c.client.DeleteTemplate(ctx, item.ID); err != nil {
-			if normalized := normalizeCubeError("DeleteTemplate", err); !IsRemoteNotFound(normalized) {
-				logger.Warnf(ctx, "cube delete of replaced desktop template %s failed: %v", item.ID, err)
-			}
-		}
-	}
-	return nil
-}
-
 // DeleteSupersededStandardTemplates drops WeKnora templates other than keepID.
 func (c *CubeRemoteClient) DeleteSupersededStandardTemplates(ctx context.Context, keepID string) error {
 	keepID = strings.TrimSpace(keepID)
@@ -518,27 +413,7 @@ func (c *CubeRemoteClient) buildStandardTemplate(ctx context.Context) (*RemoteTe
 	}, nil
 }
 
-func (c *CubeRemoteClient) rebuildDesktopTemplate(
-	ctx context.Context,
-	current RemoteTemplate,
-) (*RemoteTemplate, error) {
-	rebuilt, err := c.tryRebuildDesktopTemplate(ctx, current)
-	if err != nil {
-		logger.Warnf(ctx, "cube rebuild of desktop template %s failed: %v", current.ID, err)
-		// A failed image pull can leave a catalog/job entry without a real
-		// template in CubeMaster. Redo then returns 130400 "template not found".
-		// Only this definitive rejection is safe to replace automatically;
-		// timeouts may have already submitted a build and must not duplicate it.
-		if cubeMissingDesktopBuild(err) {
-			return c.buildDesktopTemplate(ctx)
-		}
-		current.Error = err.Error()
-		return &current, nil
-	}
-	return rebuilt, nil
-}
-
-func cubeMissingDesktopBuild(err error) bool {
+func cubeMissingTemplateBuild(err error) bool {
 	if errors.Is(err, cubesandbox.ErrTemplateNotFound) || IsRemoteNotFound(err) {
 		return true
 	}
@@ -546,61 +421,6 @@ func cubeMissingDesktopBuild(err error) bool {
 	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusBadRequest &&
 		strings.Contains(apiErr.Error(), "130400") &&
 		strings.Contains(strings.ToLower(apiErr.Error()), "template not found")
-}
-
-func (c *CubeRemoteClient) tryRebuildDesktopTemplate(
-	ctx context.Context,
-	current RemoteTemplate,
-) (*RemoteTemplate, error) {
-	logger.Infof(ctx, "cube rebuilding desktop template %s in place (%s)",
-		current.ID, current.Status)
-	job, err := c.client.RebuildTemplate(ctx, current.ID, c.desktopTemplateSpec())
-	if err != nil {
-		return nil, normalizeCubeError("RebuildTemplate", err)
-	}
-	rebuilt := current
-	rebuilt.Status = normalizeCubeTemplateStatus(job.Status)
-	if rebuilt.Status == "" {
-		rebuilt.Status = "building"
-	}
-	rebuilt.Error = strings.TrimSpace(job.ErrorMessage)
-	rebuilt.Desktop = true
-	rebuilt.Standard = false
-	rebuilt.Image = c.desktopTemplateImage()
-	if strings.TrimSpace(job.TemplateID) != "" {
-		rebuilt.ID = job.TemplateID
-	}
-	return &rebuilt, nil
-}
-
-func (c *CubeRemoteClient) buildDesktopTemplate(ctx context.Context) (*RemoteTemplate, error) {
-	image := c.desktopTemplateImage()
-	job, err := c.client.BuildTemplate(ctx, cubesandbox.BuildTemplateOptions{
-		Image: image,
-		Extra: c.desktopTemplateSpec(),
-	})
-	if err != nil {
-		logger.Warnf(ctx, "cube desktop template create failed: %v", err)
-		return &RemoteTemplate{
-			Name:    DesktopTemplateName,
-			Status:  "failed",
-			Image:   image,
-			Desktop: true,
-			Error:   err.Error(),
-		}, nil
-	}
-	status := normalizeCubeTemplateStatus(job.Status)
-	if status == "" {
-		status = "building"
-	}
-	return &RemoteTemplate{
-		ID:      job.TemplateID,
-		Name:    DesktopTemplateName,
-		Status:  status,
-		Image:   image,
-		Desktop: true,
-		Error:   strings.TrimSpace(job.ErrorMessage),
-	}, nil
 }
 
 // normalizeCubeTemplateStatus projects Cube's catalog verbs onto the same
@@ -628,26 +448,6 @@ func (c *CubeRemoteClient) standardTemplateSpec() map[string]any {
 	return cubeStandardTemplateSpec(dns)
 }
 
-func (c *CubeRemoteClient) desktopTemplateImage() string {
-	if c != nil && c.config != nil {
-		if image := strings.TrimSpace(c.config.CubeDesktopTemplateImage); image != "" {
-			return image
-		}
-	}
-	return DefaultCubeDesktopTemplateImage
-}
-
-// desktopTemplateSpec is used by both initial builds and in-place rebuilds.
-func (c *CubeRemoteClient) desktopTemplateSpec() map[string]any {
-	var dns []string
-	if c != nil && c.config != nil {
-		dns, _ = NormalizeCubeDNSServers(c.config.CubeDNSServers)
-	}
-	spec := cubeDesktopTemplateSpec(dns)
-	spec["image"] = c.desktopTemplateImage()
-	return spec
-}
-
 // cubeStandardTemplateSpec is the single definition of how the WeKnora template
 // is built. Both the first build and every rebuild send it verbatim — the
 // rebuild endpoint takes a raw payload rather than BuildTemplateOptions, and
@@ -665,43 +465,6 @@ func cubeStandardTemplateSpec(dns []string) map[string]any {
 		// Without this the template's "公网访问" stays empty and sandboxes
 		// boot with no outbound route, even if Create sets the same flag.
 		"allowInternetAccess": true,
-	}
-	if len(dns) > 0 {
-		spec["dns"] = append([]string(nil), dns...)
-	}
-	return spec
-}
-
-// cubeDesktopTemplateSpec is the desktop sibling of cubeStandardTemplateSpec.
-// It is a separate function rather than a flag on that one so a change to the
-// standard template can never silently alter the desktop's exposed ports.
-//
-// 6080 is deliberately not in exposedPorts. Cube maps that list through eBPF
-// static NAT on the host NIC, which bypasses CubeProxy. WeKnora already
-// reaches websockify the same way it reaches envd: CubeProxy Host
-// "{port}-{id}.{domain}" plus the inbound token. Publishing 6080 on the host
-// would let anyone who can read /run/desktop/secret (the agent Execs as
-// root) skip the ticket relay, idle disconnect, and audit trail. websockify
-// Basic auth stays as defence in depth on the overlay path.
-func cubeDesktopTemplateSpec(dns []string) map[string]any {
-	spec := map[string]any{
-		"image": DefaultCubeDesktopTemplateImage,
-		"name":  DesktopTemplateName,
-		// The standard 1G is too small once XFCE is installed.
-		"writableLayerSize": "8G",
-		"exposedPorts":      []uint16{CubeEnvdPort},
-		// The build probe still goes to envd: websockify is lazily started
-		// and is deliberately not running at template-build time.
-		"probePort":           uint16(CubeEnvdPort),
-		"probePath":           CubeEnvdHealthPath,
-		"allowInternetAccess": true,
-		// Cubebox runs the image ENTRYPOINT (cube-entrypoint.sh). That
-		// script tees envd onto /var/log/envd.log; on the packed desktop
-		// rootfs the write fails and the :49983 probe is connection
-		// refused. Starting envd as PID 1 is equivalent (no user CMD) and
-		// was verified READY on the 2026-09-10 cluster.
-		"command": []string{"/usr/bin/envd"},
-		"args":    []string{"-port", strconv.Itoa(CubeEnvdPort), "-isnotfc"},
 	}
 	if len(dns) > 0 {
 		spec["dns"] = append([]string(nil), dns...)
@@ -1427,6 +1190,12 @@ func normalizeCubeError(op string, err error) error {
 			kind = RemoteErrorKindTimeout
 		case errors.As(err, &netErr):
 			kind = RemoteErrorKindUnavailable
+		case op == "ListDir" && strings.HasPrefix(err.Error(), "failed to list ") &&
+			(strings.Contains(err.Error(), "path not found:") ||
+				strings.Contains(err.Error(), "no such file or directory")):
+			// The SDK's ListDir returns a plain error for envd failures,
+			// including missing directories removed by workspace rewind.
+			kind = RemoteErrorKindNotFound
 		}
 	}
 	kind = snapshotDeleteKind(op, kind, err.Error())
@@ -1545,39 +1314,12 @@ func toCubeEgressRules(rules []RemoteCubeEgressRule) []cubesandbox.Rule {
 	return out
 }
 
-// DialDesktop opens a WebSocket to websockify inside the sandbox.
-//
-// It goes through the pool-owned dialer rather than building a URL here, so
-// the inbound-token registry, the gateway target, and the SSRF guard all come
-// from the one place that knows which pool this client belongs to.
-func (c *CubeRemoteClient) DialDesktop(
-	ctx context.Context,
-	handle RemoteSandboxHandle,
-	opts RemoteDesktopOptions,
-) (*websocket.Conn, error) {
-	if c == nil || c.wsDialer == nil {
-		return nil, &RemoteError{
-			Kind:     RemoteErrorKindUnsupported,
-			Provider: SandboxTypeCube,
-			Op:       "DialDesktop",
-			Message:  "client was built without a gateway pool",
-		}
-	}
-	conn, err := dialSandboxDesktop(ctx, SandboxTypeCube, c.wsDialer, handle, opts)
-	if err != nil {
-		return nil, err
-	}
-	return conn, nil
-}
-
-// StartDesktopTTLRefresh extends the Cube sandbox idle timeout while the
-// desktop relay is open. ctx must be the relay lifetime (WithoutCancel), not
-// DialDesktop's request context.
-func (c *CubeRemoteClient) StartDesktopTTLRefresh(ctx context.Context, handle RemoteSandboxHandle) {
+// StartTTLRefresh extends the sandbox timeout for a caller-owned task.
+func (c *CubeRemoteClient) StartTTLRefresh(ctx context.Context, handle RemoteSandboxHandle) {
 	if c == nil {
 		return
 	}
-	sb, err := cubeHandleSandbox("StartDesktopTTLRefresh", handle)
+	sb, err := cubeHandleSandbox("StartTTLRefresh", handle)
 	if err != nil {
 		return
 	}
@@ -1588,12 +1330,10 @@ func (c *CubeRemoteClient) StartDesktopTTLRefresh(ctx context.Context, handle Re
 }
 
 var (
-	_ RemoteSandboxClient          = (*CubeRemoteClient)(nil)
-	_ RemoteSnapshotManager        = (*CubeRemoteClient)(nil)
-	_ RemoteTemplateCatalog        = (*CubeRemoteClient)(nil)
-	_ RemoteDesktopTemplateCatalog = (*CubeRemoteClient)(nil)
-	_ RemoteDesktopManager         = (*CubeRemoteClient)(nil)
-	_ RemoteDesktopTTLRefresher    = (*CubeRemoteClient)(nil)
-	_ RemoteSandboxHandle          = (*cubeRemoteHandle)(nil)
-	_ RemoteInboundTokenCarrier    = (*cubeRemoteHandle)(nil)
+	_ RemoteSandboxClient       = (*CubeRemoteClient)(nil)
+	_ RemoteSnapshotManager     = (*CubeRemoteClient)(nil)
+	_ RemoteTemplateCatalog     = (*CubeRemoteClient)(nil)
+	_ RemoteTTLRefresher        = (*CubeRemoteClient)(nil)
+	_ RemoteSandboxHandle       = (*cubeRemoteHandle)(nil)
+	_ RemoteInboundTokenCarrier = (*cubeRemoteHandle)(nil)
 )

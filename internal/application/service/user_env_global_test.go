@@ -80,7 +80,7 @@ var _ interfaces.SystemSettingService = (*fakeSystemSetting)(nil)
 
 func newGlobalEnvService() (*UserEnvService, *fakeSystemSetting) {
 	settings := newFakeSystemSetting()
-	return NewUserEnvService(nil, nil, settings), settings
+	return NewUserEnvService(nil, nil, settings, HostSandboxManager{}), settings
 }
 
 func TestSetGlobalStoresAndListOmitsValue(t *testing.T) {
@@ -104,7 +104,7 @@ func TestSetGlobalStoresAndListOmitsValue(t *testing.T) {
 	blob, err := json.Marshal(views)
 	require.NoError(t, err)
 	require.NotContains(t, string(blob), "super-secret")
-	require.NotContains(t, string(blob), "value")
+	require.NotContains(t, string(blob), `"value"`)
 }
 
 func TestSetGlobalRotatesExistingName(t *testing.T) {

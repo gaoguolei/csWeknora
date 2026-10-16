@@ -1,70 +1,75 @@
 <template>
   <div class="auth-page">
+    <!-- 右上角控制：登录前也要能切语言与主题。语言存 localStorage('locale')，
+         主题存 WeKnora_anon_theme（见 useTheme / index.html 的首屏引导），
+         登录后由 preferenceStorage 迁移到用户命名空间。 -->
+    <div class="auth-toolbar">
+      <t-dropdown
+        :options="languageOptions"
+        trigger="click"
+        placement="bottom-right"
+        attach="body"
+        @click="handleLanguageChange"
+      >
+        <button
+          type="button"
+          class="auth-toolbar__btn"
+          :aria-label="$t('language.selectLanguage')"
+          aria-haspopup="menu"
+        >
+          <t-icon name="translate" size="16px" />
+          <span class="auth-toolbar__label">{{ currentLanguageLabel }}</span>
+          <t-icon name="chevron-down" size="12px" />
+        </button>
+      </t-dropdown>
+      <button
+        type="button"
+        class="auth-toolbar__btn auth-toolbar__btn--icon"
+        :aria-label="$t('theme.theme')"
+        :aria-pressed="isDark"
+        :title="isDark ? $t('theme.light') : $t('theme.dark')"
+        @click="toggleTheme"
+      >
+        <t-icon :name="isDark ? 'sunny' : 'moon'" size="16px" />
+      </button>
+    </div>
+
     <!-- 左侧品牌面板 -->
     <aside class="brand-panel">
-      <div class="brand-panel__glow brand-panel__glow--top"></div>
-      <div class="brand-panel__glow brand-panel__glow--bottom"></div>
-
       <div class="brand-panel__inner">
-        <div class="brand-panel__eyebrow">KNOWLEDGE / AGENT / WORKSPACE</div>
+        <!-- 与 WorkspaceWelcome 同一套三条杠标志，替掉原先只存在于样式里的字标。 -->
+        <div class="brand-lockup">
+          <span class="brand-mark" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+          <span class="brand-lockup__name">WeKnora</span>
+        </div>
 
         <div class="brand-copy">
-          <h1 class="brand-copy__title">{{ $t("platform.subtitle") }}</h1>
-          <p class="brand-copy__desc">{{ $t("platform.description") }}</p>
+          <h1 class="brand-copy__title">{{ $t('platform.subtitle') }}</h1>
+          <p class="brand-copy__desc">{{ $t('platform.description') }}</p>
         </div>
 
         <ul class="brand-features">
           <li class="brand-features__item">
-            <span class="brand-features__check">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </span>
-            <span>{{ $t("platform.multimodalParsing") }}</span>
+            <t-icon name="check" class="brand-features__check" size="18px" />
+            <span>{{ $t('platform.multimodalParsing') }}</span>
           </li>
           <li class="brand-features__item">
-            <span class="brand-features__check">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </span>
-            <span>{{ $t("platform.hybridSearchEngine") }}</span>
+            <t-icon name="check" class="brand-features__check" size="18px" />
+            <span>{{ $t('platform.hybridSearchEngine') }}</span>
           </li>
           <li class="brand-features__item">
-            <span class="brand-features__check">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </span>
-            <span>{{ $t("platform.ragQandA") }}</span>
+            <t-icon name="check" class="brand-features__check" size="18px" />
+            <span>{{ $t('platform.ragQandA') }}</span>
           </li>
         </ul>
 
         <div class="brand-tags">
-          <span class="brand-tag">{{ $t("platform.rag") }}</span>
-          <span class="brand-tag">{{ $t("platform.agent") }}</span>
-          <span class="brand-tag">{{ $t("platform.wiki") }}</span>
-          <span class="brand-tag">{{ $t("platform.hybridSearch") }}</span>
-        </div>
-
-        <div class="brand-panel__meta">
-          <span class="brand-panel__meta-dot"></span>
-          <span>Private knowledge, ready to work</span>
+          <span class="brand-tag">{{ $t('platform.rag') }}</span>
+          <span class="brand-tag">{{ $t('platform.agent') }}</span>
+          <span class="brand-tag">{{ $t('platform.wiki') }}</span>
+          <span class="brand-tag">{{ $t('platform.hybridSearch') }}</span>
         </div>
       </div>
     </aside>
@@ -82,13 +87,13 @@
             <div class="invite-banner__text">
               <div class="invite-banner__title">
                 {{
-                  $t("inviteRegister.bannerTitle", {
-                    tenant: inviteLookup.tenant_name || "",
+                  $t('inviteRegister.bannerTitle', {
+                    tenant: inviteLookup.tenant_name || '',
                   })
                 }}
               </div>
               <div class="invite-banner__hint">
-                {{ $t("inviteRegister.bannerHintLogin") }}
+                {{ $t('inviteRegister.bannerHintLogin') }}
               </div>
             </div>
           </div>
@@ -101,12 +106,12 @@
 
           <header class="auth-card__header">
             <div class="auth-card__eyebrow">ALLTHINKER WORKSPACE</div>
-            <h2 class="auth-card__title">{{ $t("auth.login") }}</h2>
-            <p class="auth-card__subtitle">{{ $t("auth.subtitle") }}</p>
+            <h2 class="auth-card__title">{{ $t('auth.login') }}</h2>
+            <p class="auth-card__subtitle">{{ $t('auth.subtitle') }}</p>
           </header>
 
           <p v-if="registrationEnabled" class="auth-card__hint">
-            {{ $t("auth.loginHint") }}
+            {{ $t('auth.loginHint') }}
           </p>
 
           <t-form
@@ -142,14 +147,14 @@
             </t-form-item>
 
             <t-button
-              theme="default"
+              theme="primary"
               type="submit"
               size="large"
               block
               :loading="loading"
-              class="btn btn--primary"
+              class="btn btn--submit"
             >
-              {{ loading ? $t("auth.loggingIn") : $t("auth.login") }}
+              {{ loading ? $t('auth.loggingIn') : $t('auth.login') }}
             </t-button>
 
             <t-button
@@ -159,15 +164,15 @@
               size="large"
               block
               :disabled="loading"
-              class="btn btn--ghost"
+              class="btn"
               @click="toggleMode"
             >
-              {{ $t("auth.createAccount") }}
+              {{ $t('auth.createAccount') }}
             </t-button>
 
             <template v-if="oidcEnabled">
               <div class="auth-divider">
-                <span>{{ $t("auth.orContinueWith") }}</span>
+                <span>{{ $t('auth.orContinueWith') }}</span>
               </div>
               <t-button
                 theme="default"
@@ -175,29 +180,29 @@
                 block
                 :loading="oidcLoading"
                 :disabled="loading"
-                class="btn btn--oidc"
+                class="btn"
                 @click="handleOIDCLogin"
               >
-                {{ oidcLoading ? $t("auth.redirectingToOIDC") : oidcLoginText }}
+                {{ oidcLoading ? $t('auth.redirectingToOIDC') : oidcLoginText }}
               </t-button>
             </template>
           </t-form>
         </div>
 
         <!-- 注册 -->
-        <div v-else class="auth-card">
+        <div v-else-if="registrationEnabled" class="auth-card">
           <div v-if="inviteLookup" class="invite-banner">
             <t-icon name="link" class="invite-banner__icon" />
             <div class="invite-banner__text">
               <div class="invite-banner__title">
                 {{
-                  $t("inviteRegister.bannerTitle", {
-                    tenant: inviteLookup.tenant_name || "",
+                  $t('inviteRegister.bannerTitle', {
+                    tenant: inviteLookup.tenant_name || '',
                   })
                 }}
               </div>
               <div class="invite-banner__hint">
-                {{ $t("inviteRegister.bannerHint") }}
+                {{ $t('inviteRegister.bannerHint') }}
               </div>
             </div>
           </div>
@@ -210,8 +215,8 @@
 
           <header class="auth-card__header">
             <div class="auth-card__eyebrow">ALLTHINKER WORKSPACE</div>
-            <h2 class="auth-card__title">{{ $t("auth.createAccount") }}</h2>
-            <p class="auth-card__subtitle">{{ $t("auth.subtitle") }}</p>
+            <h2 class="auth-card__title">{{ $t('auth.createAccount') }}</h2>
+            <p class="auth-card__subtitle">{{ $t('auth.subtitle') }}</p>
           </header>
 
           <t-form
@@ -270,21 +275,21 @@
             </t-form-item>
 
             <t-button
-              theme="default"
+              theme="primary"
               type="submit"
               size="large"
               block
               :loading="loading"
-              class="btn btn--primary"
+              class="btn btn--submit"
             >
-              {{ loading ? $t("auth.registering") : $t("auth.register") }}
+              {{ loading ? $t('auth.registering') : $t('auth.register') }}
             </t-button>
           </t-form>
 
           <div class="auth-card__footer">
-            <span>{{ $t("auth.haveAccount") }}</span>
+            <span>{{ $t('auth.haveAccount') }}</span>
             <a href="#" @click.prevent="toggleMode" class="auth-link">
-              {{ $t("auth.backToLogin") }}
+              {{ $t('auth.backToLogin') }}
             </a>
           </div>
         </div>
@@ -294,12 +299,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, nextTick, onMounted, computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { MessagePlugin } from "tdesign-vue-next";
-import { useRoleLabel } from "@/composables/useRoleLabel";
-import { notifyLoginSuccess } from "@/utils/loginNotify";
-import { newPasswordRules } from "@/utils/passwordPolicy";
+import {
+  ref,
+  reactive,
+  nextTick,
+  onMounted,
+  onBeforeUnmount,
+  computed,
+} from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { MessagePlugin } from 'tdesign-vue-next'
+import { useRoleLabel } from '@/composables/useRoleLabel'
+import { notifyLoginSuccess } from '@/utils/loginNotify'
+import { canRegister } from './registrationPolicy'
+import { newPasswordRules } from '@/utils/passwordPolicy'
 import {
   login,
   register,
@@ -311,252 +324,312 @@ import {
   getInvitationByToken,
   registerByInvite,
   type InviteLookup,
-} from "@/api/auth";
-import { useAuthStore } from "@/stores/auth";
-import ThemeToggle from "@/components/ThemeToggle.vue";
-import { useI18n } from "vue-i18n";
+} from '@/api/auth'
+import { useAuthStore } from '@/stores/auth'
+import ThemeToggle from '@/components/ThemeToggle.vue'
+import { useI18n } from 'vue-i18n'
+import {
+  SUPPORTED_LOCALES,
+  type SupportedLocale,
+} from '@/i18n/resolveDefaultLocale'
+import { useTheme } from '@/composables/useTheme'
 
-const router = useRouter();
-const route = useRoute();
-const authStore = useAuthStore();
-const { t, tm } = useI18n();
-const { formatRole, roleIcon } = useRoleLabel();
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
+const { t, tm, locale } = useI18n()
+const { formatRole, roleIcon } = useRoleLabel()
+const { currentTheme, setTheme } = useTheme()
 
-const formRef = ref();
-const registerFormRef = ref();
+// 登录页也能切语言与主题：语言沿用设置页的写法（locale.value +
+// localStorage['locale']，i18n 启动时读取）；主题走 useTheme，落到
+// WeKnora_anon_theme，登录时由 preferenceStorage 迁移给用户。
+const LOCALE_LABEL_KEYS: Record<SupportedLocale, string> = {
+  'zh-CN': 'language.zhCN',
+  'zh-TW': 'language.zhTW',
+  'en-US': 'language.enUS',
+  'ru-RU': 'language.ruRU',
+  'ko-KR': 'language.koKR',
+  'ja-JP': 'language.jaJP',
+}
 
-const loading = ref(false);
-const oidcLoading = ref(false);
-const isRegisterMode = ref(false);
-const oidcEnabled = ref(false);
-const oidcProviderName = ref("");
-const registrationEnabled = ref(true);
-const complexPasswordEnabled = ref(false);
+const languageOptions = computed(() =>
+  SUPPORTED_LOCALES.map((code) => ({
+    content: t(LOCALE_LABEL_KEYS[code]),
+    value: code,
+    active: locale.value === code,
+  })),
+)
 
-const inviteToken = ref("");
-const inviteLookup = ref<InviteLookup | null>(null);
-const inviteLookupError = ref("");
-const inviteLookupLoading = ref(false);
+const currentLanguageLabel = computed(() => {
+  const code = SUPPORTED_LOCALES.find((item) => item === locale.value)
+  return code ? t(LOCALE_LABEL_KEYS[code]) : locale.value
+})
+
+const handleLanguageChange = (option: { value?: string }) => {
+  const code = option?.value
+  if (!code || !(SUPPORTED_LOCALES as readonly string[]).includes(code)) return
+  locale.value = code
+  localStorage.setItem('locale', code)
+}
+
+// currentTheme 为 "system" 时 useTheme 不改写它，所以这里自己跟一次媒体查询，
+// 否则用户在登录页停留期间系统换主题、图标会停在旧状态。
+const prefersDark = window.matchMedia('(prefers-color-scheme: dark)')
+const systemDark = ref(prefersDark.matches)
+const onSystemThemeChange = (event: MediaQueryListEvent) => {
+  systemDark.value = event.matches
+}
+const isDark = computed(() =>
+  currentTheme.value === 'system'
+    ? systemDark.value
+    : currentTheme.value === 'dark',
+)
+
+const toggleTheme = () => {
+  setTheme(isDark.value ? 'light' : 'dark')
+}
+
+const formRef = ref()
+const registerFormRef = ref()
+
+const loading = ref(false)
+const oidcLoading = ref(false)
+const isRegisterMode = ref(false)
+const oidcEnabled = ref(false)
+const oidcProviderName = ref('')
+// Wait for configuration before showing a registration entry.
+const registrationMode = ref('')
+const registrationEnabled = computed(() =>
+  canRegister(registrationMode.value, !!inviteLookup.value),
+)
+const complexPasswordEnabled = ref(false)
+
+const inviteToken = ref('')
+const inviteLookup = ref<InviteLookup | null>(null)
+const inviteLookupError = ref('')
+const inviteLookupLoading = ref(false)
 
 const oidcLoginText = computed(() => {
   if (oidcProviderName.value) {
-    return t("auth.oidcLoginWithProvider", {
+    return t('auth.oidcLoginWithProvider', {
       provider: oidcProviderName.value,
-    });
+    })
   }
-  return t("auth.oidcLogin");
-});
+  return t('auth.oidcLogin')
+})
 
 const formData = reactive<{ [key: string]: any }>({
-  email: "",
-  password: "",
-});
+  email: '',
+  password: '',
+})
 
 const registerData = reactive<{ [key: string]: any }>({
-  username: "",
-  email: "",
-  password: "",
-  confirmPassword: "",
-});
+  username: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+})
 
 const formRules = computed(() => ({
   email: [
-    { required: true, message: t("auth.emailRequired"), type: "error" },
-    { email: true, message: t("auth.emailInvalid"), type: "error" },
+    { required: true, message: t('auth.emailRequired'), type: 'error' },
+    { email: true, message: t('auth.emailInvalid'), type: 'error' },
   ],
   password: [
-    { required: true, message: t("auth.passwordRequired"), type: "error" },
-    { min: 8, message: t("auth.passwordMinLength"), type: "error" },
-    { max: 32, message: t("auth.passwordMaxLength"), type: "error" },
+    { required: true, message: t('auth.passwordRequired'), type: 'error' },
+    { min: 8, message: t('auth.passwordMinLength'), type: 'error' },
+    { max: 32, message: t('auth.passwordMaxLength'), type: 'error' },
   ],
-}));
+}))
 
 const registerRules = computed(() => ({
   username: [
-    { required: true, message: t("auth.usernameRequired"), type: "error" },
-    { min: 2, message: t("auth.usernameMinLength"), type: "error" },
-    { max: 20, message: t("auth.usernameMaxLength"), type: "error" },
+    { required: true, message: t('auth.usernameRequired'), type: 'error' },
+    { min: 2, message: t('auth.usernameMinLength'), type: 'error' },
+    { max: 20, message: t('auth.usernameMaxLength'), type: 'error' },
     {
       pattern: /^[a-zA-Z0-9_\u4e00-\u9fa5]+$/,
-      message: t("auth.usernameInvalid"),
-      type: "error",
+      message: t('auth.usernameInvalid'),
+      type: 'error',
     },
   ],
   email: [
-    { required: true, message: t("auth.emailRequired"), type: "error" },
-    { email: true, message: t("auth.emailInvalid"), type: "error" },
+    { required: true, message: t('auth.emailRequired'), type: 'error' },
+    { email: true, message: t('auth.emailInvalid'), type: 'error' },
   ],
   password: newPasswordRules(t, complexPasswordEnabled.value),
   confirmPassword: [
     {
       required: true,
-      message: t("auth.confirmPasswordRequired"),
-      type: "error",
+      message: t('auth.confirmPasswordRequired'),
+      type: 'error',
     },
     {
       validator: (val: string) => val === registerData.password,
-      message: t("auth.passwordMismatch"),
-      type: "error",
+      message: t('auth.passwordMismatch'),
+      type: 'error',
     },
   ],
-}));
+}))
 
 const toggleMode = () => {
-  isRegisterMode.value = !isRegisterMode.value;
+  isRegisterMode.value = !isRegisterMode.value && registrationEnabled.value
+
   Object.keys(registerData).forEach((key) => {
-    (registerData as any)[key] = "";
-  });
-};
+    ;(registerData as any)[key] = ''
+  })
+}
 
 const persistLoginResponse = async (response: any, skipRedirect = false) => {
-  const activeTenant = response.active_tenant || response.tenant;
+  const activeTenant = response.active_tenant || response.tenant
   if (response.user && response.token) {
-    const homeTenantIdRaw = response.user.tenant_id ?? activeTenant?.id ?? "";
-    authStore.setUser(userInfoFromApi(response.user, homeTenantIdRaw));
-    authStore.setToken(response.token);
+    const homeTenantIdRaw = response.user.tenant_id ?? activeTenant?.id ?? ''
+    authStore.setUser(userInfoFromApi(response.user, homeTenantIdRaw))
+    authStore.setToken(response.token)
     if (response.refresh_token) {
-      authStore.setRefreshToken(response.refresh_token);
+      authStore.setRefreshToken(response.refresh_token)
     }
     if (activeTenant) {
       authStore.setTenant({
-        id: String(activeTenant.id) || "",
-        name: activeTenant.name || "",
-        owner_id: response.user.id || "",
+        id: String(activeTenant.id) || '',
+        name: activeTenant.name || '',
+        owner_id: response.user.id || '',
         created_at: activeTenant.created_at || new Date().toISOString(),
         updated_at: activeTenant.updated_at || new Date().toISOString(),
-      });
+      })
     } else {
-      authStore.setTenant(null);
+      authStore.setTenant(null)
     }
     if (Array.isArray(response.memberships)) {
-      authStore.setMemberships(response.memberships);
+      authStore.setMemberships(response.memberships)
     }
-    const activeIdNum = Number(activeTenant?.id);
-    const homeIdNum = Number(homeTenantIdRaw);
+    const activeIdNum = Number(activeTenant?.id)
+    const homeIdNum = Number(homeTenantIdRaw)
     if (
       Number.isFinite(activeIdNum) &&
       Number.isFinite(homeIdNum) &&
       activeIdNum !== homeIdNum
     ) {
-      authStore.setSelectedTenant(activeIdNum, activeTenant?.name || null);
+      authStore.setSelectedTenant(activeIdNum, activeTenant?.name || null)
     } else {
-      authStore.setSelectedTenant(null, null);
+      authStore.setSelectedTenant(null, null)
     }
   }
 
-  await authStore.refreshFromAuthMe();
-  await nextTick();
-  if (skipRedirect) return;
+  await authStore.refreshFromAuthMe()
+  await nextTick()
+  if (skipRedirect) return
   router.replace(
-    authStore.hasValidTenant
-      ? "/platform/creatChat"
-      : "/onboarding/workspace",
-  );
-};
+    authStore.hasValidTenant ? '/platform/creatChat' : '/onboarding/workspace',
+  )
+}
 
 const getBackendOIDCRedirectURI = () =>
-  `${window.location.origin}/api/v1/auth/oidc/callback`;
+  `${window.location.origin}/api/v1/auth/oidc/callback`
 
 const loadOIDCConfig = async () => {
   try {
-    const response = await getOIDCConfig();
-    oidcEnabled.value = !!response.success && !!response.enabled;
-    oidcProviderName.value = response.provider_display_name || "";
+    const response = await getOIDCConfig()
+    oidcEnabled.value = !!response.success && !!response.enabled
+    oidcProviderName.value = response.provider_display_name || ''
   } catch {
-    oidcEnabled.value = false;
-    oidcProviderName.value = "";
+    oidcEnabled.value = false
+    oidcProviderName.value = ''
   }
-};
+}
 
+// Registration stays hidden if configuration cannot be loaded.
 const loadAuthConfig = async () => {
   try {
-    const response = await getAuthConfig();
-    registrationEnabled.value = response.registration_mode !== "invite_only";
-    complexPasswordEnabled.value = response.complex_password_enabled;
+    const response = await getAuthConfig()
+    registrationMode.value = response.success ? response.registration_mode : ''
+    complexPasswordEnabled.value = response.complex_password_enabled
   } catch {
-    registrationEnabled.value = true;
-    complexPasswordEnabled.value = false;
+    registrationMode.value = ''
+    complexPasswordEnabled.value = false
   }
-};
+}
 
 const handleOIDCLogin = async () => {
   try {
-    oidcLoading.value = true;
-    const response = await getOIDCAuthorizationURL(getBackendOIDCRedirectURI());
-    const authorizationURL = response.authorization_url;
+    oidcLoading.value = true
+    const response = await getOIDCAuthorizationURL(getBackendOIDCRedirectURI())
+    const authorizationURL = response.authorization_url
 
     if (!response.success || !authorizationURL) {
-      MessagePlugin.error(response.message || t("auth.oidcLoginFailed"));
-      return;
+      MessagePlugin.error(response.message || t('auth.oidcLoginFailed'))
+      return
     }
 
     if (inviteToken.value) {
-      sessionStorage.setItem("weknora_pending_invite_token", inviteToken.value);
+      sessionStorage.setItem('weknora_pending_invite_token', inviteToken.value)
     }
-    window.location.href = authorizationURL;
+    window.location.href = authorizationURL
   } catch (error: any) {
-    console.error("OIDC 登录跳转失败:", error);
-    MessagePlugin.error(error.message || t("auth.oidcLoginFailed"));
+    console.error('OIDC 登录跳转失败:', error)
+    MessagePlugin.error(error.message || t('auth.oidcLoginFailed'))
   } finally {
-    oidcLoading.value = false;
+    oidcLoading.value = false
   }
-};
+}
 
 const acceptAndEnter = async (token: string) => {
-  loading.value = true;
+  loading.value = true
   try {
-    const result = await authStore.acceptInvitationByTokenAndRefresh(token);
+    const result = await authStore.acceptInvitationByTokenAndRefresh(token)
     if (result.ok) {
-      MessagePlugin.success(t("inviteRegister.joined"));
+      MessagePlugin.success(t('inviteRegister.joined'))
     } else {
-      MessagePlugin.warning(t("inviteRegister.invalidBody"));
+      MessagePlugin.warning(t('inviteRegister.invalidBody'))
     }
   } catch {
-    MessagePlugin.warning(t("inviteRegister.invalidBody"));
+    MessagePlugin.warning(t('inviteRegister.invalidBody'))
   } finally {
-    loading.value = false;
-    await nextTick();
-    router.replace("/platform/creatChat");
+    loading.value = false
+    await nextTick()
+    router.replace('/platform/creatChat')
   }
-};
+}
 
 const handleLogin = async () => {
   try {
-    const valid = await formRef.value?.validate();
-    if (valid !== true) return;
+    const valid = await formRef.value?.validate()
+    if (valid !== true) return
 
-    loading.value = true;
+    loading.value = true
 
     const response = await login({
       email: formData.email,
       password: formData.password,
-    });
+    })
 
     if (response.success) {
       if (inviteToken.value) {
-        await persistLoginResponse(response, true);
-        await acceptAndEnter(inviteToken.value);
-        return;
+        await persistLoginResponse(response, true)
+        await acceptAndEnter(inviteToken.value)
+        return
       }
-      await persistLoginResponse(response);
-      notifyLoginSuccess(response, t, tm, formatRole, roleIcon);
+      await persistLoginResponse(response)
+      notifyLoginSuccess(response, t, tm, formatRole, roleIcon)
     } else {
-      MessagePlugin.error(response.message || t("auth.loginError"));
+      MessagePlugin.error(response.message || t('auth.loginError'))
     }
   } catch (error: any) {
-    console.error("登录错误:", error);
-    MessagePlugin.error(error.message || t("auth.loginErrorRetry"));
+    console.error('登录错误:', error)
+    MessagePlugin.error(error.message || t('auth.loginErrorRetry'))
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 const handleRegister = async () => {
+  if (!registrationEnabled.value) return
   try {
-    const valid = await registerFormRef.value?.validate();
-    if (valid !== true) return;
+    const valid = await registerFormRef.value?.validate()
+    if (valid !== true) return
 
-    loading.value = true;
+    loading.value = true
 
     if (inviteToken.value) {
       const response = await registerByInvite({
@@ -564,174 +637,177 @@ const handleRegister = async () => {
         username: registerData.username,
         email: registerData.email,
         password: registerData.password,
-      });
+      })
       if (!response.success) {
-        MessagePlugin.error(response.message || t("auth.registerFailed"));
-        return;
+        MessagePlugin.error(response.message || t('auth.registerFailed'))
+        return
       }
-      MessagePlugin.success(t("auth.registerSuccess"));
-      await persistLoginResponse(response);
-      return;
+      MessagePlugin.success(t('auth.registerSuccess'))
+      await persistLoginResponse(response)
+      return
     }
 
     const response = await register({
       username: registerData.username,
       email: registerData.email,
       password: registerData.password,
-    });
+    })
 
     if (response.success) {
-      MessagePlugin.success(t("auth.registerSuccess"));
-      isRegisterMode.value = false;
-      formData.email = registerData.email;
+      MessagePlugin.success(t('auth.registerSuccess'))
+      isRegisterMode.value = false
+      formData.email = registerData.email
       Object.keys(registerData).forEach((key) => {
-        (registerData as any)[key] = "";
-      });
+        ;(registerData as any)[key] = ''
+      })
     } else {
-      MessagePlugin.error(response.message || t("auth.registerFailed"));
+      MessagePlugin.error(response.message || t('auth.registerFailed'))
     }
   } catch (error: any) {
-    console.error("注册错误:", error);
-    MessagePlugin.error(error.message || t("auth.registerError"));
+    console.error('注册错误:', error)
+    MessagePlugin.error(error.message || t('auth.registerError'))
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 onMounted(async () => {
-  const tokenFromQuery = String(route.query.token || "").trim();
+  prefersDark.addEventListener('change', onSystemThemeChange)
+  const tokenFromQuery = String(route.query.token || '').trim()
   if (tokenFromQuery) {
-    inviteToken.value = tokenFromQuery;
-    inviteLookupLoading.value = true;
+    inviteToken.value = tokenFromQuery
+    inviteLookupLoading.value = true
     try {
-      const resp = await getInvitationByToken(tokenFromQuery);
+      const resp = await getInvitationByToken(tokenFromQuery)
       if (resp.success && resp.data) {
-        inviteLookup.value = resp.data;
+        inviteLookup.value = resp.data
       } else {
         inviteLookupError.value =
-          resp.message || t("inviteRegister.invalidBody");
-        loadOIDCConfig();
-        loadAuthConfig();
-        return;
+          resp.message || t('inviteRegister.invalidBody')
+        loadOIDCConfig()
+        loadAuthConfig()
+        return
       }
     } catch {
-      inviteLookupError.value = t("inviteRegister.invalidBody");
-      loadOIDCConfig();
-      loadAuthConfig();
-      return;
+      inviteLookupError.value = t('inviteRegister.invalidBody')
+      loadOIDCConfig()
+      loadAuthConfig()
+      return
     } finally {
-      inviteLookupLoading.value = false;
+      inviteLookupLoading.value = false
     }
 
+    // 2. 已登录则直接兑换 token 进入空间（三种模式通用）。
     if (authStore.isLoggedIn && (await authStore.refreshFromAuthMe())) {
-      await acceptAndEnter(tokenFromQuery);
-      return;
+      await acceptAndEnter(tokenFromQuery)
+      return
     }
 
-    const cfg = await getAuthConfig();
-    const inviteOnly = cfg.registration_mode === "invite_only";
-    registrationEnabled.value = !inviteOnly;
-    isRegisterMode.value = !inviteOnly;
-    loadOIDCConfig();
-    return;
+    // 3. Only enabled registration modes may create an invited account.
+    await loadAuthConfig()
+    isRegisterMode.value = registrationEnabled.value
+    loadOIDCConfig()
+    return
   }
 
   if (authStore.isLoggedIn) {
-    router.replace("/platform/creatChat");
-    return;
+    router.replace('/platform/creatChat')
+    return
   }
 
-  const AUTO_SETUP_FAILED_KEY = "weknora_auto_setup_failed";
-  if (localStorage.getItem(AUTO_SETUP_FAILED_KEY) !== "true") {
-    try {
-      const response = await autoSetup();
-      if (response.success) {
-        authStore.setLiteMode(true);
-        await persistLoginResponse(response);
-        return;
-      } else {
-        localStorage.setItem(AUTO_SETUP_FAILED_KEY, "true");
-      }
-    } catch {
-      localStorage.setItem(AUTO_SETUP_FAILED_KEY, "true");
+  localStorage.removeItem('weknora_auto_setup_failed')
+  try {
+    const response = await autoSetup()
+    if (response.success) {
+      authStore.setLiteMode(true)
+      await persistLoginResponse(response)
+      return
     }
+  } catch {
+    // Auto-setup may be unavailable outside the native Lite shell.
   }
 
-  loadOIDCConfig();
-  loadAuthConfig();
-});
+  loadOIDCConfig()
+  loadAuthConfig()
+})
+
+onBeforeUnmount(() => {
+  prefersDark.removeEventListener('change', onSystemThemeChange)
+})
 </script>
 
 <style lang="less" scoped>
 /* ---------- 页面骨架 ---------- */
 .auth-page {
+  position: relative;
   display: flex;
   min-height: 100dvh;
   width: 100%;
-  background: #f5f7fb;
+  background: var(--td-bg-color-page);
   font-family: var(--app-font-family);
   overflow: hidden;
 }
 
-/* ---------- 左侧品牌面板 ---------- */
+/* ---------- 右上角：语言 / 主题（登录前也可用）---------- */
+.auth-toolbar {
+  position: absolute;
+  top: var(--app-space-5);
+  right: var(--app-space-6);
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-2);
+}
+
+.auth-toolbar__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--app-space-2);
+  padding: var(--app-space-2) var(--app-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-md);
+  background: transparent;
+  color: var(--td-text-color-secondary);
+  font-family: inherit;
+  font-size: var(--app-text-md);
+  cursor: pointer;
+  transition:
+    background-color var(--app-motion-fast) ease,
+    border-color var(--app-motion-fast) ease,
+    color var(--app-motion-fast) ease;
+
+  &:hover {
+    background: var(--td-bg-color-container-hover);
+    border-color: var(--td-component-stroke);
+    color: var(--td-text-color-primary);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--td-text-color-secondary);
+    outline-offset: 2px;
+  }
+}
+
+.auth-toolbar__btn--icon {
+  padding: var(--app-space-2);
+}
+
+.auth-toolbar__label {
+  white-space: nowrap;
+}
+
+/* The entry screen shares the welcome page's paper and charcoal surfaces. */
 .brand-panel {
   position: relative;
   flex: 0 0 46%;
-  min-width: 380px;
-  background:
-    radial-gradient(
-      circle at 82% 14%,
-      rgba(80, 122, 255, 0.28),
-      transparent 34%
-    ),
-    radial-gradient(
-      circle at 14% 88%,
-      rgba(43, 76, 192, 0.34),
-      transparent 38%
-    ),
-    linear-gradient(165deg, #16255e 0%, #0f1e4f 52%, #0a1535 100%);
-  color: #f1f5f9;
-  overflow: hidden;
+  min-width: 0;
+  background: var(--td-bg-color-sidebar);
+  color: var(--td-text-color-primary);
+  border-right: 1px solid var(--td-component-stroke);
   display: flex;
   align-items: center;
   padding: 44px clamp(32px, 5vw, 76px);
   box-sizing: border-box;
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    opacity: 0.18;
-    pointer-events: none;
-    background-image:
-      linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-    background-size: 64px 64px;
-    mask-image: linear-gradient(to bottom, black, transparent 76%);
-  }
-}
-
-.brand-panel__glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(120px);
-  pointer-events: none;
-}
-
-.brand-panel__glow--top {
-  width: 480px;
-  height: 480px;
-  top: -180px;
-  right: -160px;
-  background: rgba(80, 122, 255, 0.28);
-}
-
-.brand-panel__glow--bottom {
-  width: 420px;
-  height: 420px;
-  bottom: -200px;
-  left: -120px;
-  background: rgba(43, 76, 192, 0.3);
 }
 
 .brand-panel__inner {
@@ -744,46 +820,58 @@ onMounted(async () => {
   min-height: calc(100dvh - 88px);
 }
 
-.brand-logo {
+/* 品牌标记沿用侧栏与「新对话」首页那套三道圆角短线。 */
+.brand-lockup {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 22px;
+  gap: var(--app-space-3);
+  margin-bottom: var(--app-space-10);
 }
 
-.brand-logo__mark {
-  display: inline-flex;
+.brand-mark {
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: var(--app-radius-xl);
-  background: #507aff;
-  color: #ffffff;
-  font-weight: 800;
-  font-size: var(--app-text-4xl);
-  letter-spacing: -0.7px;
-  box-shadow: 0 0 0 6px rgba(80, 122, 255, 0.14);
+  gap: 4px;
+  height: 28px;
+  flex-shrink: 0;
+  color: var(--td-text-color-primary);
+  transform: rotate(-12deg);
+
+  > span {
+    display: block;
+    width: 5px;
+    background: currentColor;
+    border-radius: var(--app-radius-pill);
+
+    &:nth-child(1) {
+      height: 18px;
+    }
+
+    &:nth-child(2) {
+      height: 28px;
+    }
+
+    &:last-child {
+      height: 14px;
+      align-self: flex-end;
+    }
+  }
 }
 
-.brand-logo__text {
-  font-size: var(--app-text-4xl);
+.brand-lockup__name {
+  font-size: var(--app-text-3xl);
   font-weight: 700;
   letter-spacing: -0.3px;
-  color: #f8fafc;
+  color: var(--td-text-color-primary);
 }
 
-.brand-panel__eyebrow,
+/* 卡片眉标（品牌字标），登录与注册共用。 */
 .auth-card__eyebrow {
   font-size: var(--app-text-xs);
   line-height: 1;
   letter-spacing: 0.16em;
   font-weight: 700;
-}
-
-.brand-panel__eyebrow {
-  color: rgba(157, 177, 252, 0.85);
-  margin-bottom: 74px;
 }
 
 .brand-copy {
@@ -792,18 +880,19 @@ onMounted(async () => {
 
 .brand-copy__title {
   font-size: clamp(34px, 4vw, 48px);
-  line-height: 1.08;
-  font-weight: 700;
+  font-family: var(--app-font-family-display);
+  line-height: 1.3;
+  font-weight: 500;
   letter-spacing: -1.5px;
   margin: 0 0 18px 0;
-  color: #ffffff;
-  text-wrap: nowrap;
+  color: var(--td-text-color-primary);
+  text-wrap: balance;
 }
 
 .brand-copy__desc {
   font-size: var(--app-text-xl);
   line-height: 1.7;
-  color: rgba(241, 245, 249, 0.68);
+  color: var(--td-text-color-secondary);
   margin: 0;
   max-width: 390px;
 }
@@ -820,26 +909,14 @@ onMounted(async () => {
 .brand-features__item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--app-space-3);
   font-size: var(--app-text-lg);
-  color: rgba(241, 245, 249, 0.85);
+  color: var(--td-text-color-secondary);
 }
 
 .brand-features__check {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: rgba(80, 122, 255, 0.22);
-  color: #9db1fc;
   flex-shrink: 0;
-
-  svg {
-    width: 12px;
-    height: 12px;
-  }
+  color: var(--td-brand-color);
 }
 
 .brand-tags {
@@ -854,33 +931,11 @@ onMounted(async () => {
   display: inline-block;
   padding: 7px 12px;
   border-radius: var(--app-radius-md);
-  border: 1px solid rgba(157, 177, 252, 0.24);
-  background: rgba(80, 122, 255, 0.1);
+  border: 1px solid var(--td-component-stroke);
+  background: var(--td-bg-color-container);
   font-size: var(--app-text-md);
   font-weight: 500;
-  color: #cdd9ff;
-}
-
-.brand-panel__meta {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: var(--app-text-sm);
-  color: rgba(241, 245, 249, 0.42);
-}
-
-.brand-panel__meta-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #507aff;
-  box-shadow: 0 0 0 4px rgba(80, 122, 255, 0.14);
-}
-
-.brand-footer {
-  margin-top: 48px;
-  font-size: var(--app-text-md);
-  color: rgba(241, 245, 249, 0.38);
+  color: var(--td-text-color-secondary);
 }
 
 /* ---------- 右侧表单区 ---------- */
@@ -890,28 +945,9 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   position: relative;
-  padding: 48px clamp(24px, 6vw, 96px);
+  padding: var(--app-space-10) clamp(24px, 6vw, 96px);
   box-sizing: border-box;
-  background:
-    radial-gradient(
-      circle at 82% 18%,
-      rgba(219, 228, 255, 0.62),
-      transparent 28%
-    ),
-    #f8faff;
-
-  &::after {
-    content: "";
-    position: absolute;
-    right: 8%;
-    bottom: 10%;
-    width: 160px;
-    height: 160px;
-    border: 1px solid rgba(30, 58, 138, 0.08);
-    border-radius: var(--app-radius-xl);
-    transform: rotate(18deg);
-    pointer-events: none;
-  }
+  background: var(--td-bg-color-page);
 }
 
 /* 表单区右上角的主题切换（浅色/深色/跟随系统） */
@@ -929,14 +965,19 @@ onMounted(async () => {
   z-index: 1;
 }
 
+/* 暗色下 --td-bg-color-container 与页面同为 #141414，卡片会与背景同色而「消失」。
+   这里把卡片表面收进一个组件内变量：浅色仍是白卡，暗色抬到 sidebar 层。
+   暗色那一半写在文件末尾的非 scoped 样式块里 —— Vue 的 :global() 表达不了
+   「:root[theme-mode] + 后代」这种选择器（会静默丢规则或丢后代）。 */
 .auth-card {
+  --login-card-surface: var(--td-bg-color-container);
+
   width: 100%;
-  padding: 40px 42px 36px;
-  border: 1px solid rgba(23, 37, 84, 0.1);
-  border-radius: var(--app-radius-pill);
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.08);
-  backdrop-filter: blur(18px);
+  padding: var(--app-space-10) var(--app-space-8) var(--app-space-8);
+  border: 1px solid var(--td-component-stroke);
+  border-radius: var(--app-radius-2xl);
+  background: var(--login-card-surface);
+  box-shadow: var(--app-surface-shadow);
   box-sizing: border-box;
 }
 
@@ -945,22 +986,23 @@ onMounted(async () => {
 }
 
 .auth-card__eyebrow {
-  color: #3a63e6;
+  color: var(--td-brand-color);
   margin-bottom: 18px;
 }
 
 .auth-card__title {
-  font-size: var(--app-text-4xl);
-  font-weight: 700;
+  font-family: var(--app-font-family-display);
+  font-size: clamp(24px, 2.2vw, 30px);
+  font-weight: 500;
   letter-spacing: -1px;
-  color: #0f172a;
+  color: var(--td-text-color-primary);
   margin: 0 0 8px 0;
   line-height: 1.25;
 }
 
 .auth-card__subtitle {
   font-size: var(--app-text-lg);
-  color: #64748b;
+  color: var(--td-text-color-secondary);
   margin: 0;
   line-height: 1.5;
 }
@@ -969,9 +1011,9 @@ onMounted(async () => {
   margin: 0 0 24px 0;
   padding: 10px 14px;
   border-radius: var(--app-radius-xl);
-  background: #eef2ff;
-  border: 1px solid #d6deff;
-  color: #2b4cc0;
+  background: var(--td-bg-color-secondarycontainer);
+  border: 1px solid var(--td-component-stroke);
+  color: var(--td-text-color-secondary);
   font-size: var(--app-text-md);
   line-height: 1.5;
 }
@@ -980,11 +1022,11 @@ onMounted(async () => {
   margin-top: 24px;
   text-align: center;
   font-size: var(--app-text-base);
-  color: #64748b;
+  color: var(--td-text-color-secondary);
 }
 
 .auth-link {
-  color: #3a63e6;
+  color: var(--td-brand-color);
   text-decoration: none;
   font-weight: 600;
   margin-left: 4px;
@@ -999,30 +1041,30 @@ onMounted(async () => {
   :deep(.t-form-item__label) {
     font-size: var(--app-text-base);
     font-weight: 500;
-    color: #334155;
-    margin-bottom: 6px;
+    color: var(--td-text-color-primary);
+    margin-bottom: var(--app-space-2);
     padding: 0;
   }
 
   :deep(.t-form-item) {
-    margin-bottom: 20px;
+    margin-bottom: var(--app-space-5);
   }
 
   :deep(.t-input) {
     border-radius: var(--app-radius-xl);
-    border-color: #dbe2ec;
-    background: rgba(255, 255, 255, 0.72);
+    border-color: var(--td-component-border);
+    background: var(--td-bg-color-container);
     transition:
-      border-color var(--app-motion-base) ease,
-      box-shadow 0.18s ease;
+      border-color var(--app-motion-fast) ease,
+      box-shadow var(--app-motion-fast) ease;
 
     &:hover {
-      border-color: #94a3b8;
+      border-color: var(--td-text-color-placeholder);
     }
 
     &:focus-within {
-      border-color: #507aff;
-      box-shadow: 0 0 0 3px rgba(80, 122, 255, 0.14);
+      border-color: var(--td-brand-color);
+      box-shadow: 0 0 0 3px var(--td-brand-color-focus);
     }
   }
 
@@ -1031,85 +1073,56 @@ onMounted(async () => {
   }
 }
 
-.btn {
+/* 配色交给 TDesign 与工作区令牌：theme="primary" 取 --td-brand-color
+   （浅色炭黑 / 暗色浅灰），文字色由 workspace-theme 的 --app-on-accent 保证对比。
+   这里只管尺寸、节奏与焦点态，因此不再需要强制覆盖。 */
+.auth-form :deep(.t-button.btn) {
   height: 50px;
   border-radius: var(--app-radius-xl);
   font-size: var(--app-text-lg);
   font-weight: 600;
-  transition: all var(--app-motion-base) ease;
+  transition:
+    background-color var(--app-motion-base) ease,
+    border-color var(--app-motion-base) ease,
+    color var(--app-motion-base) ease,
+    transform var(--app-motion-base) ease;
 
   & + .btn {
-    margin-top: 12px;
+    margin-top: var(--app-space-3);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--td-text-color-secondary);
+    outline-offset: 2px;
   }
 }
 
-.btn--primary {
-  background: linear-gradient(135deg, #507aff 0%, #3a63e6 100%) !important;
-  border: none;
-  color: #ffffff !important;
-  margin-top: 30px;
-  box-shadow: 0 8px 20px rgba(80, 122, 255, 0.3);
-
-  &:hover,
-  &:focus {
-    background: linear-gradient(135deg, #6f92ff 0%, #507aff 100%) !important;
-    color: #ffffff !important;
-    box-shadow: 0 10px 24px rgba(80, 122, 255, 0.36);
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    background: linear-gradient(135deg, #3a63e6 0%, #2b4cc0 100%) !important;
-    color: #ffffff !important;
-    box-shadow: 0 4px 12px rgba(80, 122, 255, 0.24);
-    transform: translateY(0);
-  }
-}
-
-.btn--ghost {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid #dbe2ec;
-  color: #0f172a;
-
-  &:hover {
-    border-color: #507aff;
-    color: #3a63e6;
-    background: #eef2ff;
-  }
-}
-
-.btn--oidc {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid #dbe2ec;
-  color: #334155;
-
-  &:hover {
-    border-color: #94a3b8;
-    background: #f8fafc;
-  }
+.auth-form :deep(.t-button.btn--submit) {
+  margin-top: var(--app-space-8);
 }
 
 .auth-divider {
   position: relative;
   text-align: center;
-  margin: 22px 0 18px;
-  color: #94a3b8;
+  margin: var(--app-space-5) 0 var(--app-space-4);
+  color: var(--td-text-color-placeholder);
   font-size: var(--app-text-md);
 
   span {
     position: relative;
     z-index: 1;
-    padding: 0 12px;
-    background: #ffffff;
+    padding: 0 var(--app-space-3);
+    /* 必须是卡片表面色，才能遮住下面的分隔线（暗色下卡片不等于 container）。 */
+    background: var(--login-card-surface);
   }
 
   &::before {
-    content: "";
+    content: '';
     position: absolute;
     left: 0;
     right: 0;
     top: 50%;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--td-component-stroke);
   }
 }
 
@@ -1117,19 +1130,19 @@ onMounted(async () => {
 .invite-banner {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
-  margin-bottom: 24px;
+  gap: var(--app-space-3);
+  padding: var(--app-space-3) var(--app-space-4);
+  margin-bottom: var(--app-space-6);
   border-radius: var(--app-radius-lg);
-  background: #eef2ff;
-  border: 1px solid #d6deff;
+  background: var(--td-bg-color-secondarycontainer);
+  border: 1px solid var(--td-component-stroke);
 }
 
 .invite-banner__icon {
   margin-top: 2px;
   font-size: var(--app-text-2xl);
   flex-shrink: 0;
-  color: #3a63e6;
+  color: var(--td-brand-color);
 }
 
 .invite-banner__text {
@@ -1143,19 +1156,19 @@ onMounted(async () => {
   font-size: var(--app-text-base);
   font-weight: 600;
   line-height: 1.4;
-  color: #1e3a8a;
+  color: var(--td-text-color-primary);
 }
 
 .invite-banner__hint {
   font-size: var(--app-text-md);
-  color: #2b4cc0;
+  color: var(--td-text-color-secondary);
   line-height: 1.5;
 }
 
 .invite-banner--error {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #b91c1c;
+  background: var(--td-error-color-light);
+  border-color: color-mix(in srgb, var(--td-error-color) 30%, transparent);
+  color: var(--td-error-color);
   font-size: var(--app-text-base);
 }
 
@@ -1165,26 +1178,29 @@ onMounted(async () => {
     flex-direction: column;
   }
 
+  /* 单列布局下工具栏回到正常流，成为页首一行，不再压在品牌面板上。 */
+  .auth-toolbar {
+    position: static;
+    justify-content: flex-end;
+    padding: var(--app-space-3) var(--app-space-5) 0;
+  }
+
   .brand-panel {
     flex: 0 0 auto;
     min-width: 0;
-    padding: 36px 32px 40px;
+    padding: var(--app-space-8) var(--app-space-8) var(--app-space-10);
   }
 
   .brand-panel__inner {
     min-height: 0;
   }
 
-  .brand-logo {
-    margin-bottom: 18px;
-  }
-
-  .brand-panel__eyebrow {
-    margin-bottom: 42px;
+  .brand-lockup {
+    margin-bottom: var(--app-space-6);
   }
 
   .brand-copy {
-    margin-bottom: 28px;
+    margin-bottom: var(--app-space-6);
 
     &__title {
       font-size: var(--app-text-4xl);
@@ -1192,34 +1208,39 @@ onMounted(async () => {
   }
 
   .brand-features {
-    margin-bottom: 24px;
-  }
-
-  .brand-footer {
-    display: none;
+    margin-bottom: var(--app-space-6);
   }
 
   .form-panel {
-    padding: 48px 24px;
+    padding: var(--app-space-10) var(--app-space-6);
     align-items: flex-start;
   }
 
   .auth-card {
-    padding: 34px 32px 30px;
+    padding: var(--app-space-8);
   }
 }
 
 @media (max-width: 520px) {
+  .auth-toolbar {
+    padding: var(--app-space-2) var(--app-space-4) 0;
+  }
+
+  /* 极窄屏只留图标，避免语言名把工具栏撑到换行。 */
+  .auth-toolbar__label {
+    display: none;
+  }
+
   .brand-panel {
-    padding: 32px 20px;
+    padding: var(--app-space-8) var(--app-space-5);
   }
 
   .brand-panel__inner {
     min-height: auto;
   }
 
-  .brand-panel__eyebrow {
-    margin-bottom: 34px;
+  .brand-lockup {
+    margin-bottom: var(--app-space-5);
   }
 
   .brand-copy__title {
@@ -1231,7 +1252,7 @@ onMounted(async () => {
   }
 
   .form-panel {
-    padding: 32px 20px;
+    padding: var(--app-space-8) var(--app-space-5);
   }
 
   .auth-card__title {
@@ -1239,136 +1260,27 @@ onMounted(async () => {
   }
 
   .auth-card {
-    padding: 30px 22px 26px;
+    padding: var(--app-space-6) var(--app-space-5);
     border-radius: var(--app-radius-xl);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-toolbar__btn,
+  .auth-form :deep(.t-button.btn) {
+    transition: none;
   }
 }
 </style>
 
+<!--
+  非 scoped：只有跨整棵树的 :root[theme-mode="dark"] 前置条件需要它。
+  .auth-page 只在本文件使用，选择器仍被这一页收住。
+  Vue 的 :global() 无法表达「:root[theme-mode] + 后代」：::global(sel .x) 会被
+  静默丢弃，:global(sel) .x 会把 .x 丢掉，两种写法都得不到想要的规则。
+-->
 <style lang="less">
-html[theme-mode="dark"] {
-  .auth-page,
-  .form-panel {
-    background: #0a1535;
-  }
-
-  .form-panel {
-    background:
-      radial-gradient(
-        circle at 82% 18%,
-        rgba(80, 122, 255, 0.14),
-        transparent 28%
-      ),
-      #0a1535;
-  }
-
-  .auth-card {
-    background: rgba(15, 30, 79, 0.78);
-    border-color: rgba(157, 177, 252, 0.16);
-    box-shadow: 0 22px 60px rgba(4, 10, 32, 0.4);
-  }
-
-  .auth-card__eyebrow {
-    color: #b3c4ff;
-  }
-
-  .auth-card__title {
-    color: #f1f5f9;
-  }
-
-  .auth-card__subtitle,
-  .auth-card__footer {
-    color: #94a3b8;
-  }
-
-  .auth-card__hint {
-    background: rgba(80, 122, 255, 0.12);
-    border-color: rgba(80, 122, 255, 0.3);
-    color: #b3c4ff;
-  }
-
-  .auth-link {
-    color: #6f92ff;
-  }
-
-  .auth-divider {
-    color: #64748b;
-
-    span {
-      background: #101d47;
-    }
-
-    &::before {
-      border-color: rgba(157, 177, 252, 0.14);
-    }
-  }
-
-  .auth-form .t-form-item__label {
-    color: #cbd5e1;
-  }
-
-  .auth-form .t-input {
-    background: rgba(10, 21, 53, 0.72);
-    border-color: rgba(157, 177, 252, 0.18);
-    color: #f1f5f9;
-
-    &:hover {
-      border-color: rgba(157, 177, 252, 0.36);
-    }
-
-    &:focus-within {
-      border-color: #507aff;
-      box-shadow: 0 0 0 3px rgba(80, 122, 255, 0.18);
-    }
-  }
-
-  .btn--primary {
-    background: linear-gradient(135deg, #507aff 0%, #3a63e6 100%) !important;
-    border: none;
-    color: #ffffff !important;
-    box-shadow: 0 8px 20px rgba(80, 122, 255, 0.28);
-
-    &:hover,
-    &:focus {
-      background: linear-gradient(135deg, #6f92ff 0%, #507aff 100%) !important;
-      color: #ffffff !important;
-      box-shadow: 0 10px 24px rgba(80, 122, 255, 0.34);
-    }
-
-    &:active {
-      background: linear-gradient(135deg, #3a63e6 0%, #2b4cc0 100%) !important;
-      color: #ffffff !important;
-    }
-  }
-
-  .btn--ghost,
-  .btn--oidc {
-    background: rgba(10, 21, 53, 0.72);
-    border-color: rgba(157, 177, 252, 0.18);
-    color: #dbe4ff;
-
-    &:hover {
-      border-color: #507aff;
-      color: #b3c4ff;
-      background: rgba(31, 56, 147, 0.35);
-    }
-  }
-
-  .invite-banner {
-    background: rgba(80, 122, 255, 0.1);
-    border-color: rgba(80, 122, 255, 0.28);
-  }
-
-  .invite-banner__title {
-    color: #dbe4ff;
-  }
-
-  .invite-banner__hint {
-    color: #b3c4ff;
-  }
-
-  .brand-panel__meta {
-    color: rgba(241, 245, 249, 0.5);
-  }
+:root:root[theme-mode='dark'] .auth-page .auth-card {
+  --login-card-surface: var(--td-bg-color-sidebar);
 }
 </style>

@@ -56,6 +56,17 @@
   }
 }
 
+/* 右侧飞出的子菜单：层级需高于父菜单；并抵消全局为底部弹出预留的 4px 上边距，
+   改为向右留 4px，让它和父项顶端对齐。 */
+.card-more.card-submenu-popup {
+  z-index: 3000 !important;
+
+  .t-popup__content {
+    margin-top: 0 !important;
+    margin-left: 4px !important;
+  }
+}
+
 /* ============================================
    二、自定义菜单项统一样式（.popup-menu 模式）
    ============================================ */
@@ -244,6 +255,28 @@
 
       &:active {
         background: var(--td-error-color-2);
+      }
+    }
+  }
+
+  .card-menu-item__chevron {
+    flex: 0 0 auto;
+    margin-left: auto;
+    font-size: var(--app-text-base);
+    color: var(--td-text-color-placeholder);
+  }
+
+  /* 子菜单里的选中标记：非选中项也占位，保持左对齐。 */
+  .card-menu-item__check {
+    flex: 0 0 auto;
+    display: inline-flex;
+    visibility: hidden;
+
+    &.is-active {
+      visibility: visible;
+
+      .icon {
+        color: var(--td-brand-color);
       }
     }
   }

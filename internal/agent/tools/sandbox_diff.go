@@ -7,6 +7,12 @@ import (
 
 const sandboxFilePreviewMaxLines = 10
 
+// sandboxDiffPayloadMaxBytes caps the before/after text a write/edit sends to
+// the client so the code view can render the change like a real diff. A larger
+// file falls back to the +/- line stats: half a diff is worse than none, and an
+// uncapped body would bloat both the live stream and the persisted history.
+const sandboxDiffPayloadMaxBytes = 96 * 1024
+
 // CountContentLines is the +N / -M unit for sandbox file mutations: empty is
 // 0, a trailing newline does not add an extra line.
 func CountContentLines(s string) int {
@@ -46,6 +52,20 @@ func attachSandboxDiffStats(data map[string]interface{}, added, removed int) {
 	}
 	data["added_lines"] = added
 	data["removed_lines"] = removed
+}
+
+// attachSandboxDiffContent records the pre- and post-write text so the client
+// can diff them locally and show the result inline. Both sides are dropped
+// together when either is over the cap.
+func attachSandboxDiffContent(data map[string]interface{}, before, after string) {
+	if data == nil {
+		return
+	}
+	if len(before) > sandboxDiffPayloadMaxBytes || len(after) > sandboxDiffPayloadMaxBytes {
+		return
+	}
+	data["diff_before"] = before
+	data["diff_after"] = after
 }
 
 func sandboxEditDiffStats(content string, edits []SandboxEdit) (added, removed int) {

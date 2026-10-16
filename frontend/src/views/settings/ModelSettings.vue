@@ -2,9 +2,79 @@
   <div class="model-settings">
     <div class="section-header">
       <div class="section-header__top">
-        <div>
+        <div class="model-title">
           <h2>{{ $t('modelSettings.title') }}</h2>
-          <p class="section-description">{{ $t('modelSettings.description') }}</p>
+          <t-popup placement="bottom-left" trigger="hover" show-arrow>
+            <button
+              type="button"
+              class="model-title-help"
+              :aria-label="$t('modelSettings.builtinModels.title')"
+            >
+              <t-icon name="help-circle" size="16px" />
+            </button>
+            <template #content>
+              <div class="builtin-models-hint" role="note">
+                <p class="builtin-hint-label">
+                  {{ $t('modelSettings.builtinModels.title') }}
+                </p>
+                <p class="builtin-hint-text">
+                  {{
+                    $t(
+                      authStore.isSystemAdmin
+                        ? 'modelSettings.builtinModels.descriptionAdmin'
+                        : 'modelSettings.builtinModels.description',
+                    )
+                  }}
+                </p>
+                <a
+                  class="doc-link"
+                  :href="docsUrl('models')"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ $t('modelSettings.builtinModels.viewGuide') }}
+                  <t-icon name="link" class="link-icon" />
+                </a>
+              </div>
+            </template>
+          </t-popup>
+        </div>
+        <div class="model-header-actions">
+          <t-button
+            v-if="authStore.isSystemAdmin"
+            type="button"
+            theme="default"
+            variant="text"
+            size="small"
+            class="model-header-action"
+            @click="uiStore.openSettings('model-catalog')"
+          >
+            <template #icon><t-icon name="control-platform" /></template>
+            {{ $t('modelCatalog.title') }}
+          </t-button>
+          <t-button
+            v-if="authStore.isSystemAdmin"
+            type="button"
+            theme="default"
+            variant="text"
+            size="small"
+            class="model-header-action"
+            @click="showDebugDrawer = true"
+          >
+            <template #icon><play-circle-icon /></template>
+            {{ $t('modelSettings.actions.debugModel') }}
+          </t-button>
+          <t-button
+            v-if="authStore.isSystemAdmin"
+            theme="default"
+            variant="text"
+            size="small"
+            class="model-header-action"
+            @click="openAddDialog"
+          >
+            <template #icon><add-icon /></template>
+            {{ $t('modelSettings.actions.addModel') }}
+          </t-button>
         </div>
         <t-button
           v-if="authStore.isSystemAdmin"
@@ -19,129 +89,225 @@
           {{ $t('modelSettings.actions.debugModel') }}
         </t-button>
       </div>
-
-      <div class="builtin-models-hint" role="note">
-        <p class="builtin-hint-label">{{ $t('modelSettings.builtinModels.title') }}</p>
-        <p class="builtin-hint-text">
-          {{ $t(authStore.isSystemAdmin
-            ? 'modelSettings.builtinModels.descriptionAdmin'
-            : 'modelSettings.builtinModels.description') }}
-        </p>
-        <a class="doc-link" href="https://github.com/Tencent/WeKnora/blob/main/website-docs/03-features/06-models.md" target="_blank"
-          rel="noopener noreferrer">
-          {{ $t('modelSettings.builtinModels.viewGuide') }}
-          <t-icon name="link" class="link-icon" />
-        </a>
-      </div>
+      <p class="section-description">{{ $t('modelSettings.description') }}</p>
     </div>
 
-    <t-tabs v-model="activeTypeFilter" class="model-type-tabs" data-guide="settings-models">
-      <t-tab-panel value="all" :label="`${$t('common.all')}(${allLegacyModels.length})`" />
-      <t-tab-panel value="chat" :label="`${$t('modelSettings.typeShort.chat')}(${countByType('chat')})`" />
-      <t-tab-panel value="embedding"
-        :label="`${$t('modelSettings.typeShort.embedding')}(${countByType('embedding')})`" />
-      <t-tab-panel value="rerank" :label="`${$t('modelSettings.typeShort.rerank')}(${countByType('rerank')})`" />
-      <t-tab-panel value="vllm" :label="`${$t('modelSettings.typeShort.vllm')}(${countByType('vllm')})`" />
-      <t-tab-panel value="asr" :label="`${$t('modelSettings.typeShort.asr')}(${countByType('asr')})`" />
-    </t-tabs>
-
-    <t-loading :loading="loading" size="small" class="model-list-loading">
-      <div v-if="!loading && filteredModels.length === 0 && !authStore.isSystemAdmin" class="empty-state">
-        <t-empty :description="emptyHint" />
-      </div>
-      <div v-else-if="!loading" class="model-grid">
-        <div v-for="model in filteredModels" :key="`${model._modelType}-${model.id}`" class="model-card" :class="[
-          `model-card--${model._modelType}`,
-          {
-            'model-card--builtin': model.isBuiltin,
-            'model-card--clickable': isModelCardClickable(model),
-          },
-        ]" :role="isModelCardClickable(model) ? 'button' : undefined"
-          :tabindex="isModelCardClickable(model) ? 0 : undefined"
-          @click="onModelCardClick($event, model._modelType, model)"
-          @keydown.enter="onModelCardClick($event, model._modelType, model)">
-          <div class="model-card__badge" :aria-label="typeLabel(model._modelType)">
-            <t-icon :name="typeIcon(model._modelType)" size="18px" />
-          </div>
-          <div class="model-card__body">
-            <div class="model-card__header">
-              <h3 class="model-card__title">{{ modelDisplayName(model) }}</h3>
-              <span v-if="model.isBuiltin" class="model-card__lock" :title="$t('modelSettings.builtinTag')"
-                :aria-label="$t('modelSettings.builtinTag')">
-                <t-icon :name="authStore.isSystemAdmin ? 'edit-1' : 'lock-on'" />
-              </span>
-              <div v-if="canManageModel(model)" class="model-card__actions" @click.stop>
-                <t-dropdown :options="getModelOptions(model._modelType, model)" placement="bottom-right" attach="body"
-                  trigger="click"
-                  @click="(data: any) => handleMenuAction({ value: data.value }, model._modelType, model)">
-                  <t-button variant="text" shape="square" size="small" class="model-card__action-btn model-card__more">
-                    <t-icon name="ellipsis" />
-                  </t-button>
-                </t-dropdown>
-                <t-popconfirm
-                  v-if="canDeleteModel(model)"
-                  :content="$t('modelSettings.confirmDelete', { name: modelDisplayName(model) })"
-                  :confirm-btn="{ content: $t('common.delete'), theme: 'danger' }"
-                  :cancel-btn="{ content: $t('common.cancel') }"
-                  placement="bottom-right"
-                  @confirm="deleteModel(model._modelType, model.id)"
-                >
-                  <t-tooltip :content="$t('common.delete')" placement="top">
-                    <t-button
-                      theme="danger"
-                      shape="square"
-                      variant="text"
-                      size="small"
-                      class="model-card__action-btn model-card__delete"
-                      @click.stop
-                    >
-                      <template #icon><t-icon name="delete" /></template>
-                    </t-button>
-                  </t-tooltip>
-                </t-popconfirm>
-              </div>
-            </div>
-            <p class="model-card__subtitle">
-              <span class="model-card__vendor">
-                <img v-if="vendorIcon(model)" :src="vendorIcon(model)" class="model-card__vendor-icon" alt="" />
-                <span>{{ vendorLabel(model) }}</span>
-              </span>
-              <template v-if="model._modelType === 'embedding' && model.dimension">
-                <span class="model-card__sep">·</span>
-                <span>{{ $t('model.editor.dimensionLabel') }} {{ model.dimension }}</span>
-              </template>
-              <template v-if="model._modelType === 'chat' || model._modelType === 'vllm'">
-                <span class="model-card__sep">·</span>
-                <span
-                  class="model-card__ctx"
-                  :class="{ 'model-card__ctx--default': isDefaultContextWindow(model.contextWindow) }"
-                  :title="contextWindowTitle(model.contextWindow)"
-                >{{ formatContextWindow(model.contextWindow) }}</span>
-              </template>
-              <template v-if="model._modelType === 'chat' && model.supportsVision">
-                <span class="model-card__sep">·</span>
-                <span class="model-card__vision" :title="$t('model.editor.supportsVisionLabel')"
-                  :aria-label="$t('model.editor.supportsVisionLabel')">
-                  <t-icon name="image" size="12px" />
-                </span>
-              </template>
-            </p>
-          </div>
-        </div>
-        <button
-          v-if="authStore.isSystemAdmin"
-          type="button"
-          class="model-card model-card--add"
-          data-guide="settings-add-model"
-          @click="openAddDialog"
+    <div class="model-tabbar" data-guide="settings-models">
+      <t-tabs v-model="activeTypeFilter" class="model-type-tabs">
+        <t-tab-panel
+          v-for="tab in modelTypeTabs"
+          :key="tab.value"
+          :value="tab.value"
         >
-          <span class="model-card--add__icon" aria-hidden="true">
-            <add-icon />
-          </span>
-          <span class="model-card--add__label">{{ $t('modelSettings.actions.addModel') }}</span>
-        </button>
-      </div>
-    </t-loading>
+          <template #label>
+            <span class="model-type-tab">
+              <t-icon :name="tab.icon" size="16px" />
+              <span>{{ tab.label }}</span>
+              <span class="model-tab-count">{{ tab.count }}</span>
+            </span>
+          </template>
+        </t-tab-panel>
+      </t-tabs>
+      <t-input
+        v-model="modelQuery"
+        class="model-search"
+        :placeholder="$t('menu.search')"
+        :aria-label="$t('menu.search')"
+        clearable
+      >
+        <template #prefix-icon><t-icon name="search" size="16px" /></template>
+      </t-input>
+    </div>
+
+    <div class="model-list">
+      <t-loading :loading="loading" size="small" class="model-list-loading">
+        <div
+          v-if="!loading && filteredModels.length === 0 && modelQuery.trim()"
+          class="empty-state"
+        >
+          <t-empty :description="$t('common.noResult')" />
+          <t-button variant="outline" @click="modelQuery = ''">{{
+            $t('common.clear')
+          }}</t-button>
+        </div>
+        <div
+          v-else-if="
+            !loading &&
+            filteredModels.length === 0 &&
+            !authStore.isSystemAdmin
+          "
+          class="empty-state"
+        >
+          <t-empty :description="emptyHint" />
+        </div>
+        <div v-else-if="!loading" class="model-grid">
+          <div
+            v-for="model in filteredModels"
+            :key="`${model._modelType}-${model.id}`"
+            class="model-card"
+            :class="[
+              `model-card--${model._modelType}`,
+              {
+                'model-card--builtin': model.isBuiltin,
+                'model-card--clickable': isModelCardClickable(model),
+              },
+            ]"
+            :role="isModelCardClickable(model) ? 'button' : undefined"
+            :tabindex="isModelCardClickable(model) ? 0 : undefined"
+            @click="onModelCardClick($event, model._modelType, model)"
+            @keydown.enter="onModelCardClick($event, model._modelType, model)"
+          >
+            <div
+              class="model-card__badge"
+              :aria-label="typeLabel(model._modelType)"
+            >
+              <t-icon :name="typeIcon(model._modelType)" size="16px" />
+            </div>
+            <div class="model-card__body">
+              <div class="model-card__header">
+                <h3 class="model-card__title" :title="modelDisplayName(model)">
+                  {{ modelDisplayName(model) }}
+                </h3>
+                <span
+                  v-if="model.isBuiltin"
+                  class="model-card__lock"
+                  :title="$t('modelSettings.builtinTag')"
+                  :aria-label="$t('modelSettings.builtinTag')"
+                >
+                  <t-icon
+                    :name="authStore.isSystemAdmin ? 'edit-1' : 'lock-on'"
+                  />
+                </span>
+                <div
+                  v-if="canManageModel(model)"
+                  class="model-card__actions"
+                  @click.stop
+                >
+                  <t-dropdown
+                    :options="getModelOptions(model._modelType, model)"
+                    placement="bottom-right"
+                    attach="body"
+                    trigger="click"
+                    @click="
+                      (data: any) =>
+                        handleMenuAction(
+                          { value: data.value },
+                          model._modelType,
+                          model,
+                        )
+                    "
+                  >
+                    <t-button
+                      variant="text"
+                      shape="square"
+                      size="small"
+                      class="model-card__action-btn model-card__more"
+                    >
+                      <t-icon name="ellipsis" />
+                    </t-button>
+                  </t-dropdown>
+                  <t-popconfirm
+                    v-if="canDeleteModel(model)"
+                    :content="
+                      $t('modelSettings.confirmDelete', {
+                        name: modelDisplayName(model),
+                      })
+                    "
+                    :confirm-btn="{
+                      content: $t('common.delete'),
+                      theme: 'danger',
+                    }"
+                    :cancel-btn="{ content: $t('common.cancel') }"
+                    placement="bottom-right"
+                    @confirm="deleteModel(model._modelType, model.id)"
+                  >
+                    <t-tooltip :content="$t('common.delete')" placement="top">
+                      <t-button
+                        theme="danger"
+                        shape="square"
+                        variant="text"
+                        size="small"
+                        class="model-card__action-btn model-card__delete"
+                        @click.stop
+                      >
+                        <template #icon><t-icon name="delete" /></template>
+                      </t-button>
+                    </t-tooltip>
+                  </t-popconfirm>
+                </div>
+              </div>
+              <p class="model-card__subtitle">
+                <span class="model-card__vendor">
+                  <img
+                    v-if="vendorIcon(model)"
+                    :src="vendorIcon(model)"
+                    class="model-card__vendor-icon"
+                    alt=""
+                  />
+                  <span>{{ vendorLabel(model) }}</span>
+                </span>
+                <template
+                  v-if="model._modelType === 'embedding' && model.dimension"
+                >
+                  <span class="model-card__sep">·</span>
+                  <span
+                    >{{ $t('model.editor.dimensionLabel') }}
+                    {{ model.dimension }}</span
+                  >
+                </template>
+                <template
+                  v-if="
+                    model._modelType === 'chat' || model._modelType === 'vllm'
+                  "
+                >
+                  <span class="model-card__sep">·</span>
+                  <span
+                    class="model-card__ctx"
+                    :class="{
+                      'model-card__ctx--default': isDefaultContextWindow(
+                        model.contextWindow,
+                      ),
+                    }"
+                    :title="contextWindowTitle(model.contextWindow)"
+                    >{{ formatContextWindow(model.contextWindow) }}</span
+                  >
+                </template>
+                <template
+                  v-if="
+                    (model._modelType === 'chat' && model.supportsVision) ||
+                    (model._modelType === 'embedding' &&
+                      model.capabilities?.input?.includes('image'))
+                  "
+                >
+                  <span class="model-card__sep">·</span>
+                  <span
+                    class="model-card__vision"
+                    :title="$t('model.editor.supportsVisionLabel')"
+                    :aria-label="$t('model.editor.supportsVisionLabel')"
+                  >
+                    <t-icon name="image" size="12px" />
+                  </span>
+                </template>
+              </p>
+            </div>
+          </div>
+          <button
+            v-if="authStore.isSystemAdmin"
+            type="button"
+            class="model-card model-card--add"
+            data-guide="settings-add-model"
+            @click="openAddDialog"
+          >
+            <span class="model-card--add__icon" aria-hidden="true">
+              <add-icon />
+            </span>
+            <span class="model-card--add__label">{{
+              $t('modelSettings.actions.addModel')
+            }}</span>
+          </button>
+        </div>
+      </t-loading>
+    </div>
 
     <t-dialog
       v-model:visible="showUsageDialog"
@@ -152,18 +318,33 @@
     >
       <div v-if="usageConflict" class="model-usage-dialog">
         <p class="model-usage-dialog__description">
-          {{ $t('modelSettings.usage.description', { name: usageConflictModelName }) }}
+          {{
+            $t('modelSettings.usage.description', {
+              name: usageConflictModelName,
+            })
+          }}
         </p>
 
         <div class="model-usage-dialog__content">
-          <section v-if="usageConflict.knowledge_bases.length" class="model-usage-group">
+          <section
+            v-if="usageConflict.knowledge_bases.length"
+            class="model-usage-group"
+          >
             <h3>
-              {{ $t('modelSettings.usage.knowledgeBases', {
-                count: modelUsageResourceCount(usageConflict.knowledge_bases, usageConflict.knowledge_base_total)
-              }) }}
+              {{
+                $t('modelSettings.usage.knowledgeBases', {
+                  count: modelUsageResourceCount(
+                    usageConflict.knowledge_bases,
+                    usageConflict.knowledge_base_total,
+                  ),
+                })
+              }}
             </h3>
             <ul>
-              <li v-for="resource in usageConflict.knowledge_bases" :key="resource.id">
+              <li
+                v-for="resource in usageConflict.knowledge_bases"
+                :key="resource.id"
+              >
                 <div class="model-usage-resource">
                   <strong>{{ resource.name || resource.id }}</strong>
                   <div class="model-usage-bindings">
@@ -188,20 +369,37 @@
               </li>
             </ul>
             <p
-              v-if="modelUsageListTruncated(usageConflict.knowledge_bases, usageConflict.knowledge_base_total)"
+              v-if="
+                modelUsageListTruncated(
+                  usageConflict.knowledge_bases,
+                  usageConflict.knowledge_base_total,
+                )
+              "
               class="model-usage-truncated"
             >
-              {{ $t('modelSettings.usage.truncated', {
-                shown: usageConflict.knowledge_bases.length,
-                total: modelUsageResourceCount(usageConflict.knowledge_bases, usageConflict.knowledge_base_total)
-              }) }}
+              {{
+                $t('modelSettings.usage.truncated', {
+                  shown: usageConflict.knowledge_bases.length,
+                  total: modelUsageResourceCount(
+                    usageConflict.knowledge_bases,
+                    usageConflict.knowledge_base_total,
+                  ),
+                })
+              }}
             </p>
           </section>
 
           <section v-if="usageConflict.agents.length" class="model-usage-group">
-            <h3>{{ $t('modelSettings.usage.agents', {
-              count: modelUsageResourceCount(usageConflict.agents, usageConflict.agent_total)
-            }) }}</h3>
+            <h3>
+              {{
+                $t('modelSettings.usage.agents', {
+                  count: modelUsageResourceCount(
+                    usageConflict.agents,
+                    usageConflict.agent_total,
+                  ),
+                })
+              }}
+            </h3>
             <ul>
               <li v-for="resource in usageConflict.agents" :key="resource.id">
                 <div class="model-usage-resource">
@@ -221,29 +419,45 @@
                   theme="primary"
                   variant="text"
                   size="small"
-                  @click="openUsageResource('agent', resource.id, resource.bindings)"
+                  @click="
+                    openUsageResource('agent', resource.id, resource.bindings)
+                  "
                 >
                   {{ $t('modelSettings.usage.openConfiguration') }}
                 </t-button>
               </li>
             </ul>
             <p
-              v-if="modelUsageListTruncated(usageConflict.agents, usageConflict.agent_total)"
+              v-if="
+                modelUsageListTruncated(
+                  usageConflict.agents,
+                  usageConflict.agent_total,
+                )
+              "
               class="model-usage-truncated"
             >
-              {{ $t('modelSettings.usage.truncated', {
-                shown: usageConflict.agents.length,
-                total: modelUsageResourceCount(usageConflict.agents, usageConflict.agent_total)
-              }) }}
+              {{
+                $t('modelSettings.usage.truncated', {
+                  shown: usageConflict.agents.length,
+                  total: modelUsageResourceCount(
+                    usageConflict.agents,
+                    usageConflict.agent_total,
+                  ),
+                })
+              }}
             </p>
           </section>
 
-          <section v-if="usageConflict.long_term_memory.bindings.length" class="model-usage-group">
+          <section
+            v-if="usageConflict.long_term_memory.bindings.length"
+            class="model-usage-group"
+          >
             <h3>{{ $t('modelSettings.usage.longTermMemory') }}</h3>
             <div class="model-usage-memory">
               <div class="model-usage-bindings">
                 <t-tag
-                  v-for="(binding, index) in usageConflict.long_term_memory.bindings"
+                  v-for="(binding, index) in usageConflict.long_term_memory
+                    .bindings"
                   :key="`${binding}-${index}`"
                   size="small"
                   variant="light"
@@ -256,16 +470,23 @@
         </div>
 
         <div class="model-usage-dialog__actions">
-          <t-button @click="showUsageDialog = false">{{ $t('common.close') }}</t-button>
+          <t-button @click="showUsageDialog = false">{{
+            $t('common.close')
+          }}</t-button>
         </div>
       </div>
     </t-dialog>
 
     <!-- 模型编辑器抽屉 -->
-    <ModelEditorDialog v-model:visible="showDialog" :model-type="currentModelType" :model-data="editingModel"
-      :can-manage-default="authStore.isSystemAdmin" :can-manage-ollama="authStore.isOperationsAdmin" :save-model="handleModelSave" />
+    <ModelEditorDialog
+      v-model:visible="showDialog"
+      :model-type="currentModelType"
+      :model-data="editingModel"
+      :can-manage-default="authStore.isSystemAdmin"
+      :can-manage-ollama="authStore.isOperationsAdmin"
+      :save-model="handleModelSave"
+    />
     <ModelDebugDrawer v-model:visible="showDebugDrawer" :models="allModels" />
-
   </div>
 </template>
 
@@ -280,6 +501,7 @@ import ModelDebugDrawer from '@/components/ModelDebugDrawer.vue'
 import {
   listModels,
   createModel,
+  copyModelConfig,
   updateModel as updateModelAPI,
   deleteModel as deleteModelAPI,
   ModelInUseError,
@@ -293,10 +515,13 @@ import {
   type ModelUsageResourceKind,
 } from '@/api/model'
 import { useAuthStore } from '@/stores/auth'
+import { generateCopyDisplayName, modelCopyLabel } from '@/utils/modelCopyName'
 import { useUIStore } from '@/stores/ui'
 import { focusKbEditorSection } from '@/config/contextualGuides'
 import { useChatResourcesStore } from '@/stores/chatResources'
 import { useModelProvidersStore } from '@/stores/modelProviders'
+import { docsUrl } from '@/utils/docsUrl'
+import { matchesResourceQuery } from '@/utils/resourceListSearch'
 import {
   formatContextWindow,
   isDefaultContextWindow,
@@ -321,8 +546,15 @@ const currentModelType = ref<ModelType>('chat')
 const editingModel = ref<any>(null)
 const loading = ref(true)
 const activeTypeFilter = ref<FilterType>('all')
+const modelQuery = ref('')
 
-const MODEL_TAB_TYPES: FilterType[] = ['chat', 'embedding', 'rerank', 'vllm', 'asr']
+const MODEL_TAB_TYPES: ModelType[] = [
+  'chat',
+  'embedding',
+  'rerank',
+  'vllm',
+  'asr',
+]
 const KNOWLEDGE_BASE_EDITOR_HOST_ROUTES = new Set([
   'home',
   'knowledgeBaseList',
@@ -334,7 +566,7 @@ const KNOWLEDGE_BASE_EDITOR_HOST_ROUTES = new Set([
 watch(
   () => uiStore.settingsInitialSubSection,
   (sub) => {
-    if (sub && MODEL_TAB_TYPES.includes(sub as FilterType)) {
+    if (sub && MODEL_TAB_TYPES.includes(sub as ModelType)) {
       activeTypeFilter.value = sub as FilterType
     }
   },
@@ -343,6 +575,7 @@ watch(
 
 // 模型列表数据
 const allModels = ref<ModelConfig[]>([])
+const copyingModelId = ref<string | null>(null)
 
 // 后端 type → 前端分组 type 的映射
 const backendTypeToModelType: Record<string, ModelType> = {
@@ -350,7 +583,7 @@ const backendTypeToModelType: Record<string, ModelType> = {
   Embedding: 'embedding',
   Rerank: 'rerank',
   VLLM: 'vllm',
-  ASR: 'asr'
+  ASR: 'asr',
 }
 
 // 将后端模型格式转换为旧的前端格式（附带 _modelType 便于渲染）
@@ -369,7 +602,9 @@ function convertToLegacyFormat(model: ModelConfig) {
     apiKey: '',
     provider: model.parameters.provider || '',
     dimension: model.parameters.embedding_parameters?.dimension,
-    supportsDimensionOverride: model.parameters.embedding_parameters?.supports_dimension_override || false,
+    supportsDimensionOverride:
+      model.parameters.embedding_parameters?.supports_dimension_override ||
+      false,
     isBuiltin: model.is_builtin || false,
     isDefault: model.is_default || false,
     managedBy: model.managed_by || '',
@@ -378,16 +613,21 @@ function convertToLegacyFormat(model: ModelConfig) {
     maxConcurrency: model.parameters.max_concurrency,
     maxOutputTokens: model.parameters.max_output_tokens || undefined,
     customHeaders: model.parameters.custom_headers
-      ? Object.entries(model.parameters.custom_headers).map(([key, value]) => ({ key, value: String(value) }))
+      ? Object.entries(model.parameters.custom_headers).map(([key, value]) => ({
+          key,
+          value: String(value),
+        }))
       : [],
     // 厂商额外字段 / 高级覆盖原样带入编辑器（thinking_control 单独拆出，仅旧数据才有）
     extraConfig: Object.fromEntries(
-      Object.entries(model.parameters.extra_config || {}).filter(([key]) => key !== 'thinking_control'),
+      Object.entries(model.parameters.extra_config || {}).filter(
+        ([key]) => key !== 'thinking_control',
+      ),
     ) as Record<string, string>,
     thinkingControl: model.parameters.extra_config?.thinking_control || '',
     spec: model.parameters.spec || null,
     capabilities: model.capabilities,
-    _modelType: backendTypeToModelType[model.type] || 'chat' as ModelType,
+    _modelType: backendTypeToModelType[model.type] || ('chat' as ModelType),
     // Preserve the credential metadata map so the editor dialog can render
     // the "Configured" state without an extra round-trip.
     credentials: model.credentials,
@@ -395,13 +635,38 @@ function convertToLegacyFormat(model: ModelConfig) {
 }
 
 // 平铺 + 过滤
-const allLegacyModels = computed(() => allModels.value.map(convertToLegacyFormat))
-const filteredModels = computed(() => {
-  if (activeTypeFilter.value === 'all') return allLegacyModels.value
-  return allLegacyModels.value.filter(m => m._modelType === activeTypeFilter.value)
-})
+const allLegacyModels = computed(() =>
+  allModels.value.map(convertToLegacyFormat),
+)
+const filteredModels = computed(() =>
+  allLegacyModels.value.filter(
+    (model) =>
+      (activeTypeFilter.value === 'all' ||
+        model._modelType === activeTypeFilter.value) &&
+      matchesResourceQuery(
+        { name: modelDisplayName(model), description: vendorLabel(model) },
+        modelQuery.value,
+      ),
+  ),
+)
 
-const countByType = (type: ModelType) => allLegacyModels.value.filter(m => m._modelType === type).length
+const modelTypeTabs = computed(() => [
+  {
+    value: 'all',
+    label: t('common.all'),
+    icon: 'view-module',
+    count: allLegacyModels.value.length,
+  },
+  ...MODEL_TAB_TYPES.map((value) => ({
+    value,
+    label: typeLabel(value),
+    icon: typeIcon(value),
+    count: countByType(value),
+  })),
+])
+
+const countByType = (type: ModelType) =>
+  allLegacyModels.value.filter((m) => m._modelType === type).length
 
 // 类型徽章图标。沿用 TDesign 自带 icon name，避免再引第三方图标包。
 const typeIcon = (type: ModelType): string => {
@@ -421,7 +686,7 @@ const typeLabel = (type: ModelType) => {
     embedding: t('modelSettings.typeShort.embedding'),
     rerank: t('modelSettings.typeShort.rerank'),
     vllm: t('modelSettings.typeShort.vllm'),
-    asr: t('modelSettings.typeShort.asr')
+    asr: t('modelSettings.typeShort.asr'),
   }
   return map[type]
 }
@@ -469,15 +734,20 @@ const vendorLabel = (model: any): string => {
 }
 
 const modelDisplayName = (model: any) => {
-  const displayName = typeof model.displayName === 'string' ? model.displayName.trim() : ''
+  const displayName =
+    typeof model.displayName === 'string' ? model.displayName.trim() : ''
   return displayName || model.name
 }
 
 const contextWindowTitle = (tokens?: number) => {
   if (isDefaultContextWindow(tokens)) {
-    return t('model.editor.contextWindowDefaultHint', { value: formatContextWindow(tokens) })
+    return t('model.editor.contextWindowDefaultHint', {
+      value: formatContextWindow(tokens),
+    })
   }
-  return t('model.editor.contextWindowTokens', { count: effectiveContextWindow(tokens) })
+  return t('model.editor.contextWindowTokens', {
+    count: effectiveContextWindow(tokens),
+  })
 }
 
 const emptyHint = computed(() => {
@@ -487,7 +757,7 @@ const emptyHint = computed(() => {
     embedding: t('modelSettings.embedding.empty'),
     rerank: t('modelSettings.rerank.empty'),
     vllm: t('modelSettings.vllm.empty'),
-    asr: t('modelSettings.asr.empty')
+    asr: t('modelSettings.asr.empty'),
   }
   return map[activeTypeFilter.value as ModelType]
 })
@@ -513,7 +783,8 @@ const loadModels = async () => {
 
 // 打开添加对话框；类型在抽屉内选择，此处仅按当前 Tab 预填默认值
 const openAddDialog = () => {
-  currentModelType.value = activeTypeFilter.value === 'all' ? 'chat' : activeTypeFilter.value
+  currentModelType.value =
+    activeTypeFilter.value === 'all' ? 'chat' : activeTypeFilter.value
   editingModel.value = null
   showDialog.value = true
 }
@@ -586,7 +857,11 @@ const handleModelSave = async (modelData: any) => {
     }
 
     if (saveType === 'embedding') {
-      if (!modelData.dimension || modelData.dimension < 128 || modelData.dimension > 4096) {
+      if (
+        !modelData.dimension ||
+        modelData.dimension < 128 ||
+        modelData.dimension > 4096
+      ) {
         throw new Error(t('modelSettings.toasts.dimensionInvalid'))
       }
     }
@@ -610,7 +885,9 @@ const handleModelSave = async (modelData: any) => {
       !editingModel.value && trimmedApiKey ? { api_key: trimmedApiKey } : {}
     const trimmedAppSecret = (modelData.appSecret ?? '').trim()
     const appSecretFields: { app_secret?: string } =
-      !editingModel.value && trimmedAppSecret ? { app_secret: trimmedAppSecret } : {}
+      !editingModel.value && trimmedAppSecret
+        ? { app_secret: trimmedAppSecret }
+        : {}
     // extra_config: vendor extra fields + advanced overrides (already trimmed
     // by the editor) plus the legacy thinking_control for rows that still
     // carry it. Empty values are dropped so cleared keys disappear.
@@ -632,14 +909,16 @@ const handleModelSave = async (modelData: any) => {
     // (internal/handler/model.go), so omitting it would make "clear the last
     // vendor field / protocol override" silently no-op. Local rows keep the
     // omit-when-empty behaviour — this form never edits their extra_config.
-    const extraConfigFields = modelData.source === 'remote'
-      ? { extra_config: extraConfig }
-      : {}
+    const extraConfigFields =
+      modelData.source === 'remote' ? { extra_config: extraConfig } : {}
 
     // parameters.spec: keep whatever the row already had, replace compat with
     // the (validated) JSON from the advanced textarea; drop spec when empty.
     const specText = String(modelData.specCompat ?? '').trim()
-    const baseSpec = (modelData.spec && typeof modelData.spec === 'object') ? { ...modelData.spec } : {}
+    const baseSpec =
+      modelData.spec && typeof modelData.spec === 'object'
+        ? { ...modelData.spec }
+        : {}
     if (specText) {
       const compat = JSON.parse(specText)
       if (!compat || typeof compat !== 'object' || Array.isArray(compat)) {
@@ -649,7 +928,8 @@ const handleModelSave = async (modelData: any) => {
     } else {
       delete baseSpec.compat
     }
-    const specFields = Object.keys(baseSpec).length > 0 ? { spec: baseSpec } : {}
+    const specFields =
+      Object.keys(baseSpec).length > 0 ? { spec: baseSpec } : {}
 
     const apiModelData: ModelConfig = {
       name: modelData.modelName.trim(),
@@ -666,34 +946,43 @@ const handleModelSave = async (modelData: any) => {
         ...appSecretFields,
         provider: modelData.provider || '',
         ...extraConfigFields,
-        ...(Object.keys(customHeadersMap).length > 0 ? { custom_headers: customHeadersMap } : {}),
-        ...(saveType === 'embedding' && modelData.dimension ? {
-          embedding_parameters: {
-            dimension: modelData.dimension,
-            truncate_prompt_tokens: 0,
-            supports_dimension_override: modelData.supportsDimensionOverride ?? false
-          }
-        } : {}),
-        ...(saveType === 'vllm' ? {
-          supports_vision: true
-        } : saveType === 'chat' ? {
-          supports_vision: modelData.supportsVision ?? false
-        } : {}),
-        ...((saveType === 'chat' || saveType === 'vllm')
-          && Number(modelData.contextWindow) >= 1024
+        ...(Object.keys(customHeadersMap).length > 0
+          ? { custom_headers: customHeadersMap }
+          : {}),
+        ...(saveType === 'embedding' && modelData.dimension
+          ? {
+              embedding_parameters: {
+                dimension: modelData.dimension,
+                truncate_prompt_tokens: 0,
+                supports_dimension_override:
+                  modelData.supportsDimensionOverride ?? false,
+              },
+            }
+          : {}),
+        ...(saveType === 'vllm'
+          ? {
+              supports_vision: true,
+            }
+          : saveType === 'chat'
+            ? {
+                supports_vision: modelData.supportsVision ?? false,
+              }
+            : {}),
+        ...((saveType === 'chat' || saveType === 'vllm') &&
+        Number(modelData.contextWindow) >= 1024
           ? { context_window: Math.round(Number(modelData.contextWindow)) }
           : {}),
-        ...((saveType === 'chat' || saveType === 'vllm')
-          && Number(modelData.maxOutputTokens) > 0
+        ...((saveType === 'chat' || saveType === 'vllm') &&
+        Number(modelData.maxOutputTokens) > 0
           ? { max_output_tokens: Math.round(Number(modelData.maxOutputTokens)) }
           : {}),
         ...specFields,
         // 后台并发上限：仅 chat/embedding/vllm 受治理，>0 才写入（0/空沿用全局默认）。
-        ...(['chat', 'embedding', 'vllm'].includes(saveType)
-          && Number(modelData.maxConcurrency) > 0
+        ...(['chat', 'embedding', 'vllm'].includes(saveType) &&
+        Number(modelData.maxConcurrency) > 0
           ? { max_concurrency: Number(modelData.maxConcurrency) }
-          : {})
-      }
+          : {}),
+      },
     }
 
     if (editingModel.value && editingModel.value.id) {
@@ -730,7 +1019,8 @@ const deleteModel = async (_type: ModelType, modelId: string) => {
     console.error('删除模型失败:', error)
     if (error instanceof ModelInUseError) {
       usageConflict.value = error.details
-      usageConflictModelName.value = model?.display_name || model?.name || modelId
+      usageConflictModelName.value =
+        model?.display_name || model?.name || modelId
       showUsageDialog.value = true
       return
     }
@@ -749,11 +1039,12 @@ const openUsageResource = async (
   // Only focus an existing editor when the current route still mounts one;
   // otherwise a stale visible/id pair would make a direct Settings page no-op.
   const routeName = router.currentRoute.value.name
-  const canFocusExistingKnowledgeBase = kind === 'knowledge_base'
-    && uiStore.showKBEditorModal
-    && uiStore.currentKBId === id
-    && typeof routeName === 'string'
-    && KNOWLEDGE_BASE_EDITOR_HOST_ROUTES.has(routeName)
+  const canFocusExistingKnowledgeBase =
+    kind === 'knowledge_base' &&
+    uiStore.showKBEditorModal &&
+    uiStore.currentKBId === id &&
+    typeof routeName === 'string' &&
+    KNOWLEDGE_BASE_EDITOR_HOST_ROUTES.has(routeName)
 
   uiStore.closeSettings()
   await nextTick()
@@ -791,19 +1082,23 @@ const getModelOptions = (type: ModelType, model: any) => {
 
   options.push({
     content: t('common.edit'),
-    value: `edit-${type}-${model.id}`
+    value: `edit-${type}-${model.id}`,
   })
 
   options.push({
     content: t('common.copy'),
-    value: `copy-${type}-${model.id}`
+    value: `copy-${type}-${model.id}`,
   })
 
   return options
 }
 
 // 处理菜单操作
-const handleMenuAction = (data: { value: string }, type: ModelType, model: any) => {
+const handleMenuAction = (
+  data: { value: string },
+  type: ModelType,
+  model: any,
+) => {
   const value = data.value
 
   if (value.indexOf('edit-') === 0) {
@@ -813,23 +1108,10 @@ const handleMenuAction = (data: { value: string }, type: ModelType, model: any) 
   }
 }
 
-// 生成不重复的复制名称
-const generateCopyName = (originalName: string): string => {
-  const suffix = t('modelSettings.copySuffix')
-  const existingNames = new Set(allModels.value.map(m => m.name))
-  let candidate = `${originalName}${suffix}`
-  let counter = 2
-  while (existingNames.has(candidate)) {
-    candidate = `${originalName}${suffix} ${counter}`
-    counter += 1
-  }
-  return candidate
-}
-
-// 复制模型
+// 复制模型。name 与凭证由服务端从源记录复制；这里只生成不重复的展示名。
 const copyModel = async (_type: ModelType, modelId: string) => {
   const source = allModels.value.find(m => m.id === modelId)
-  if (!source) {
+  if (!source?.id || copyingModelId.value) {
     return
   }
   if (source.managed_by === 'yaml') {
@@ -837,33 +1119,34 @@ const copyModel = async (_type: ModelType, modelId: string) => {
     return
   }
 
+  copyingModelId.value = modelId
   try {
-    const newModel: ModelConfig = {
-      name: generateCopyName(source.name),
-      display_name: source.display_name || '',
-      type: source.type,
-      source: source.source,
-      description: source.description || '',
-      parameters: JSON.parse(JSON.stringify(source.parameters || {}))
-    }
-
-    await createModel(newModel)
+    const displayName = generateCopyDisplayName(
+      modelCopyLabel(source),
+      allModels.value.map((model) => modelCopyLabel(model)),
+      t('modelSettings.copySuffix'),
+    )
+    await copyModelConfig(source.id, displayName)
     MessagePlugin.success(t('modelSettings.toasts.copied'))
     await loadModels()
   } catch (error: any) {
     console.error('复制模型失败:', error)
     MessagePlugin.error(error.message || t('modelSettings.toasts.copyFailed'))
+  } finally {
+    copyingModelId.value = null
   }
 }
 
 // 获取后端模型类型
-function getModelType(type: ModelType): 'KnowledgeQA' | 'Embedding' | 'Rerank' | 'VLLM' | 'ASR' {
+function getModelType(
+  type: ModelType,
+): 'KnowledgeQA' | 'Embedding' | 'Rerank' | 'VLLM' | 'ASR' {
   const typeMap = {
     chat: 'KnowledgeQA' as const,
     embedding: 'Embedding' as const,
     rerank: 'Rerank' as const,
     vllm: 'VLLM' as const,
-    asr: 'ASR' as const
+    asr: 'ASR' as const,
   }
   return typeMap[type]
 }
@@ -875,102 +1158,244 @@ onMounted(() => {
 
 <style lang="less" scoped>
 @import (reference) '@/components/css/provider-card.less';
-
 @import (reference) '@/components/css/settings-section.less';
 
 .model-settings {
   width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  color: var(--td-text-color-primary);
+  container-type: inline-size;
 }
 
 .section-header {
   .settings-section-header();
-}
-
-.model-test-trigger {
-  --td-bg-color-container-hover: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
   flex-shrink: 0;
-  padding-left: 0;
-  padding-right: 0;
-  font-weight: 600;
 
-  &:hover,
-  &:focus,
-  &.t-is-active,
-  &:active {
-    background-color: transparent !important;
-    color: var(--td-brand-color-hover);
+  &__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    // 为设置弹窗右上角的关闭按钮留出空间。
+    padding-right: 32px;
   }
 
-  &:active {
-    color: var(--td-brand-color-active);
+  h2 {
+    margin: 0;
+  }
+}
+
+.model-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.model-title-help {
+  .settings-title-help();
+}
+
+.model-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.model-header-action.t-button {
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 0 12px;
+  gap: 6px;
+  border: 1px solid var(--td-component-stroke);
+  border-radius: var(--app-radius-sm);
+  background: var(--td-bg-color-container);
+  color: var(--td-text-color-primary);
+  font-size: var(--app-text-md);
+
+  &:hover:not(:disabled) {
+    background: var(--td-bg-color-container-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--td-brand-color);
+    outline-offset: 2px;
+  }
+
+  :deep(.t-icon) {
+    color: var(--td-brand-color);
   }
 }
 
 .builtin-models-hint {
-  margin-top: 12px;
-  padding: 10px 12px;
-  background: var(--td-bg-color-secondarycontainer);
-  border: 1px solid var(--td-component-stroke);
-  border-radius: var(--app-radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: min(320px, calc(100vw - 64px));
+  padding: 4px;
+  color: var(--td-text-color-secondary);
+  font-size: var(--app-text-sm);
+  line-height: 20px;
 }
 
 .builtin-hint-label {
-  margin: 0 0 4px 0;
-  font-size: var(--app-text-sm);
+  margin: 0;
+  color: var(--td-text-color-primary);
   font-weight: 500;
-  color: var(--td-text-color-placeholder);
-  letter-spacing: 0.02em;
 }
 
 .builtin-hint-text {
-  margin: 0 0 6px 0;
-  font-size: var(--app-text-md);
-  line-height: 1.55;
-  color: var(--td-text-color-secondary);
+  margin: 0;
 }
 
 .builtin-models-hint .doc-link {
-  font-size: var(--app-text-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--td-brand-color);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
-.model-list-loading {
-  min-height: 120px;
+.model-tabbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--td-component-stroke);
 }
 
 .model-type-tabs {
-  margin-bottom: 16px;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
 
-  :deep(.t-tabs__nav-item) {
-    font-size: var(--app-text-md);
+  :deep(.t-tabs__nav-container) {
+    background: transparent;
   }
+  :deep(.t-tabs__nav-container.t-is-top::after) {
+    display: none;
+  }
+  :deep(.t-tabs__nav-item) {
+    height: 44px;
+    padding: 0;
+    margin-right: 24px;
+    font-size: var(--app-text-base);
+    font-weight: 500;
+    color: var(--td-text-color-secondary);
 
+    &:last-child {
+      margin-right: 0;
+    }
+    &:hover {
+      background: transparent;
+      color: var(--td-text-color-primary);
+    }
+  }
   :deep(.t-tabs__nav-item-wrapper) {
-    padding: 0 12px;
+    padding: 0 2px;
     margin: 0;
   }
-
+  :deep(.t-tabs__nav-item:not(.t-is-disabled):hover .t-tabs__nav-item-wrapper) {
+    background: transparent;
+  }
+  :deep(.t-tabs__bar) {
+    display: none;
+  }
+  :deep(.t-tabs__nav-item.t-is-active) {
+    color: var(--td-text-color-primary);
+    text-shadow: none;
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      border-radius: var(--app-radius-pill);
+      background: var(--td-brand-color);
+    }
+    .t-icon {
+      color: var(--td-brand-color);
+    }
+    .model-tab-count {
+      background: var(--td-brand-color-light);
+      color: var(--td-brand-color);
+    }
+  }
   :deep(.t-tabs__operations) {
     display: none;
   }
-
   :deep(.t-tabs__nav-scroll) {
     overflow-x: auto;
     scrollbar-width: none;
-
     &::-webkit-scrollbar {
       display: none;
     }
   }
-
   :deep(.t-tabs__content) {
     display: none;
   }
 }
 
+.model-type-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.model-tab-count {
+  min-width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border-radius: var(--app-radius-pill);
+  background: var(--td-bg-color-secondarycontainer);
+  color: var(--td-text-color-secondary);
+  font-size: var(--app-text-xs);
+  font-weight: 500;
+  line-height: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.model-search {
+  flex: 0 0 240px;
+  width: 240px;
+  :deep(.t-input) {
+    border-radius: var(--app-radius-sm);
+  }
+}
+
+.model-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--app-space-4) 0 var(--app-space-8);
+}
+
+.model-list-loading {
+  display: block;
+  min-height: 120px;
+}
+
 .model-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 10px;
+  align-items: stretch;
 
   .model-card--add {
     width: 100%;
@@ -978,20 +1403,40 @@ onMounted(() => {
   }
 }
 
-// 模型卡片 —— 可选类型徽章（仅「全部」Tab）+ 标题 + 一行副标题
+@container (max-width: 900px) {
+  .model-tabbar {
+    flex-wrap: wrap;
+    gap: 0;
+  }
+  .model-type-tabs {
+    flex-basis: 100%;
+  }
+  .model-search {
+    flex: 1 1 100%;
+    width: 100%;
+    margin: 8px 0;
+  }
+}
+
+// 模型卡片沿用工具箱的紧凑间距、圆角和悬浮反馈。
 .model-card {
   .provider-card();
-  .provider-card-interactive();
+  align-items: center;
+  min-height: 88px;
+  padding: 12px;
+  gap: 10px;
+  box-sizing: border-box;
+  border-radius: var(--app-radius-md);
 
   &--add {
     .provider-card-add();
+    min-height: 88px;
+    gap: 6px;
 
     &:hover,
     &:focus-visible {
       box-shadow: none;
     }
-
-
 
     &__icon {
       display: flex;
@@ -1000,8 +1445,8 @@ onMounted(() => {
       width: 32px;
       height: 32px;
       border-radius: var(--app-radius-md);
-      background: color-mix(in srgb, var(--td-brand-color) 10%, transparent);
-      color: var(--td-brand-color);
+      background: var(--td-bg-color-secondarycontainer);
+      color: var(--td-text-color-secondary);
       font-size: var(--app-text-2xl);
     }
 
@@ -1012,24 +1457,23 @@ onMounted(() => {
     }
   }
 
-  &--builtin {
-    background: var(--td-bg-color-secondarycontainer);
-
-    &:hover {
-      box-shadow: none;
-      border-color: var(--td-component-stroke);
-    }
-  }
-
   &--clickable {
     .provider-card-interactive();
 
-
+    &:hover {
+      border-color: color-mix(
+        in srgb,
+        var(--td-brand-color) 40%,
+        var(--td-component-stroke)
+      );
+      box-shadow: 0 3px 12px
+        color-mix(in srgb, var(--td-text-color-primary) 6%, transparent);
+    }
   }
 }
 
 .model-card__badge {
-  .provider-card-badge();
+  .provider-card-badge(28px, 8px);
   .provider-card-badge-color(#0052d9);
 }
 
@@ -1082,7 +1526,9 @@ onMounted(() => {
   height: 18px;
   color: var(--td-text-color-placeholder);
   opacity: 0.6;
-  transition: color var(--app-motion-fast) ease, opacity var(--app-motion-fast) ease;
+  transition:
+    color var(--app-motion-fast) ease,
+    opacity var(--app-motion-fast) ease;
 
   .t-icon {
     font-size: var(--app-text-md);

@@ -16,9 +16,10 @@ const script = compileScript(descriptor, { id: 'mcp-dialog-test' }).content
   .replace('return __returned__', '__expose(__returned__); return __returned__')
 const compiled = ts.transpileModule(script, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
 
-function fixture(generate: () => Promise<string> = async () => 'Query logs by module and time.', initialStep: 0 | 1 = 0) {
+function fixture(generate: () => Promise<string> = async () => 'Query logs by module and time.', initialStep: 0 | 1 = 0, save: () => Promise<void> = async () => {}) {
   const updates: Array<{ id: string; data: Record<string, unknown> }> = []
   const warnings: string[] = []
+  const errors: string[] = []
   const props = reactive({ visible: true, service: { id: 'one', name: 'Logs', description: 'Legacy usage', transport_type: 'sse', url: 'https://example.com/mcp' }, mode: 'edit', initialStep })
   const exports: any = {}
   runInNewContext(compiled, {
@@ -26,11 +27,16 @@ function fixture(generate: () => Promise<string> = async () => 'Query logs by mo
     require(name: string) {
       if (name === 'vue') return require('vue')
       if (name === 'vue-i18n') return { useI18n: () => ({ t: (key: string) => key, locale: ref('zh-CN') }) }
-      if (name === 'tdesign-vue-next') return { MessagePlugin: { warning: (text: string) => warnings.push(text), success() {}, error() {} } }
+      if (name === 'tdesign-vue-next') return { MessagePlugin: { warning: (text: string) => warnings.push(text), success() {}, error: (text: string) => errors.push(text) } }
       if (name === '@/api/mcp-service') return {
         generateMCPUsageInstructions: generate,
+        createMCPService: async (data: Record<string, unknown>) => {
+          await save()
+          return { id: 'created', ...data }
+        },
         updateMCPService: async (id: string, data: Record<string, unknown>) => {
           updates.push({ id, data })
+          await save()
           return { ...props.service, ...data }
         },
       }
@@ -48,8 +54,39 @@ function fixture(generate: () => Promise<string> = async () => 'Query logs by mo
   const instance = ref<any>()
   const app = renderer.createApp({ render: () => h(component, { ...props, ref: instance }) })
   app.mount({})
-  return { vm: instance.value, props, updates, warnings, close: () => app.unmount() }
+  return { vm: instance.value, props, updates, warnings, errors, close: () => app.unmount() }
 }
+
+for (const mode of ['create', 'edit']) {
+  test(`${mode}: SSRF rejection displays the backend message and stays on the connection step`, async () => {
+    const message = 'MCP service URL 未通过安全校验：mcp.internal 不在白名单内，请加入 SSRF_WHITELIST_EXTRA'
+    const f = fixture(undefined, 0, async () => { throw { status: 400, message } })
+    try {
+      if (mode === 'create') {
+        f.props.service = null as any
+        f.props.mode = 'create'
+        await nextTick()
+        Object.assign(f.vm.formData, { name: 'External MCP', url: 'https://mcp.internal/mcp' })
+      }
+      f.vm.formRef = { validate: async () => true }
+      const savedBefore = f.vm.savedService
+      await f.vm.handleNext()
+      assert.deepEqual(f.errors, [message])
+      assert.equal(f.vm.step, 0)
+      assert.equal(f.vm.submitting, false)
+      assert.equal(f.vm.savedService, savedBefore)
+    } finally { f.close() }
+  })
+}
+
+test('connection save uses the fallback only when no error message is returned', async () => {
+  const f = fixture(undefined, 0, async () => { throw { status: 400 } })
+  try {
+    f.vm.formRef = { validate: async () => true }
+    await f.vm.handleNext()
+    assert.deepEqual(f.errors, ['mcpServiceDialog.toasts.updateFailed'])
+  } finally { f.close() }
+})
 
 test('tool shortcut opens the saved service directly without resaving its connection', () => {
   const f = fixture(undefined, 1)
@@ -132,4 +169,46 @@ test('closing or switching service prevents a late AI result from overwriting th
       assert.equal(f.vm.generatingUsage, false)
     } finally { f.close() }
   }
+})
+
+test('OAuth payload always carries the client ID and sends its secret only on create', () => {
+  const f = fixture()
+  try {
+    f.vm.formData.auth_config.auth_type = 'oauth'
+    f.vm.formData.auth_config.client_id = '  pre-registered  '
+    f.vm.formData.auth_config.client_secret = 'shh'
+    const created = f.vm.buildPayload(true)
+    assert.equal(created.auth_config.client_id, 'pre-registered')
+    assert.equal(created.auth_config.client_secret, 'shh')
+    const edited = f.vm.buildPayload(false)
+    assert.equal(edited.auth_config.client_id, 'pre-registered')
+    assert.equal('client_secret' in edited.auth_config, false)
+
+    f.vm.formData.auth_config.client_id = ''
+    assert.equal(f.vm.buildPayload(false).auth_config.client_id, '', 'clearing returns to dynamic registration')
+  } finally { f.close() }
+})
+
+test('OAuth client secret is edited through the credentials card', () => {
+  const f = fixture()
+  try {
+    f.vm.formData.auth_config.auth_type = 'oauth'
+    assert.deepEqual(Array.from(f.vm.credentialFields, (field: { key: string }) => field.key), ['client_secret'])
+    f.vm.formData.auth_config.auth_type = 'api_key'
+    assert.deepEqual(Array.from(f.vm.credentialFields, (field: { key: string }) => field.key), ['api_key'])
+    f.vm.formData.auth_config.auth_type = ''
+    assert.equal(f.vm.credentialFields.length, 0)
+  } finally { f.close() }
+})
+
+test('API key payload never carries OAuth client fields', () => {
+  const f = fixture()
+  try {
+    f.vm.formData.auth_config.auth_type = 'api_key'
+    f.vm.formData.auth_config.client_id = 'left-over'
+    f.vm.formData.auth_config.client_secret = 'left-over'
+    const body = f.vm.buildPayload(true)
+    assert.equal('client_id' in body.auth_config, false)
+    assert.equal('client_secret' in body.auth_config, false)
+  } finally { f.close() }
 })

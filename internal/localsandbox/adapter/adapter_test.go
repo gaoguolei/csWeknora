@@ -35,12 +35,10 @@ func TestAdapterDoesNotVersionWorkspace(t *testing.T) {
 
 // Capabilities the local sandbox genuinely lacks must be absent rather than
 // stubbed: a fake PTY is worse than none.
-func TestAdapterDoesNotAdvertiseTerminalOrDesktop(t *testing.T) {
+func TestAdapterDoesNotAdvertiseTerminal(t *testing.T) {
 	var a any = New(nil)
 	_, hasTerminal := a.(sandbox.SessionTerminalProvider)
 	require.False(t, hasTerminal)
-	_, hasDesktop := a.(sandbox.SessionDesktopProvider)
-	require.False(t, hasDesktop)
 }
 
 func TestAdapterDoesNotImplementSessionDestroyer(t *testing.T) {
@@ -67,8 +65,6 @@ func TestAdapterDoesNotImplementTurnHolderOrInteractiveManagers(t *testing.T) {
 	require.False(t, hasTurn)
 	_, hasTerminal := a.(sandbox.SessionTerminalManager)
 	require.False(t, hasTerminal)
-	_, hasDesktop := a.(sandbox.SessionDesktopManager)
-	require.False(t, hasDesktop)
 }
 
 func TestLayoutForProjectWorkspace(t *testing.T) {

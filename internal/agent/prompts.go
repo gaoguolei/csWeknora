@@ -315,6 +315,13 @@ func formatToolGuidanceForMode(names []string, skillInstallMode bool, layout san
 				"Commands start from their specified working directory on every call. " +
 				"Files and installed packages persist within the session.\n")
 			b.WriteString(sandboxArtifactReferenceGuidance())
+			b.WriteString("Project previews belong in the Web preview panel, which forwards the project's HTTP server. " +
+				"Keep the remote desktop available for the user's own desktop work: do not launch a graphical " +
+				"browser, navigate an existing desktop window, or crop/resize the desktop for project preview. " +
+				"When starting development servers, disable automatic browser opening (BROWSER=none, no --open) " +
+				"and unset DISPLAY, WAYLAND_DISPLAY, XAUTHORITY and DBUS_SESSION_BUS_ADDRESS only for those server processes. " +
+				"Verify HTTP responses or use a headless browser when visual verification is needed. " +
+				"Do not stop the desktop session or change its global environment.\n")
 		}
 	}
 	if !skillInstallMode && has("shell_exec") && has("read_file") {

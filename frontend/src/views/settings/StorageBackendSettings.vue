@@ -677,12 +677,12 @@ onMounted(load)
   box-shadow: inset 0 0 0 1px var(--td-component-stroke);
 }
 
-.storage-backend-drawer--local .setting-drawer__header-icon { background: rgba(70, 70, 70, 0.1); color: #464646; }
-.storage-backend-drawer--minio .setting-drawer__header-icon { background: rgba(225, 38, 38, 0.12); color: #C0382B; }
-.storage-backend-drawer--cos .setting-drawer__header-icon { background: rgba(0, 82, 217, 0.1); color: #0052D9; }
-.storage-backend-drawer--tos .setting-drawer__header-icon { background: rgba(0, 137, 255, 0.12); color: #0089FF; }
-.storage-backend-drawer--s3 .setting-drawer__header-icon { background: rgba(255, 153, 0, 0.12); color: #D97706; }
-.storage-backend-drawer--oss .setting-drawer__header-icon { background: rgba(255, 90, 0, 0.12); color: #E55A00; }
-.storage-backend-drawer--ks3 .setting-drawer__header-icon { background: color-mix(in srgb, var(--td-brand-color) 12%, transparent); color: #07A050; }
-.storage-backend-drawer--obs .setting-drawer__header-icon { background: rgba(206, 17, 38, 0.1); color: #CE1126; }
+.storage-backend-drawer--local .setting-drawer__header-icon { background: color-mix(in srgb, var(--td-text-color-primary) 10%, transparent); color: var(--td-text-color-secondary); }
+.storage-backend-drawer--minio .setting-drawer__header-icon { background: rgba(225, 38, 38, 0.12); color: color-mix(in srgb, #C0382B var(--app-provider-tint), var(--td-text-color-primary)); }
+.storage-backend-drawer--cos .setting-drawer__header-icon { background: rgba(0, 82, 217, 0.1); color: color-mix(in srgb, #0052D9 var(--app-provider-tint), var(--td-text-color-primary)); }
+.storage-backend-drawer--tos .setting-drawer__header-icon { background: rgba(0, 137, 255, 0.12); color: color-mix(in srgb, #0089FF var(--app-provider-tint), var(--td-text-color-primary)); }
+.storage-backend-drawer--s3 .setting-drawer__header-icon { background: rgba(255, 153, 0, 0.12); color: color-mix(in srgb, #D97706 var(--app-provider-tint), var(--td-text-color-primary)); }
+.storage-backend-drawer--oss .setting-drawer__header-icon { background: rgba(255, 90, 0, 0.12); color: color-mix(in srgb, #E55A00 var(--app-provider-tint), var(--td-text-color-primary)); }
+.storage-backend-drawer--ks3 .setting-drawer__header-icon { background: color-mix(in srgb, var(--td-brand-color) 12%, transparent); color: color-mix(in srgb, #07A050 var(--app-provider-tint), var(--td-text-color-primary)); }
+.storage-backend-drawer--obs .setting-drawer__header-icon { background: rgba(206, 17, 38, 0.1); color: color-mix(in srgb, #CE1126 var(--app-provider-tint), var(--td-text-color-primary)); }
 </style>

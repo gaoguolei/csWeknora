@@ -1,95 +1,179 @@
-// Dark-theme highlight token colors only. Chat Markdown layout/chrome styles
-// belong to chat-markdown.less.
-// Scoped Vue CSS may win on cascade, so use high-specificity selectors to
-// guarantee dark mode always applies when theme-mode='dark' is set.
+// Dark-theme highlight token colors with explicit backgrounds.
+// Using !important is necessary to override Vue scoped CSS from components
+// (botmsg, AgentStreamDisplay) which has specificity ~0,0,4,0 against our
+// ~0,0,4,1 — close enough that cascade order can flip in production builds.
 html[theme-mode='dark'] {
-  .markdown-content .chat-code-block__pre,
-  .answer-content .chat-code-block__pre,
-  .ai-markdown-template .chat-code-block__pre,
-  .agent-stream-display .chat-code-block__pre,
-  .thinking-detail-content .chat-code-block__pre,
-  .thinking-inline-content .chat-code-block__pre {
-    .hljs {
-      color: #c9d1d9;
+  .markdown-content,
+  .answer-content,
+  .ai-markdown-template,
+  .agent-stream-display,
+  .thinking-detail-content,
+  .thinking-inline-content {
+
+    // ---- code block chrome ----
+    .chat-code-block {
+      background: #161b22 !important;
+      border-color: #30363d !important;
     }
 
-    .hljs-doctag,
-    .hljs-keyword,
-    .hljs-meta .hljs-keyword,
-    .hljs-template-tag,
-    .hljs-template-variable,
-    .hljs-type,
-    .hljs-variable.language_ {
-      color: #ff7b72;
+    .chat-code-block__header {
+      background: #1A1A1A !important;
+      border-bottom-color: #30363d !important;
     }
 
-    .hljs-title,
-    .hljs-title.class_,
-    .hljs-title.class_.inherited__,
-    .hljs-title.function_ {
-      color: #d2a8ff;
+    .chat-code-block__pre {
+      background: #1A1A1A !important;
+
+      // ---- syntax tokens ----
+      .hljs {
+        color: #c9d1d9 !important;
+        background: transparent !important;
+      }
+
+      .hljs-doctag,
+      .hljs-keyword,
+      .hljs-meta .hljs-keyword,
+      .hljs-template-tag,
+      .hljs-template-variable,
+      .hljs-type,
+      .hljs-variable.language_ {
+        color: #ff7b72 !important;
+      }
+
+      .hljs-title,
+      .hljs-title.class_,
+      .hljs-title.class_.inherited__,
+      .hljs-title.function_ {
+        color: #d2a8ff !important;
+      }
+
+      .hljs-attr,
+      .hljs-attribute,
+      .hljs-literal,
+      .hljs-meta,
+      .hljs-number,
+      .hljs-operator,
+      .hljs-variable,
+      .hljs-selector-attr,
+      .hljs-selector-class,
+      .hljs-selector-id {
+        color: #79c0ff !important;
+      }
+
+      .hljs-regexp,
+      .hljs-string,
+      .hljs-meta .hljs-string {
+        color: #a5d6ff !important;
+      }
+
+      .hljs-built_in,
+      .hljs-symbol {
+        color: #ffa657 !important;
+      }
+
+      .hljs-comment,
+      .hljs-code,
+      .hljs-formula {
+        color: #8b949e !important;
+      }
+
+      .hljs-name,
+      .hljs-quote,
+      .hljs-selector-tag,
+      .hljs-selector-pseudo {
+        color: #7ee787 !important;
+      }
+
+      .hljs-subst {
+        color: #c9d1d9 !important;
+      }
+
+      .hljs-section {
+        color: #58a6ff !important;
+        font-weight: 700 !important;
+      }
     }
 
-    .hljs-attr,
-    .hljs-attribute,
-    .hljs-literal,
-    .hljs-meta,
-    .hljs-number,
-    .hljs-operator,
-    .hljs-variable,
-    .hljs-selector-attr,
-    .hljs-selector-class,
-    .hljs-selector-id {
-      color: #79c0ff;
-    }
+    // standalone pre blocks
+    pre:not(.chat-code-block__pre):not(.chat-mermaid-block__canvas) {
+      background: #1A1A1A !important;
+      border-color: #30363d !important;
 
-    .hljs-regexp,
-    .hljs-string,
-    .hljs-meta .hljs-string {
-      color: #a5d6ff;
-    }
-
-    .hljs-built_in,
-    .hljs-symbol {
-      color: #ffa657;
-    }
-
-    .hljs-comment,
-    .hljs-code,
-    .hljs-formula {
-      color: #8b949e;
-    }
-
-    .hljs-name,
-    .hljs-quote,
-    .hljs-selector-tag,
-    .hljs-selector-pseudo {
-      color: #7ee787;
-    }
-
-    .hljs-subst {
-      color: #c9d1d9;
-    }
-
-    .hljs-section {
-      color: #1f6feb;
-      font-weight: 700;
+      code.hljs {
+        color: #c9d1d9 !important;
+      }
     }
   }
 
-  // Standalone pre blocks that aren't wrapped in chat-code-block
-  .markdown-content pre:not(.chat-code-block__pre):not(.chat-mermaid-block__canvas) code.hljs {
-    color: #c9d1d9 !important;
-  }
+  // ---- workspace source code panel (ConversationWorkspace) ----
+  .conversation-workspace {
+    .source-scroll {
+      background: #1A1A1A !important;
+    }
 
-  // Catch-all for hljs spans that may be directly inside markdown content
-  .markdown-content .hljs,
-  .answer-content .hljs,
-  .ai-markdown-template .hljs,
-  .agent-stream-display .hljs,
-  .thinking-detail-content .hljs,
-  .thinking-inline-content .hljs {
-    color: #c9d1d9;
-    background: transparent;
+    .source-gutter {
+      background: #1A1A1A !important;
+      color: #484f58 !important;
+    }
+
+    .source-code {
+      // base text that doesn't get a token class
+      color: #c9d1d9 !important;
+
+      .hljs-keyword,
+      .hljs-doctag,
+      .hljs-meta {
+        color: #ff7b72 !important;
+      }
+
+      .hljs-string,
+      .hljs-regexp {
+        color: #a5d6ff !important;
+      }
+
+      .hljs-comment,
+      .hljs-quote {
+        color: #8b949e !important;
+      }
+
+      .hljs-number,
+      .hljs-literal,
+      .hljs-operator,
+      .hljs-punctuation,
+      .hljs-params {
+        color: #79c0ff !important;
+      }
+
+      .hljs-title,
+      .hljs-name,
+      .hljs-built_in,
+      .hljs-type,
+      .hljs-section,
+      .hljs-selector-class,
+      .hljs-variable {
+        color: #56d4dd !important;
+      }
+
+      .hljs-attr,
+      .hljs-attribute,
+      .hljs-property,
+      .hljs-tag {
+        color: #c9d1d9 !important;
+      }
+    }
+
+    .workspace-notice {
+      background: #161b22 !important;
+      color: #c9d1d9 !important;
+    }
+
+    .file-tree__hint {
+      color: #8b949e !important;
+    }
+
+    .test-result pre {
+      background: #1A1A1A !important;
+      color: #c9d1d9 !important;
+    }
   }
 }

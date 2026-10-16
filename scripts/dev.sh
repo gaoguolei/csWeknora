@@ -575,7 +575,7 @@ start_frontend() {
     
     log_info "启动 Vite 开发服务器..."
     log_info "前端将运行在 http://localhost:5173"
-    log_info "前端 API 代理目标: ${VITE_DEV_PROXY_TARGET:-${FRONTEND_BACKEND_URL:-http://localhost:8080}}"
+    log_info "前端 API 代理目标: ${VITE_DEV_PROXY_TARGET:-${FRONTEND_BACKEND_URL:-http://127.0.0.1:8080}}"
     
     # 运行开发服务器
     npm run dev
@@ -614,5 +614,3 @@ case "$CMD" in
         exit 1
         ;;
 esac
-
-exit 0

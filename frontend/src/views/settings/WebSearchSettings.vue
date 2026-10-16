@@ -312,7 +312,6 @@ import { MessagePlugin } from 'tdesign-vue-next'
 import { useI18n } from 'vue-i18n'
 import { AddIcon } from 'tdesign-icons-vue-next'
 import {
-  listWebSearchProviders,
   listWebSearchProviderTypes,
   createWebSearchProvider,
   updateWebSearchProvider,
@@ -331,10 +330,12 @@ import CredentialResource, {
 } from '@/components/credentials/CredentialResource.vue'
 import { useConfirmDelete } from '@/components/settings/useConfirmDelete'
 import { useAuthStore } from '@/stores/auth'
+import { useChatResourcesStore } from '@/stores/chatResources'
 import { providerLogo } from './providerLogos'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
+const chatResources = useChatResourcesStore()
 const confirmDelete = useConfirmDelete()
 
 // ===== State =====
@@ -506,12 +507,12 @@ const onProviderTypeChange = () => {
   lastTestOk.value = null
 }
 
+// 走 chatResources 的共享快照并强刷：增删改之后对话输入栏读到的就是最新列表，
+// 不需要它再监听设置弹窗关闭去重拉。
 const loadProviderEntities = async () => {
   try {
-    const response = await listWebSearchProviders()
-    if (response.data && Array.isArray(response.data)) {
-      providerEntities.value = response.data
-    }
+    await chatResources.ensureWebSearchProviders(true)
+    providerEntities.value = chatResources.webSearchProviders
   } catch (error) {
     console.error('Failed to load provider entities:', error)
   }
@@ -1044,38 +1045,38 @@ onMounted(async () => {
 
 .websearch-drawer--duckduckgo .setting-drawer__header-icon {
   background: rgba(222, 88, 51, 0.12);
-  color: #DE5833;
+  color: color-mix(in srgb, #DE5833 var(--app-provider-tint), var(--td-text-color-primary));
 }
 .websearch-drawer--bing .setting-drawer__header-icon {
   background: rgba(0, 137, 255, 0.12);
-  color: #0089FF;
+  color: color-mix(in srgb, #0089FF var(--app-provider-tint), var(--td-text-color-primary));
 }
 .websearch-drawer--google .setting-drawer__header-icon {
   background: rgba(66, 133, 244, 0.12);
-  color: #4285F4;
+  color: color-mix(in srgb, #4285F4 var(--app-provider-tint), var(--td-text-color-primary));
 }
 .websearch-drawer--tavily .setting-drawer__header-icon {
   background: rgba(98, 53, 187, 0.12);
-  color: #6235BB;
+  color: color-mix(in srgb, #6235BB var(--app-provider-tint), var(--td-text-color-primary));
 }
 .websearch-drawer--baidu .setting-drawer__header-icon {
   background: rgba(41, 50, 225, 0.12);
-  color: #2932E1;
+  color: color-mix(in srgb, #2932E1 var(--app-provider-tint), var(--td-text-color-primary));
 }
 .websearch-drawer--searxng .setting-drawer__header-icon {
   background: rgba(33, 86, 137, 0.12);
-  color: #215689;
+  color: color-mix(in srgb, #215689 var(--app-provider-tint), var(--td-text-color-primary));
 }
 .websearch-drawer--ollama .setting-drawer__header-icon {
   background: rgba(70, 70, 70, 0.12);
-  color: #464646;
+  color: color-mix(in srgb, #464646 var(--app-provider-tint), var(--td-text-color-primary));
 }
 .websearch-drawer--keenable .setting-drawer__header-icon {
   background: rgba(20, 158, 130, 0.12);
-  color: #149E82;
+  color: color-mix(in srgb, #149E82 var(--app-provider-tint), var(--td-text-color-primary));
 }
 .websearch-drawer--zhipu .setting-drawer__header-icon {
   background: rgba(37, 99, 235, 0.12);
-  color: #2563EB;
+  color: color-mix(in srgb, #2563EB var(--app-provider-tint), var(--td-text-color-primary));
 }
 </style>

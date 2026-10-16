@@ -1,44 +1,182 @@
 <template>
-  <div :class="[
-    'submenu_item',
-    !batchMode && activePath === item.path ? 'submenu_item_active' : '',
-    batchMode && selectedIds.includes(item.id) ? 'submenu_item_selected' : '',
-    batchMode ? 'submenu_item_batch' : '',
-    menuOpen ? 'submenu_item--menu-open' : '',
-  ]" @mouseenter="emit('hover-in')" @mouseleave="emit('hover-out')"
-    @click="batchMode ? emit('toggle-select') : emit('navigate')">
-    <t-checkbox v-if="batchMode" class="batch-checkbox" :checked="selectedIds.includes(item.id)" @click.stop
-      @change="emit('toggle-select')" />
-    <form v-if="titleEditing" class="session-title-edit" @submit.prevent="submitTitleEdit" @click.stop>
-      <input ref="titleInputRef" v-model="titleDraft" class="session-title-edit__input"
-        :maxlength="SESSION_TITLE_MAX_LENGTH" @keydown.esc.prevent="cancelTitleEdit" @blur="submitTitleEdit" />
+  <div
+    :class="[
+      'submenu_item',
+      !batchMode && activePath === item.path ? 'submenu_item_active' : '',
+      batchMode && selectedIds.includes(item.id) ? 'submenu_item_selected' : '',
+      batchMode ? 'submenu_item_batch' : '',
+      nested ? 'submenu_item--foldered' : '',
+      menuOpen ? 'submenu_item--menu-open' : '',
+      showUnread ? 'submenu_item--unread' : '',
+    ]"
+    @mouseenter="emit('hover-in')"
+    @mouseleave="emit('hover-out')"
+    @click="batchMode ? emit('toggle-select') : emit('navigate')"
+  >
+    <t-checkbox
+      v-if="batchMode"
+      class="batch-checkbox"
+      :checked="selectedIds.includes(item.id)"
+      @click.stop
+      @change="emit('toggle-select')"
+    />
+    <form
+      v-if="titleEditing"
+      class="session-title-edit"
+      @submit.prevent="submitTitleEdit"
+      @click.stop
+    >
+      <input
+        ref="titleInputRef"
+        v-model="titleDraft"
+        class="session-title-edit__input"
+        :maxlength="SESSION_TITLE_MAX_LENGTH"
+        @keydown.esc.prevent="cancelTitleEdit"
+        @blur="submitTitleEdit"
+      />
     </form>
-    <span v-else class="submenu_title" :class="batchMode ? 'submenu_title--batch' : ''" :title="item.title">
+    <span
+      v-else
+      class="submenu_title"
+      :class="batchMode ? 'submenu_title--batch' : ''"
+      :title="item.title"
+    >
       <t-icon v-if="item.is_pinned" name="pin" class="submenu_pin_icon" />
-      <span ref="titleTextRef" class="submenu_title-text">{{ item.title }}</span>
-      <span v-if="apiOwnerTag" class="session-owner-tag" :class="`session-owner-tag--${apiOwnerTag.kind}`"
-        :title="apiOwnerTag.full">{{ apiOwnerTag.label }}</span>
+      <span ref="titleTextRef" class="submenu_title-text">{{
+        item.title
+      }}</span>
+      <span
+        v-if="apiOwnerTag"
+        class="session-owner-tag"
+        :class="`session-owner-tag--${apiOwnerTag.kind}`"
+        :title="apiOwnerTag.full"
+        >{{ apiOwnerTag.label }}</span
+      >
     </span>
-    <span v-if="running" class="session-running-indicator" role="status" :aria-label="t('menu.sessionInProgress')"
-      :title="t('menu.sessionInProgress')"><span class="session-running-indicator__spinner" aria-hidden="true" /></span>
-    <div v-if="!batchMode || item.parent_session_id" class="session-row-menu-wrap"
-      :class="{ 'session-row-menu-wrap--fork': item.parent_session_id }" @click.stop>
-      <span v-if="item.parent_session_id" class="session-fork-indicator" role="img" aria-label="由其他会话分叉而来">
+    <div
+      v-if="!batchMode || hasBadge"
+      class="session-row-menu-wrap"
+      :class="{ 'session-row-menu-wrap--badge': hasBadge, 'session-row-menu-wrap--foldered': nested && !batchMode }"
+      @click.stop
+    >
+      <span
+        v-if="running"
+        class="session-row-badge session-running-indicator"
+        role="status"
+        :aria-label="t('menu.sessionInProgress')"
+        :title="t('menu.sessionInProgress')"
+      >
+        <span class="session-running-indicator__spinner" aria-hidden="true" />
+      </span>
+      <span
+        v-else-if="showUnread"
+        class="session-row-badge session-unread-indicator"
+        role="status"
+        :aria-label="t('menu.sessionUnread')"
+        :title="t('menu.sessionUnread')"
+      >
+        <span class="session-unread-indicator__dot" aria-hidden="true" />
+      </span>
+      <span
+        v-else-if="item.parent_session_id"
+        class="session-row-badge session-fork-indicator"
+        role="img"
+        aria-label="由其他会话分叉而来"
+      >
         <t-icon name="git-branch" class="submenu_fork_icon" />
       </span>
-      <t-popup v-if="!batchMode" v-model:visible="menuOpen" :overlay-class-name="menuOverlayClass" trigger="click" destroy-on-close
-        placement="bottom-right" @visible-change="onMenuVisibleChange">
-        <button type="button" class="menu-more-wrap" :aria-label="t('chatHeader.moreActions')" aria-haspopup="menu" :aria-expanded="menuOpen" @click.stop>
+      <t-popup
+        v-if="!batchMode"
+        v-model:visible="menuOpen"
+        :overlay-class-name="menuOverlayClass"
+        trigger="click"
+        destroy-on-close
+        placement="bottom-right"
+        @visible-change="onMenuVisibleChange"
+      >
+        <button
+          type="button"
+          class="menu-more-wrap"
+          :aria-label="t('chatHeader.moreActions')"
+          aria-haspopup="menu"
+          :aria-expanded="menuOpen"
+          @click.stop
+        >
           <t-icon name="ellipsis" class="menu-more" />
         </button>
         <template #content>
           <div class="card-menu" @click.stop>
             <template v-if="menuMode === 'menu'">
-              <template v-for="(option, index) in menuOptions" :key="option.value">
-                <div v-if="shouldShowDividerBefore(option.value, index)" class="session-action-menu__divider" />
-                <button type="button" class="card-menu-item"
-                  :class="{ danger: option.theme === 'error' }" @click="handleMenuClick(option)">
-                  <component :is="option.prefixIcon" v-if="option.prefixIcon" class="icon" />
+              <template
+                v-for="(option, index) in menuOptions"
+                :key="option.value"
+              >
+                <div
+                  v-if="shouldShowDividerBefore(option.value, index)"
+                  class="session-action-menu__divider"
+                />
+                <t-popup
+                  v-if="option.children?.length"
+                  trigger="click"
+                  placement="right-top"
+                  destroy-on-close
+                  overlay-class-name="card-more card-submenu-popup"
+                >
+                  <button
+                    type="button"
+                    class="card-menu-item"
+                    aria-haspopup="menu"
+                  >
+                    <component
+                      :is="option.prefixIcon"
+                      v-if="option.prefixIcon"
+                      class="icon"
+                    />
+                    <span>{{ option.content }}</span>
+                    <t-icon
+                      name="chevron-right"
+                      class="card-menu-item__chevron"
+                    />
+                  </button>
+                  <template #content>
+                    <div class="card-menu" @click.stop>
+                      <template
+                        v-for="child in option.children"
+                        :key="child.value"
+                      >
+                        <div
+                          v-if="child.dividerBefore"
+                          class="session-action-menu__divider"
+                        />
+                        <button
+                          type="button"
+                          class="card-menu-item"
+                          :class="{ danger: child.theme === 'error' }"
+                          @click="handleMenuClick(child)"
+                        >
+                          <component
+                            :is="child.prefixIcon"
+                            v-if="child.prefixIcon"
+                            class="icon"
+                          />
+                          <span>{{ child.content }}</span>
+                        </button>
+                      </template>
+                    </div>
+                  </template>
+                </t-popup>
+                <button
+                  v-else
+                  type="button"
+                  class="card-menu-item"
+                  :class="{ danger: option.theme === 'error' }"
+                  @click="handleMenuClick(option)"
+                >
+                  <component
+                    :is="option.prefixIcon"
+                    v-if="option.prefixIcon"
+                    class="icon"
+                  />
                   <span>{{ option.content }}</span>
                 </button>
               </template>
@@ -46,17 +184,37 @@
 
             <div v-else class="session-action-confirm">
               <div class="session-action-confirm__title">
-                {{ menuMode === 'clear' ? t('chatHeader.clearConfirmTitle') : t('chatHeader.deleteConfirmTitle') }}
+                {{
+                  menuMode === 'clear'
+                    ? t('chatHeader.clearConfirmTitle')
+                    : t('chatHeader.deleteConfirmTitle')
+                }}
               </div>
               <div class="session-action-confirm__body">
-                {{ menuMode === 'clear' ? t('chatHeader.clearConfirmBody') : t('chatHeader.deleteConfirmBody') }}
+                {{
+                  menuMode === 'clear'
+                    ? t('chatHeader.clearConfirmBody')
+                    : t('chatHeader.deleteConfirmBody')
+                }}
               </div>
               <div class="session-action-confirm__footer">
-                <button type="button" class="session-action-confirm__btn" @click="backToMenu">
+                <button
+                  type="button"
+                  class="session-action-confirm__btn"
+                  @click="backToMenu"
+                >
                   {{ t('common.cancel') }}
                 </button>
-                <button type="button" class="session-action-confirm__btn is-danger" @click="confirmDangerAction">
-                  {{ menuMode === 'clear' ? t('common.clear') : t('common.delete') }}
+                <button
+                  type="button"
+                  class="session-action-confirm__btn is-danger"
+                  @click="confirmDangerAction"
+                >
+                  {{
+                    menuMode === 'clear'
+                      ? t('common.clear')
+                      : t('common.delete')
+                  }}
                 </button>
               </div>
             </div>
@@ -70,7 +228,10 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { normalizeSessionTitleDraft, SESSION_TITLE_MAX_LENGTH } from './sessionTitleEdit'
+import {
+  normalizeSessionTitleDraft,
+  SESSION_TITLE_MAX_LENGTH,
+} from './sessionTitleEdit'
 import { useSessionTitleMotion } from '@/composables/useSessionTitleMotion'
 
 interface SessionMenuOption {
@@ -78,18 +239,30 @@ interface SessionMenuOption {
   value: string
   theme?: 'default' | 'success' | 'warning' | 'error' | 'primary'
   prefixIcon?: any
+  /** 有值时该项渲染为带右侧飞出子菜单的父项，点击父项本身不触发动作。 */
+  children?: SessionMenuOption[]
+  /** 在其上方渲染一条分隔线，用于把子菜单里的固定项与列表项分开。 */
+  dividerBefore?: boolean
 }
 
 type MenuMode = 'menu' | 'clear' | 'delete'
 
 const props = defineProps<{
-  item: { id: string; path: string; title: string; is_pinned?: boolean; user_id?: string; parent_session_id?: string }
+  item: {
+    id: string
+    path: string
+    title: string
+    is_pinned?: boolean
+    user_id?: string
+    parent_session_id?: string
+  }
   batchMode: boolean
   activePath: string
   selectedIds: string[]
   menuOptions: SessionMenuOption[]
   running?: boolean
-  /** 渠道文件夹下的会话（样式与聊天区会话共用文案列对齐） */
+  unread?: boolean
+  /** Session appears inside a user-created folder. */
   nested?: boolean
 }>()
 
@@ -110,13 +283,27 @@ const titleEditing = ref(false)
 const titleDraft = ref('')
 const titleInputRef = ref<HTMLInputElement | null>(null)
 const titleTextRef = ref<HTMLElement | null>(null)
-useSessionTitleMotion(titleTextRef, () => props.item.id, () => props.item.title)
+useSessionTitleMotion(
+  titleTextRef,
+  () => props.item.id,
+  () => props.item.title,
+)
 
-const menuOverlayClass = computed(() => (
+const showUnread = computed(
+  () =>
+    Boolean(props.unread) &&
+    !props.running &&
+    props.activePath !== props.item.path,
+)
+const hasBadge = computed(() =>
+  Boolean(props.running || showUnread.value || props.item.parent_session_id),
+)
+
+const menuOverlayClass = computed(() =>
   menuMode.value === 'menu'
     ? 'card-more session-action-menu-popup'
-    : 'card-more session-action-menu-popup is-confirm'
-))
+    : 'card-more session-action-menu-popup is-confirm',
+)
 
 /**
  * API/渠道会话的 owner 是合成主体（api_external_user:<tenant>:<EMP_ID> /
@@ -124,7 +311,11 @@ const menuOverlayClass = computed(() => (
  * 在标题旁渲染一个小徽标：外部员工会话取 sub（可读标识），平台 key 会话标 generic。
  * 普通账号会话（user_id 为空或为真实用户 UUID）不显示。
  */
-interface ApiOwnerTag { kind: 'user' | 'key'; label: string; full: string }
+interface ApiOwnerTag {
+  kind: 'user' | 'key'
+  label: string
+  full: string
+}
 const API_EXTERNAL_USER_PREFIX = 'api_external_user:'
 const API_TENANT_KEY_PREFIX = 'api_tenant_key:'
 
@@ -214,13 +405,6 @@ const confirmDangerAction = (): void => {
 }
 
 .session-running-indicator {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 16px;
-  width: 16px;
-  height: 16px;
-  margin-left: 4px;
   color: var(--td-brand-color);
 }
 
@@ -241,6 +425,18 @@ const confirmDangerAction = (): void => {
   }
 }
 
+.session-unread-indicator__dot {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--td-brand-color);
+}
+
+.submenu_item--unread .submenu_title-text {
+  font-weight: 500;
+}
+
 .session-row-menu-wrap {
   position: relative;
   flex: 0 0 0;
@@ -250,31 +446,40 @@ const confirmDangerAction = (): void => {
   pointer-events: none;
 }
 
-.session-row-menu-wrap--fork {
+// A status badge (running / unread / fork) and the "more" button share one
+// 24px slot, so hovering swaps them in place instead of reflowing the title.
+.session-row-menu-wrap--badge {
   flex-basis: 24px;
   width: 24px;
   height: 24px;
   opacity: 1;
   pointer-events: auto;
 
-  .menu-more-wrap { opacity: 0; }
+  .menu-more-wrap {
+    opacity: 0;
+  }
 }
 
-.submenu_item_batch .session-row-menu-wrap--fork { pointer-events: none; }
+.submenu_item_batch .session-row-menu-wrap--badge {
+  pointer-events: none;
+}
 
-.session-fork-indicator {
+.session-row-badge {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  transition: opacity var(--app-motion-base) ease;
+}
 
-  .submenu_fork_icon { font-size: var(--app-text-sm); }
+.session-fork-indicator .submenu_fork_icon {
+  font-size: var(--app-text-sm);
 }
 
 .submenu_item:hover,
-.submenu_item:focus-within,
+.submenu_item:has(:focus-visible),
 .submenu_item--menu-open {
   .session-row-menu-wrap {
     flex-basis: 24px;
@@ -285,9 +490,29 @@ const confirmDangerAction = (): void => {
 }
 
 .submenu_item:not(.submenu_item_batch) {
-  &:hover, &:focus-within, &.submenu_item--menu-open {
-    .session-fork-indicator { opacity: 0; }
-    .session-row-menu-wrap--fork .menu-more-wrap { opacity: 1; }
+  &:hover,
+  &:has(:focus-visible),
+  &.submenu_item--menu-open {
+    .session-row-menu-wrap--badge .menu-more-wrap {
+      opacity: 1;
+    }
+  }
+}
+
+.session-row-menu-wrap--foldered {
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (hover: hover) {
+  .submenu_item:not(.submenu_item_batch) {
+    &:hover,
+    &:focus-within,
+    &.submenu_item--menu-open {
+      .session-row-badge {
+        opacity: 0;
+      }
+    }
   }
 }
 
@@ -299,8 +524,24 @@ const confirmDangerAction = (): void => {
     pointer-events: auto;
   }
   .submenu_item:not(.submenu_item_batch) {
-    .session-fork-indicator { display: none; }
-    .session-row-menu-wrap--fork .menu-more-wrap { opacity: 1; }
+    .session-fork-indicator {
+      display: none;
+    }
+    .session-row-menu-wrap--badge .menu-more-wrap {
+      opacity: 1;
+    }
+  }
+  // The "more" button never hides on touch, so the badge sits beside it.
+  .session-row-menu-wrap--badge {
+    display: flex;
+    align-items: center;
+    flex-basis: auto;
+    width: auto;
+  }
+  .session-row-badge:not(.session-fork-indicator) {
+    position: static;
+    flex: 0 0 16px;
+    height: 24px;
   }
 }
 
@@ -335,7 +576,9 @@ const confirmDangerAction = (): void => {
   color: inherit;
   background: transparent;
   cursor: pointer;
-  transition: background-color var(--app-motion-fast) ease, color var(--app-motion-fast) ease;
+  transition:
+    background-color var(--app-motion-fast) ease,
+    color var(--app-motion-fast) ease;
 
   &:hover {
     background: var(--td-bg-color-container-hover);
@@ -430,7 +673,10 @@ const confirmDangerAction = (): void => {
   font-size: var(--app-text-base);
   line-height: 28px;
   cursor: pointer;
-  transition: background-color var(--app-motion-fast) ease, color var(--app-motion-fast) ease, border-color var(--app-motion-fast) ease;
+  transition:
+    background-color var(--app-motion-fast) ease,
+    color var(--app-motion-fast) ease,
+    border-color var(--app-motion-fast) ease;
 
   &:hover:not(:disabled) {
     background: var(--td-bg-color-container-hover);
@@ -446,5 +692,4 @@ const confirmDangerAction = (): void => {
     }
   }
 }
-
 </style>

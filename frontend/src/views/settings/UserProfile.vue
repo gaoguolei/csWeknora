@@ -87,7 +87,7 @@
               trigger="click"
               placement="bottom-end"
               destroy-on-close
-              overlay-class-name="wk-popover user-profile-password-popup-overlay"
+              overlay-class-name="wk-popover wk-popover--form user-profile-password-popup-overlay"
             >
               <t-button
                 theme="default"
@@ -398,6 +398,7 @@ onMounted(loadInfo)
 
 .password-popup-inner {
   max-width: 100%;
+  padding: 16px;
 }
 
 .password-popup-title {

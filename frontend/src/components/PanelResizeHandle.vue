@@ -77,17 +77,21 @@ onBeforeUnmount(() => finish())
   &--left { left: 0; --grip-offset: -12px; }
   &--right { right: 0; --grip-offset: 12px; }
 
-  // Bridge the gap around the floating grip without covering the neighboring
-  // scrollbar along the entire edge.
+  // Bridge the gap around the floating grip. The grip floats *outside* the
+  // panel edge, so the extra hit area only extends outwards too — reaching
+  // into the panel would sit on top of the rows' own controls, which only
+  // clear 10px from the edge. The 8px handle itself stays draggable.
   &::before {
     content: '';
     position: absolute;
     top: 50%;
-    left: 50%;
-    width: 52px;
+    width: 40px;
     height: 80px;
-    transform: translate(-50%, -50%);
+    transform: translateY(-50%);
   }
+
+  &--left::before { right: 100%; }
+  &--right::before { left: 100%; }
 
   &__grip {
     flex-shrink: 0;

@@ -30,6 +30,8 @@ const (
 	BuiltinWikiFixerID = "builtin-wiki-fixer"
 	// BuiltinSkillInstallerID is the ID for the built-in skill installer agent
 	BuiltinSkillInstallerID = "builtin-skill-installer"
+	// BuiltinCodingAssistantID is the ID for the built-in coding assistant agent
+	BuiltinCodingAssistantID = "builtin-coding-assistant"
 )
 
 // AgentMode constants for agent running mode
@@ -661,6 +663,7 @@ var builtinAgentIDsOrdered = []string{
 	BuiltinDataAnalystID,
 	BuiltinKnowledgeGraphExpertID,
 	BuiltinDocumentAssistantID,
+	BuiltinCodingAssistantID,
 }
 
 // GetBuiltinAgentIDs returns all built-in agent IDs in fixed order

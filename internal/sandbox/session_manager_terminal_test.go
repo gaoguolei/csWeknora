@@ -12,11 +12,22 @@ import (
 
 func newSessionManagerTerminalTestHarness(t *testing.T) (*SessionBoundManager, *terminalFakeClient) {
 	t.Helper()
+	return newSessionManagerTerminalTestHarnessFor(t, SandboxTypeCube)
+}
 
-	client := &terminalFakeClient{fakeRemoteClient: newFakeRemoteClient(SandboxTypeCube)}
+func newSessionManagerTerminalTestHarnessFor(
+	t *testing.T, provider SandboxType,
+) (*SessionBoundManager, *terminalFakeClient) {
+	t.Helper()
+
+	client := &terminalFakeClient{fakeRemoteClient: newFakeRemoteClient(provider)}
 	client.capabilities.SupportsTerminals = true
+	// Docker containers sit behind no gateway, so their handles carry no
+	// inbound token, exactly like the real adapter.
+	client.omitsInboundTokenCarrier = provider == SandboxTypeDocker
 	cfg := DefaultConfig()
 	cfg.CubeTemplate = "tpl-test"
+	cfg.DockerImage = "weknora/sandbox:test"
 	mgr, err := NewSessionBoundManager(SessionBoundManagerConfig{
 		Config:          cfg,
 		Client:          client,
@@ -92,6 +103,54 @@ func TestOpenSessionTerminalRefusesPausedSandboxWithoutResume(t *testing.T) {
 		"lookup-only open must List a paused sandbox instead of Connect, which would resume it")
 }
 
+// Docker never pauses: a bound container that is not running is stopped (a
+// resume restarts it) or already deleted by the idle sweep (a resume replaces
+// it). The UI needs to tell the user that, so Docker reports the distinct
+// ErrSandboxStopped, still matching ErrSandboxPaused for every other caller.
+func TestOpenSessionTerminalDockerNotRunningIsStopped(t *testing.T) {
+	cases := map[string]func(*testing.T, *fakeRemoteClient){
+		"stopped container": func(t *testing.T, c *fakeRemoteClient) {
+			pauseAllFakeSandboxes(t, c)
+		},
+		"deleted by the sweep (bound but missing from List)": func(t *testing.T, c *fakeRemoteClient) {
+			c.mu.Lock()
+			defer c.mu.Unlock()
+			for id := range c.sandboxes {
+				delete(c.sandboxes, id)
+			}
+		},
+	}
+	for name, makeNotRunning := range cases {
+		t.Run(name, func(t *testing.T) {
+			ctx := terminalTestContext()
+			mgr, client := newSessionManagerTerminalTestHarnessFor(t, SandboxTypeDocker)
+
+			_, err := mgr.ExecShellCommand(ctx, "sess-1", "true", "", time.Second, nil)
+			require.NoError(t, err)
+			makeNotRunning(t, client.fakeRemoteClient)
+
+			_, err = mgr.OpenSessionTerminal(ctx, "sess-1", RemoteTerminalOptions{})
+			require.ErrorIs(t, err, ErrSandboxStopped)
+			require.ErrorIs(t, err, ErrSandboxPaused,
+				"callers that only need 'ask before resuming' must keep matching")
+		})
+	}
+}
+
+func TestOpenSessionTerminalPausableBackendIsNotStopped(t *testing.T) {
+	ctx := terminalTestContext()
+	mgr, client := newSessionManagerTerminalTestHarness(t)
+
+	_, err := mgr.ExecShellCommand(ctx, "sess-1", "true", "", time.Second, nil)
+	require.NoError(t, err)
+	pauseAllFakeSandboxes(t, client.fakeRemoteClient)
+
+	_, err = mgr.OpenSessionTerminal(ctx, "sess-1", RemoteTerminalOptions{})
+	require.ErrorIs(t, err, ErrSandboxPaused)
+	require.NotErrorIs(t, err, ErrSandboxStopped,
+		"a paused Cube/E2B sandbox really is paused and wakes with its state")
+}
+
 func TestOpenSessionTerminalResumesPausedSandboxWhenAllowed(t *testing.T) {
 	ctx := terminalTestContext()
 	mgr, client := newSessionManagerTerminalTestHarness(t)
@@ -146,13 +205,43 @@ func TestOpenSessionTerminalRefusesTransitioningSandboxWithoutResume(t *testing.
 		"pausing/resuming is Transitioning; lookup-only Connect would still resume")
 }
 
-func TestOpenSessionTerminalListMissWithBindingIsPausedNotUnbound(t *testing.T) {
+func TestRequireRunningSessionSandboxUsesBindingDespiteSnapshotMetadata(t *testing.T) {
 	ctx := terminalTestContext()
 	mgr, client := newSessionManagerTerminalTestHarness(t)
 
 	_, err := mgr.ExecShellCommand(ctx, "sess-1", "true", "", time.Second, nil)
 	require.NoError(t, err)
 	clearAllFakeSandboxMetadata(t, client.fakeRemoteClient)
+	client.mu.Lock()
+	for _, rec := range client.sandboxes {
+		rec.metadata[remoteMetadataSessionID] = "snapshot-seed-session"
+	}
+	client.mu.Unlock()
+	connectsBefore := fakeConnectCount(t, client.fakeRemoteClient)
+
+	require.NoError(t, mgr.RequireRunningSessionSandbox(ctx, "sess-1"))
+	require.Equal(t, connectsBefore, fakeConnectCount(t, client.fakeRemoteClient),
+		"checking the bound instance must not Connect or resume it")
+
+	pauseAllFakeSandboxes(t, client.fakeRemoteClient)
+	require.ErrorIs(t, mgr.RequireRunningSessionSandbox(ctx, "sess-1"), ErrSandboxPaused)
+	require.Equal(t, connectsBefore, fakeConnectCount(t, client.fakeRemoteClient))
+}
+
+func TestOpenSessionTerminalListMissWithBindingIsPausedNotUnbound(t *testing.T) {
+	ctx := terminalTestContext()
+	mgr, client := newSessionManagerTerminalTestHarness(t)
+
+	_, err := mgr.ExecShellCommand(ctx, "sess-1", "true", "", time.Second, nil)
+	require.NoError(t, err)
+	client.mu.Lock()
+	for id, rec := range client.sandboxes {
+		delete(client.sandboxes, id)
+		rec.id = "another-running-sandbox"
+		client.sandboxes["another-running-sandbox"] = rec
+		break
+	}
+	client.mu.Unlock()
 	connectsBefore := fakeConnectCount(t, client.fakeRemoteClient)
 
 	_, err = mgr.OpenSessionTerminal(ctx, "sess-1", RemoteTerminalOptions{})

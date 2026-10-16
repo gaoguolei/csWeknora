@@ -39,14 +39,13 @@ func TestAgentServiceUserEnvResolverBuiltWithoutInstalledSkills(t *testing.T) {
 	require.NotNil(t, resolver)
 	typed, ok := resolver.(*userEnvResolver)
 	require.True(t, ok)
-	require.Equal(t, uint64(7), typed.tenantID)
-	require.Equal(t, "cfg-1", typed.configID)
 	require.Empty(t, typed.byName)
+	require.Empty(t, typed.globalEnv)
 }
 
 // The tenant id is read off the row, matching tenantSkillSource, so the lookup
 // cannot resolve into a different workspace.
-func TestAgentServiceUserEnvResolverIndexesByNameAndRowTenant(t *testing.T) {
+func TestAgentServiceUserEnvResolverIndexesSkillRowsByName(t *testing.T) {
 	s := &agentService{db: &gorm.DB{}}
 
 	resolver := s.userEnvResolver(context.Background(), &types.AgentConfig{
@@ -60,8 +59,6 @@ func TestAgentServiceUserEnvResolverIndexesByNameAndRowTenant(t *testing.T) {
 	require.NotNil(t, resolver)
 	typed, ok := resolver.(*userEnvResolver)
 	require.True(t, ok)
-	require.Equal(t, uint64(7), typed.tenantID)
-	require.Equal(t, "cfg-1", typed.configID)
 	require.Contains(t, typed.byName, "web-search")
 	require.Contains(t, typed.byName, "pdf")
 	require.Equal(t, "sk-1", typed.byName["web-search"].ID)
@@ -84,4 +81,12 @@ func TestAgentServiceSkillEnvCaptureBuiltWithConfigAndDB(t *testing.T) {
 	s := &agentService{db: &gorm.DB{}}
 
 	require.NotNil(t, s.skillEnvCapture(&types.AgentConfig{SandboxConfigID: "cfg-1"}))
+}
+
+// Lite agents carry no sandbox config, yet the env resolver reads the host
+// target; capture must write there too.
+func TestAgentServiceSkillEnvCaptureBuiltOnLiteWithoutAConfig(t *testing.T) {
+	s := &agentService{db: &gorm.DB{}, hostDesktop: true}
+
+	require.NotNil(t, s.skillEnvCapture(&types.AgentConfig{}))
 }

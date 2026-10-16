@@ -16,6 +16,7 @@ import (
 
 	"github.com/Tencent/WeKnora/internal/application/service"
 	apperrors "github.com/Tencent/WeKnora/internal/errors"
+	"github.com/Tencent/WeKnora/internal/middleware"
 	"github.com/Tencent/WeKnora/internal/sandbox"
 	"github.com/Tencent/WeKnora/internal/types"
 )
@@ -231,10 +232,49 @@ func TestSandboxConfigUnexpectedErrorIsNotDowngraded(t *testing.T) {
 	require.ErrorIs(t, c.Errors[0].Err, boom)
 }
 
+func TestSandboxTemplateProviderAuthFailureIsActionableWithoutExpiringLogin(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	for _, status := range []int{http.StatusUnauthorized, http.StatusForbidden} {
+		t.Run(fmt.Sprint(status), func(t *testing.T) {
+			providerErr := sandbox.NewRemoteError(sandbox.SandboxTypeCube, "ListTemplates",
+				sandbox.RemoteErrorKindAuthentication, "upstream echoed secret-key", nil)
+			providerErr.StatusCode = status
+			h := &SandboxConfigHandler{service: &fakeSandboxConfigService{
+				queryTemplatesErr: fmt.Errorf("catalog: %w", providerErr),
+			}}
+			router := gin.New()
+			router.Use(middleware.ErrorHandler())
+			router.POST("/sandbox-configs/templates/query", h.QueryTemplates)
+
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/sandbox-configs/templates/query",
+				strings.NewReader(`{"config":{"sandbox_type":"cube"}}`))
+			req.Header.Set("Content-Type", "application/json")
+			router.ServeHTTP(w, req)
+
+			require.Equal(t, http.StatusBadRequest, w.Code,
+				"provider authentication must not trigger WeKnora login refresh")
+			var payload struct {
+				Success bool `json:"success"`
+				Error   struct {
+					Message string `json:"message"`
+				} `json:"error"`
+			}
+			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &payload))
+			require.False(t, payload.Success)
+			require.Contains(t, payload.Error.Message, "API Key")
+			require.Contains(t, payload.Error.Message, "认证失败")
+			require.NotContains(t, w.Body.String(), "secret-key")
+			require.NotContains(t, w.Body.String(), "Internal server error")
+		})
+	}
+}
+
 type fakeSandboxConfigService struct {
-	deleteTenantID uint64
-	deleteID       string
-	deleteForce    bool
+	deleteTenantID    uint64
+	deleteID          string
+	deleteForce       bool
+	queryTemplatesErr error
 }
 
 func (s *fakeSandboxConfigService) Create(
@@ -309,5 +349,35 @@ func (s *fakeSandboxConfigService) QueryTemplates(
 	uint64,
 	service.SandboxTemplateQueryInput,
 ) (*service.SandboxTemplateCatalog, error) {
-	return &service.SandboxTemplateCatalog{}, nil
+	return &service.SandboxTemplateCatalog{}, s.queryTemplatesErr
+}
+
+func newSandboxConfigTestRouter(h *SandboxConfigHandler) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(middleware.ErrorHandler())
+	r.GET("/sandbox-configs", h.List)
+	r.POST("/sandbox-configs", h.Create)
+	return r
+}
+
+func TestSandboxConfigRoutesAreHiddenOnLiteDesktop(t *testing.T) {
+	h := &SandboxConfigHandler{service: &fakeSandboxConfigService{}, desktop: true}
+	r := newSandboxConfigTestRouter(h)
+	r.PUT("/sandbox-configs/workspace-policy", h.SetWorkspacePolicy)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/sandbox-configs", nil))
+	require.Equal(t, http.StatusOK, w.Code)
+	require.JSONEq(t, `{"success":true,"data":[],"workspace_scripts_disabled":false}`, w.Body.String())
+
+	// The script switch still governs the host sandbox, so it stays reachable.
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodPut, "/sandbox-configs/workspace-policy",
+		strings.NewReader(`{"scripts_disabled":false}`)))
+	require.Equal(t, http.StatusOK, w.Code)
+
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/sandbox-configs", strings.NewReader(`{"name":"x"}`)))
+	require.Equal(t, http.StatusNotFound, w.Code)
 }

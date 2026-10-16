@@ -7,82 +7,69 @@ import { computed, effectScope, nextTick, reactive, ref, watch } from 'vue'
 
 const panel = readFileSync(new URL('./SandboxSidePanel.vue', import.meta.url), 'utf8')
 
-test('browser preview has one entry before code, artifacts and terminal', () => {
-  const preview = panel.indexOf("id: 'preview'")
-  const source = panel.indexOf("id: 'source'")
-  const artifacts = panel.indexOf("id: 'artifacts'")
-  const terminal = panel.indexOf("id: 'terminal'")
-  assert.notEqual(preview, -1)
-  assert.ok(preview < source)
-  assert.ok(source < artifacts)
-  assert.notEqual(artifacts, -1)
-  assert.ok(artifacts < terminal)
-  assert.doesNotMatch(panel, /id: 'desktop'/)
+test('preview has one entry before code, artifacts and terminal', () => {
+  const tab = id => panel.search(new RegExp(`id: ["']${id}["']`))
+  assert.notEqual(tab('preview'), -1)
+  assert.ok(tab('preview') < tab('source'))
+  assert.ok(tab('source') < tab('artifacts'))
+  assert.ok(tab('artifacts') < tab('terminal'))
+  assert.doesNotMatch(panel, /id: ["']desktop["']/)
   assert.match(panel, /<ChatArtifactsPanel/)
-  assert.doesNotMatch(panel, /chat-sandbox-panel__title/)
-  assert.doesNotMatch(panel, /<h3/)
+  assert.doesNotMatch(panel, /chat-sandbox-panel__title|<h3/)
 })
 
-test('closing the panel drops the terminal mount flag so Files reopen does not reconnect', () => {
-  assert.match(panel, /if\s*\(!visible\)/)
-  assert.match(panel, /terminalMounted\.value = false/)
-  assert.match(panel, /tab === 'terminal'/)
-})
-
-test('the unified browser uses one desktop relay with capability gating', () => {
-  assert.match(panel, /ensureSandboxConfigs/)
-  assert.match(panel, /desktopTabVisible/)
-  assert.match(panel, /desktop_enabled/)
-  assert.match(panel, /desktopTabVisible\.value \? 'workspace.browser' : 'workspace.preview'/)
-  assert.match(panel, /:enabled="desktopTabVisible"/)
+test('web preview never queries or depends on desktop capabilities', () => {
+  assert.doesNotMatch(panel, /getProgrammingPreviewCapabilities|desktop_enabled|desktopTabVisible|capabilityRefreshRevision/)
+  assert.doesNotMatch(panel, /<SandboxDesktop\b|:enabled=|:loading="capabilitiesLoading"/)
   assert.equal((panel.match(/<WorkspaceBrowserPreview\b/g) || []).length, 1)
-  assert.doesNotMatch(panel, /<SandboxDesktop\b/)
 })
 
-const setup = panel.split('<script setup lang="ts">')[1].split('</script>')[0].replace(/^import[\s\S]*?from ['"][^'"]+['"]\n/gm, '')
+const setup = panel.split('<script setup lang="ts">')[1].split('</script>')[0]
+  .replace(/^import[\s\S]*?from ["'][^"']+["'];?\s*$/gm, '')
 const compiled = ts.transpile(setup, { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None })
-function mount(capabilities, options = {}) {
+function mount(options = {}) {
   const props = reactive({ sessionId: 'a', workspaceRevision: 0, ...options })
   const ui = { visible: ref(true), activeTab: ref('preview'), width: ref(560), clearArtifactFocus() {} }
-  const resources = reactive({ agents: [{ id: 'agent', config: { sandbox_config_id: 'cfg' } }], sandboxConfigs: [{ id: 'cfg', config: { desktop_enabled: true } }], ensureSandboxConfigs: async () => {} })
   const scope = effectScope()
-  const state = scope.run(() => vm.runInNewContext(`${compiled}; ({ desktopTabVisible, isWorkspaceTab, desktopMounted, tabs })`, {
+  const state = scope.run(() => vm.runInNewContext(`${compiled}; ({ isWorkspaceTab, previewMounted, terminalMounted, tabs })`, {
     computed, nextTick, ref, watch, defineAsyncComponent: () => ({}), defineProps: () => props, withDefaults: value => value, defineEmits: () => () => {},
-    useI18n: () => ({ t: key => key }), useChatSandboxPanel: () => ui, useChatResourcesStore: () => resources,
-    getProgrammingPreviewCapabilities: capabilities,
+    useI18n: () => ({ t: key => key }), useChatSandboxPanel: () => ui,
   }))
   return { props, ui, state, stop: () => scope.stop() }
 }
 const flush = async () => { for (let i = 0; i < 6; i++) await nextTick() }
 
-test('pinned desktop is visible even when the selected agent is missing', async () => {
-  const view = mount(async () => ({ data: { pinned: true, desktop_enabled: true } }))
+test('web preview is available without a desktop-enabled agent', async () => {
+  const view = mount()
   await flush()
-  assert.equal(view.state.desktopTabVisible.value, true)
-  assert.equal(view.state.tabs.value[0].label, 'workspace.browser')
+  assert.equal(view.state.tabs.value[0].label, 'workspace.preview')
   assert.equal(view.state.tabs.value.filter(tab => ['preview', 'desktop'].includes(tab.id)).length, 1)
-  assert.equal(view.state.desktopMounted.value, true)
-  assert.equal(view.state.isWorkspaceTab.value, false, 'real previews do not mount the source/file preview')
+  assert.equal(view.state.previewMounted.value, true)
+  assert.equal(view.state.isWorkspaceTab.value, false)
   view.ui.activeTab.value = 'source'; await flush()
   assert.equal(view.state.isWorkspaceTab.value, true)
   view.stop()
 })
 
-test('pinned CLI config overrides a newly selected desktop agent', async () => {
-  const view = mount(async () => ({ data: { pinned: true, desktop_enabled: false } }), { agentId: 'agent' })
-  await flush()
-  assert.equal(view.state.desktopTabVisible.value, false)
-  assert.equal(view.state.tabs.value[0].label, 'workspace.preview')
+test('closing the panel drops preview and terminal mounts without reconnecting on Files reopen', async () => {
+  const view = mount()
+  view.ui.activeTab.value = 'terminal'; await flush()
+  assert.equal(view.state.terminalMounted.value, true)
+  view.ui.visible.value = false; await flush()
+  assert.equal(view.state.previewMounted.value, false)
+  assert.equal(view.state.terminalMounted.value, false)
+  view.ui.activeTab.value = 'source'
+  view.ui.visible.value = true; await flush()
+  assert.equal(view.state.previewMounted.value, false)
+  assert.equal(view.state.terminalMounted.value, false)
   view.stop()
 })
 
-test('late capabilities from the previous session cannot enable its browser', async () => {
-  let resolveOld
-  const old = new Promise(resolve => { resolveOld = resolve })
-  const view = mount(id => id === 'a' ? old : Promise.resolve({ data: { pinned: true, desktop_enabled: false } }))
-  view.props.sessionId = 'b'; await flush()
-  resolveOld({ data: { pinned: true, desktop_enabled: true } }); await flush()
-  assert.equal(view.state.desktopTabVisible.value, false)
+test('workspace gateways keep their existing preview path', async () => {
+  const view = mount({ workspaceGateway: {} })
+  await flush()
+  assert.equal(view.state.isWorkspaceTab.value, true)
+  assert.match(panel, /v-if="previewMounted && !workspaceGateway"/)
   view.stop()
 })
 

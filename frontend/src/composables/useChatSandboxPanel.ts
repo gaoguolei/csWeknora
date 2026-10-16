@@ -63,6 +63,7 @@ export function provideChatSandboxPanel(): ChatSandboxPanelContext {
 
   const open = (tab?: SandboxPanelTab, focus?: ArtifactPanelFocus) => {
     autoOpenAllowed.value = true
+    // Reopening keeps the selected tab; a new panel starts with preview.
     if (tab) activeTab.value = tab
     if (focus) {
       artifactFocus.value = { ...focus, nonce: ++focusNonce }

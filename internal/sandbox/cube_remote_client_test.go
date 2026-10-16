@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -36,7 +37,6 @@ func TestCubeRemoteClientProviderAndCapabilities(t *testing.T) {
 		SupportsFilesystemEnumeration: true,
 		SupportsSnapshots:             true,
 		SupportsTerminals:             true,
-		SupportsDesktop:               true,
 	}, client.Capabilities())
 }
 
@@ -651,6 +651,13 @@ func TestNormalizeCubeError(t *testing.T) {
 		{"template not found", "Create", cubesandbox.ErrTemplateNotFound, RemoteErrorKindInvalidRequest},
 		{"authentication", "Health", cubesandbox.ErrAuthentication, RemoteErrorKindAuthentication},
 		{"path not found", "Stat", &cubesandbox.NotFoundError{Path: "/x"}, RemoteErrorKindNotFound},
+		{"missing input directory after rewind", "ListDir", errors.New("failed to list /workspace/input: path not found: lstat /workspace/input: no such file or directory"), RemoteErrorKindNotFound},
+		{"missing list path", "ListDir", errors.New("failed to list /workspace/input: path not found: /workspace/input"), RemoteErrorKindNotFound},
+		{"missing list directory", "ListDir", errors.New("failed to list /workspace/input: lstat /workspace/input: no such file or directory"), RemoteErrorKindNotFound},
+		{"list permission denied", "ListDir", errors.New("failed to list /workspace/input: permission denied"), RemoteErrorKindInternal},
+		{"list transport error", "ListDir", errors.New("connection reset"), RemoteErrorKindInternal},
+		{"list invalid username", "ListDir", errors.New("failed to list /workspace/input: Query argument username is required, but not found"), RemoteErrorKindInternal},
+		{"control plane missing path", "Connect", errors.New("path not found: no such file or directory"), RemoteErrorKindInternal},
 		{"gone", "Get", &cubesandbox.APIError{StatusCode: http.StatusGone}, RemoteErrorKindTerminal},
 		{"conflict", "Connect", &cubesandbox.APIError{StatusCode: http.StatusConflict}, RemoteErrorKindConflict},
 		{"rate limited", "Create", &cubesandbox.APIError{StatusCode: http.StatusTooManyRequests}, RemoteErrorKindCapacity},
@@ -684,22 +691,44 @@ func TestNormalizeCubeError(t *testing.T) {
 	}
 }
 
-func TestCubeDesktopTemplateSpecDoesNotNatWebsockify(t *testing.T) {
-	spec := cubeDesktopTemplateSpec(nil)
+func TestCubeSessionInputsRecoverAfterRewindRemovesDirectory(t *testing.T) {
+	mock := newCubeMockServer(t)
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/filesystem.Filesystem/ListDir" {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{
+				"code":    "internal",
+				"message": "path not found: lstat /workspace/input: no such file or directory",
+			})
+			return
+		}
+		mock.handle(w, r)
+	}))
+	defer proxy.Close()
+	cfg := testConfig(t, mock)
+	cfg.CubeProxyURL = proxy.URL
+	client, err := NewCubeRemoteClient(cfg)
+	require.NoError(t, err)
+	manager, err := NewSessionBoundManager(SessionBoundManagerConfig{
+		Config: cfg, Client: client, Store: NewMemorySessionSandboxBindingStore(),
+		Checker: &fakeSessionExistenceChecker{exists: true}, SkipHealthProbe: true,
+	})
+	require.NoError(t, err)
+	ctx := context.WithValue(context.Background(), types.TenantIDContextKey, uint64(7))
+	_, err = manager.resolveSession(ctx, "rewound-session")
+	require.NoError(t, err)
 
-	require.Equal(t, DefaultCubeDesktopTemplateImage, spec["image"])
-	require.Equal(t, DesktopTemplateName, spec["name"])
-	// envd stays in exposedPorts so the template probe can reach :49983.
-	// 6080 must not: Cube NATs that list onto the host NIC and bypasses
-	// CubeProxy. The desktop relay dials 6080 through CubeProxy instead.
-	require.Equal(t, []uint16{CubeEnvdPort}, spec["exposedPorts"])
-	require.Equal(t, uint16(CubeEnvdPort), spec["probePort"])
-	require.Equal(t, CubeEnvdHealthPath, spec["probePath"])
-	// 1G (the standard value) is too small once XFCE is installed.
-	require.Equal(t, "8G", spec["writableLayerSize"])
-	require.Equal(t, true, spec["allowInternetAccess"])
-	require.Equal(t, []string{"/usr/bin/envd"}, spec["command"])
-	require.Equal(t, []string{"-port", "49983", "-isnotfc"}, spec["args"])
+	// Reconciliation must see an empty inventory when rewind removed input/.
+	entries, err := manager.ListSessionFiles(ctx, "rewound-session", SessionInputRoot)
+	require.NoError(t, err)
+	require.Empty(t, entries)
+
+	// Durable attachments can then recreate their input paths in the same VM.
+	inputPath := SessionInputRoot + "/hash/report.txt"
+	require.NoError(t, manager.WriteSessionInputFile(ctx, "rewound-session", inputPath, []byte("content")))
+	content, err := manager.ReadSessionFile(ctx, "rewound-session", inputPath)
+	require.NoError(t, err)
+	require.Equal(t, "content", string(content))
+	require.EqualValues(t, 1, mock.createCount.Load())
 }
 
 func TestCubeStandardTemplateSpecStillExposesOnlyEnvd(t *testing.T) {
@@ -707,13 +736,4 @@ func TestCubeStandardTemplateSpecStillExposesOnlyEnvd(t *testing.T) {
 	// the CLI nor the desktop template may NAT extra guest ports onto the host.
 	spec := cubeStandardTemplateSpec(nil)
 	require.Equal(t, []uint16{CubeEnvdPort}, spec["exposedPorts"])
-}
-
-func TestDesktopReadyCmdDoesNotUseSS(t *testing.T) {
-	// e2b.WaitForPort generates `ss -tln`, and iproute2 is not in the image:
-	// ss exits 127, the loop never terminates, and the template build hangs
-	// instead of failing. Keep the python3 probe.
-	require.NotContains(t, desktopReadyCmd, "ss ")
-	require.Contains(t, desktopReadyCmd, "python3")
-	require.Contains(t, desktopReadyCmd, "6080")
 }

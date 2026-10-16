@@ -4,202 +4,283 @@
       <aside
         class="chat-sandbox-panel"
         :class="{ 'is-shifted': shifted, 'is-resizing': resizing }"
-        :style="{ width: `${panel?.width.value ?? 420}px` }"
+        :style="{
+          width: `${panel?.width.value ?? 420}px`,
+          '--references-shift': `${shiftWidth}px`,
+        }"
         role="complementary"
         :aria-label="t('workspace.panelTitle')"
         @keydown.esc.stop="panel?.close()"
       >
-      <!-- 左缘拖拽把手：按住向左/右拖动调整面板宽度。 -->
-      <PanelResizeHandle edge="left" :label="t('knowledgeStages.resizeDrawer')"
-        :value="panel?.width.value ?? 560" :min="SANDBOX_PANEL_MIN_WIDTH" :max="SANDBOX_PANEL_MAX_WIDTH"
-        @start="startResize" @resize="resizePanel" @end="resizing = false" />
-      <div class="chat-sandbox-panel__tabs">
-        <div class="chat-sandbox-panel__tablist" role="tablist">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            type="button"
-            class="chat-sandbox-panel__tab"
-            :class="{ 'is-active': panel?.activeTab.value === tab.id }"
-            role="tab"
-            :aria-selected="panel?.activeTab.value === tab.id"
-            @click="panel?.open(tab.id)"
+        <!-- 左缘拖拽把手：按住向左/右拖动调整面板宽度。 -->
+        <PanelResizeHandle
+          edge="left"
+          :label="t('knowledgeStages.resizeDrawer')"
+          :value="panel?.width.value ?? 560"
+          :min="SANDBOX_PANEL_MIN_WIDTH"
+          :max="SANDBOX_PANEL_MAX_WIDTH"
+          @start="startResize"
+          @resize="resizePanel"
+          @end="resizing = false"
+        />
+        <div class="chat-sandbox-panel__tabs">
+          <div class="chat-sandbox-panel__tablist" role="tablist">
+            <button
+              v-for="tab in tabs"
+              :key="tab.id"
+              type="button"
+              class="chat-sandbox-panel__tab"
+              :class="{ 'is-active': panel?.activeTab.value === tab.id }"
+              role="tab"
+              :aria-selected="panel?.activeTab.value === tab.id"
+              @click="panel?.open(tab.id)"
+            >
+              <t-icon :name="tab.icon" size="16px" />
+              <span>{{ tab.label }}</span>
+              <span
+                v-if="tab.id === 'artifacts' && artifacts.length"
+                class="chat-sandbox-panel__tab-count"
+                aria-hidden="true"
+                >{{ artifacts.length }}</span
+              >
+            </button>
+          </div>
+          <t-dropdown
+            :options="moreOptions"
+            trigger="click"
+            placement="bottom-right"
+            attach="body"
+            @click="openMoreTool"
           >
-            <t-icon :name="tab.icon" size="16px" />
-            <span>{{ tab.label }}</span>
-            <span
-              v-if="tab.id === 'artifacts' && artifacts.length"
-              class="chat-sandbox-panel__tab-count"
-              aria-hidden="true"
-            >{{ artifacts.length }}</span>
+            <button
+              type="button"
+              class="chat-sandbox-panel__tab chat-sandbox-panel__more"
+              :class="{ 'is-active': Boolean(activeMoreTool) }"
+              :aria-label="t('workspace.moreTools')"
+              aria-haspopup="menu"
+            >
+              <t-icon :name="activeMoreTool?.icon || 'ellipsis'" size="16px" />
+              <span>{{
+                activeMoreTool?.label || t("workspace.moreTools")
+              }}</span>
+              <t-icon v-if="activeMoreTool" name="chevron-down" size="12px" />
+            </button>
+          </t-dropdown>
+          <button
+            type="button"
+            class="chat-sandbox-panel__close"
+            :aria-label="t('common.close')"
+            @click="panel?.close()"
+          >
+            <t-icon name="close" size="16px" />
           </button>
         </div>
-        <button
-          type="button"
-          class="chat-sandbox-panel__close"
-          :aria-label="t('common.close')"
-          @click="panel?.close()"
+
+        <div
+          class="chat-sandbox-panel__body"
+          :class="{
+            'is-flush': ['artifacts', 'preview', 'source', 'tests'].includes(
+              panel?.activeTab.value || '',
+            ),
+          }"
         >
-          <t-icon name="close" size="16px" />
-        </button>
-      </div>
+          <ConversationWorkspace
+            v-if="workspaceMounted"
+            v-show="isWorkspaceTab"
+            :session-id="sessionId"
+            :tab="workspaceTab"
+            :active="Boolean(panel?.visible.value && isWorkspaceTab)"
+            :revision="workspaceRevision"
+            :focus-path="workspacePath"
+            :agent-runs="agentRuns"
+            :agent-id="agentId"
+            :agent-source-tenant-id="agentSourceTenantId"
+            :gateway="workspaceGateway"
+            @ask="emit('ask', $event)"
+            @report-created="emit('refreshArtifacts', $event)"
+            @view-change="emit('workspaceViewChange', $event)"
+          />
+          <ChatArtifactsPanel
+            v-show="panel?.activeTab.value === 'artifacts'"
+            class="chat-sandbox-panel__artifacts"
+            :session-id="sessionId"
+            :items="artifacts"
+            :collecting="artifactsCollecting"
+            :active="
+              Boolean(
+                panel?.visible.value && panel?.activeTab.value === 'artifacts',
+              )
+            "
+            @deleted="emit('artifactDeleted', $event)"
+          />
 
-      <div
-        class="chat-sandbox-panel__body"
-        :class="{ 'is-flush': ['artifacts', 'preview', 'source', 'tests'].includes(panel?.activeTab.value || '') }"
-      >
-        <ConversationWorkspace
-          v-if="workspaceMounted"
-          v-show="isWorkspaceTab"
-          :session-id="sessionId"
-          :tab="workspaceTab"
-          :active="Boolean(panel?.visible.value && isWorkspaceTab)"
-          :revision="workspaceRevision"
-          :focus-path="workspacePath"
-          :agent-runs="agentRuns"
-          :gateway="workspaceGateway"
-          @ask="emit('ask', $event)"
-        />
-        <ChatArtifactsPanel
-          v-show="panel?.activeTab.value === 'artifacts'"
-          class="chat-sandbox-panel__artifacts"
-          :session-id="sessionId"
-          :items="artifacts"
-          :collecting="artifactsCollecting"
-          :active="Boolean(panel?.visible.value && panel?.activeTab.value === 'artifacts')"
-          @deleted="emit('artifactDeleted', $event)"
-        />
+          <!-- 终端：首次激活时惰性挂载；切 tab 用 v-show 保留实例（不丢 PTY）。 -->
+          <SandboxTerminal
+            v-if="terminalMounted"
+            v-show="panel?.activeTab.value === 'terminal'"
+            :key="sessionId"
+            ref="terminalRef"
+            :session-id="sessionId"
+            :agent-id="agentId"
+            :agent-source-tenant-id="agentSourceTenantId"
+            class="chat-sandbox-panel__terminal"
+          />
+          <div
+            v-else-if="panel?.activeTab.value === 'terminal'"
+            class="chat-sandbox-panel__placeholder"
+          >
+            <t-skeleton
+              animation="gradient"
+              :row-col="[{ width: '100%', height: '100%', type: 'rect' }]"
+            />
+          </div>
 
-        <!-- 终端：首次激活时惰性挂载；切 tab 用 v-show 保留实例（不丢 PTY）。 -->
-        <SandboxTerminal
-          v-if="terminalMounted"
-          v-show="panel?.activeTab.value === 'terminal'"
-          :key="sessionId"
-          ref="terminalRef"
-          :session-id="sessionId"
-          :agent-id="agentId"
-          :agent-source-tenant-id="agentSourceTenantId"
-          class="chat-sandbox-panel__terminal"
-        />
-        <div v-else-if="panel?.activeTab.value === 'terminal'" class="chat-sandbox-panel__placeholder">
-          <t-skeleton animation="gradient" :row-col="[{ width: '100%', height: '100%', type: 'rect' }]" />
+          <!-- Web preview does not require remote desktop capabilities. -->
+          <WorkspaceBrowserPreview
+            v-if="previewMounted && !workspaceGateway"
+            v-show="panel?.activeTab.value === 'preview'"
+            :key="sessionId"
+            :session-id="sessionId"
+            :agent-id="agentId"
+            :agent-source-tenant-id="agentSourceTenantId"
+            :active="
+              Boolean(
+                panel?.visible.value && panel?.activeTab.value === 'preview',
+              )
+            "
+            :revision="workspaceRevision"
+            class="chat-sandbox-panel__preview"
+            @ask="emit('ask', $event)"
+            @open-terminal="panel?.open('terminal')"
+          />
         </div>
-
-        <!-- The browser owns both project previews and desktop interaction. -->
-        <WorkspaceBrowserPreview
-          v-if="desktopMounted && !workspaceGateway"
-          v-show="panel?.activeTab.value === 'preview'"
-          :key="sessionId"
-          :session-id="sessionId"
-          :agent-id="agentId"
-          :agent-source-tenant-id="agentSourceTenantId"
-          :enabled="desktopTabVisible"
-          :loading="capabilitiesLoading"
-          :active="Boolean(panel?.visible.value && panel?.activeTab.value === 'preview')"
-          :revision="workspaceRevision"
-          class="chat-sandbox-panel__desktop"
-          @ask="emit('ask', $event)"
-        />
-      </div>
-    </aside>
+      </aside>
     </div>
   </Transition>
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent, nextTick, ref, watch } from 'vue'
-import type { WorkspaceGateway } from '@/components/workspace/ConversationWorkspace.vue'
-import type { WorkspaceTab, WorkspaceCommandRun } from '@/utils/workspaceEvents'
-const ConversationWorkspace = defineAsyncComponent(() => import('@/components/workspace/ConversationWorkspace.vue'))
-import { useI18n } from 'vue-i18n'
+import { computed, defineAsyncComponent, h, nextTick, ref, watch } from "vue";
+import { Icon as TIcon } from "tdesign-vue-next";
+import type { WorkspaceGateway } from "@/components/workspace/ConversationWorkspace.vue";
+import type {
+  WorkspaceTab,
+  WorkspaceCommandRun,
+} from "@/utils/workspaceEvents";
+const ConversationWorkspace = defineAsyncComponent(
+  () => import("@/components/workspace/ConversationWorkspace.vue"),
+);
+import { useI18n } from "vue-i18n";
 import {
   useChatSandboxPanel,
   SANDBOX_PANEL_MIN_WIDTH,
   SANDBOX_PANEL_MAX_WIDTH,
   type SandboxPanelTab,
-} from '@/composables/useChatSandboxPanel'
-import SandboxTerminal from '@/views/chat/components/SandboxTerminal.vue'
-import WorkspaceBrowserPreview from '@/components/workspace/WorkspaceBrowserPreview.vue'
-import { getProgrammingPreviewCapabilities, type ProgrammingPreviewCapabilities } from '@/api/programming'
-import ChatArtifactsPanel from '@/views/chat/components/ChatArtifactsPanel.vue'
-import PanelResizeHandle from '@/components/PanelResizeHandle.vue'
-import { useChatResourcesStore } from '@/stores/chatResources'
-import type { SessionArtifactItem } from '@/utils/sessionArtifacts'
+} from "@/composables/useChatSandboxPanel";
+import SandboxTerminal from "@/views/chat/components/SandboxTerminal.vue";
+import WorkspaceBrowserPreview from "@/components/workspace/WorkspaceBrowserPreview.vue";
+import ChatArtifactsPanel from "@/views/chat/components/ChatArtifactsPanel.vue";
+import PanelResizeHandle from "@/components/PanelResizeHandle.vue";
+import type { SessionArtifactItem } from "@/utils/sessionArtifacts";
 
 const props = withDefaults(
   defineProps<{
-    sessionId: string
+    sessionId: string;
     /** 当前会话选中的 agent（首次连接时按其配置自动创建沙箱）。 */
-    agentId?: string
+    agentId?: string;
     /** 共享智能体来源空间，缺省表示本空间自有 agent。 */
-    agentSourceTenantId?: string | number | null
+    agentSourceTenantId?: string | number | null;
     /** 参考来源面板同开时整体左移，避免两块 fixed 面板重叠。 */
-    shifted?: boolean
-    artifacts?: SessionArtifactItem[]
-    artifactsCollecting?: boolean
-    workspaceRevision?: number
-    workspacePath?: string
-    agentRuns?: WorkspaceCommandRun[]
-    workspaceGateway?: WorkspaceGateway
+    shifted?: boolean;
+    /** 参考来源面板当前宽度（查看原文时会变宽），左移的距离。 */
+    shiftWidth?: number;
+    artifacts?: SessionArtifactItem[];
+    artifactsCollecting?: boolean;
+    workspaceRevision?: number;
+    workspacePath?: string;
+    agentRuns?: WorkspaceCommandRun[];
+    workspaceGateway?: WorkspaceGateway;
   }>(),
   {
     artifacts: () => [],
     artifactsCollecting: false,
+    shiftWidth: 420,
   },
-)
+);
 
 // The artifact list is owned by the chat view (a computed over the loaded
 // history), so a delete inside the panel has to travel back up to it.
-const emit = defineEmits<{ (e: 'artifactDeleted', payload: { messageId: string; index: number }): void; (e: 'ask', prompt: string): void }>()
+const emit = defineEmits<{
+  (e: "refreshArtifacts", messageId?: string): void;
+  (e: "artifactDeleted", payload: { messageId: string; index: number }): void;
+  (e: "ask", prompt: string): void;
+  (e: "workspaceViewChange", view: "source" | "diff" | "preview"): void;
+}>();
 
-const { t } = useI18n()
-const panel = useChatSandboxPanel()
-const chatResources = useChatResourcesStore()
-const sandboxConfigsReady = ref(false)
-const previewCapabilities = ref<ProgrammingPreviewCapabilities | null>(null)
-const capabilitiesLoading = ref(false)
-const workspaceMounted = ref(false)
-const isWorkspaceTab = computed(() => ['source', 'tests'].includes(panel?.activeTab.value || '') || (Boolean(props.workspaceGateway) && panel?.activeTab.value === 'preview'))
-const workspaceTab = computed(() => isWorkspaceTab.value ? panel!.activeTab.value as WorkspaceTab : 'source')
-watch(() => [panel?.visible.value, isWorkspaceTab.value], ([visible, workspace]) => {
-  if (visible && workspace) workspaceMounted.value = true
-}, { immediate: true })
-
-// Resolve browser support for the unified preview tab. Shared agents whose
-// sandbox row is not in this workspace still let the
-// backend return DESKTOP_UNSUPPORTED.
-const desktopTabVisible = computed(() => {
-  if (previewCapabilities.value?.pinned) return previewCapabilities.value.desktop_enabled
-  const agentId = props.agentId?.trim()
-  if (!agentId) return false
-  const agent = chatResources.agents.find((item) => item.id === agentId)
-  if (!agent) {
-    return chatResources.agents.length > 0
-  }
-  const configId = agent.config?.sandbox_config_id?.trim()
-  if (!configId) return false
-  if (!sandboxConfigsReady.value) return false
-  const cfg = chatResources.sandboxConfigs.find((item) => item.id === configId)
-  if (!cfg) return true
-  return Boolean(cfg.config?.desktop_enabled)
-})
+const { t } = useI18n();
+const panel = useChatSandboxPanel();
+watch(
+  () => [props.sessionId, panel?.visible.value, panel?.activeTab.value],
+  () => {
+    if (
+      props.sessionId &&
+      panel?.visible.value &&
+      panel.activeTab.value === "artifacts"
+    )
+      emit("refreshArtifacts");
+  },
+);
+const workspaceMounted = ref(false);
+const isWorkspaceTab = computed(
+  () =>
+    ["source", "tests"].includes(panel?.activeTab.value || "") ||
+    (Boolean(props.workspaceGateway) && panel?.activeTab.value === "preview"),
+);
+const workspaceTab = computed(() =>
+  isWorkspaceTab.value ? (panel!.activeTab.value as WorkspaceTab) : "source",
+);
+watch(
+  () => [panel?.visible.value, isWorkspaceTab.value],
+  ([visible, workspace]) => {
+    if (visible && workspace) workspaceMounted.value = true;
+  },
+  { immediate: true },
+);
 
 const tabs = computed(() => {
   const list: Array<{ id: SandboxPanelTab; icon: string; label: string }> = [
-    { id: 'preview', icon: 'desktop', label: t('workspace.preview') },
-    { id: 'source', icon: 'code', label: t('workspace.source') },
-    { id: 'tests', icon: 'check-circle', label: t('workspace.tests') },
-    { id: 'artifacts', icon: 'folder', label: t('chat.sandbox.tabArtifacts') },
-    { id: 'terminal', icon: 'terminal', label: t('chat.sandbox.tabTerminal') },
-  ]
-  return list
-})
+    { id: "preview", icon: "desktop", label: t("workspace.preview") },
+    { id: "source", icon: "code", label: t("workspace.source") },
+    { id: "tests", icon: "check-circle", label: t("workspace.tests") },
+    { id: "artifacts", icon: "folder", label: t("chat.sandbox.tabArtifacts") },
+  ];
+  return list;
+});
 
-// 终端 / 桌面惰性挂载（首次切到对应 tab 时），面板关闭即销毁（v-if），
+// Less frequent tools remain available without occupying the default tab bar.
+const moreTools = computed(() => [
+  { id: "terminal", icon: "terminal", label: t("chat.sandbox.tabTerminal") },
+]);
+const activeMoreTool = computed(() =>
+  moreTools.value.find((tool) => tool.id === panel?.activeTab.value),
+);
+const moreOptions = computed(() =>
+  moreTools.value.map((tool) => ({
+    content: tool.label,
+    prefixIcon: () => h(TIcon, { name: tool.icon, size: "16px" }),
+    value: tool.id,
+    active: tool.id === panel?.activeTab.value,
+  })),
+);
+function openMoreTool(option: { value?: unknown }) {
+  if (option.value === "terminal") panel?.open(option.value);
+}
+
+// 终端 / 预览惰性挂载（首次切到对应 tab 时），面板关闭即销毁（v-if），
 // 与 ChatReferencesDrawer 的开合行为一致；会话切换时由 :key 重建。
-const terminalMounted = ref(false)
-const terminalRef = ref<{ focus?: () => void } | null>(null)
-const desktopMounted = ref(false)
+const terminalMounted = ref(false);
+const terminalRef = ref<{ focus?: () => void } | null>(null);
+const previewMounted = ref(false);
 
 watch(
   () => [panel?.visible.value, panel?.activeTab.value] as const,
@@ -207,62 +288,41 @@ watch(
     if (!visible) {
       // Drop the lazy-mount flags so reopening on Files does not remount
       // either panel (which would connect and refresh TTL).
-      terminalMounted.value = false
-      desktopMounted.value = false
-      return
+      terminalMounted.value = false;
+      previewMounted.value = false;
+      return;
     }
-    if (tab === 'terminal') {
-      terminalMounted.value = true
-      void nextTick(() => terminalRef.value?.focus?.())
-      return
+    if (tab === "terminal") {
+      terminalMounted.value = true;
+      void nextTick(() => terminalRef.value?.focus?.());
+      return;
     }
-    if (tab === 'preview') {
-      // Same as the terminal tab: mount runs a lookup-only connect. A
-      // running sandbox attaches; paused or missing stays on the overlay
-      // until the user confirms. Opening the panel must never create or
-      // resume a microVM as a side effect.
-      desktopMounted.value = true
+    if (tab === "preview") {
+      // The web preview checks the workspace without starting a sandbox.
+      previewMounted.value = true;
     }
   },
   { immediate: true },
-)
-
-watch(
-  () => [panel?.visible.value, props.sessionId, props.agentId, props.workspaceRevision] as const,
-  async ([visible], previous, onCleanup) => {
-    let cancelled = false
-    onCleanup(() => { cancelled = true })
-    if (previous?.[1] !== props.sessionId) previewCapabilities.value = null
-    if (!visible || props.workspaceGateway) return
-    capabilitiesLoading.value = previewCapabilities.value === null
-    await Promise.allSettled([
-      chatResources.ensureSandboxConfigs().then(() => { if (!cancelled) sandboxConfigsReady.value = true }),
-      getProgrammingPreviewCapabilities(props.sessionId).then(response => { if (!cancelled) previewCapabilities.value = response.data }),
-    ])
-    if (!cancelled) capabilitiesLoading.value = false
-  },
-  { immediate: true },
-)
+);
 
 watch(
   () => props.sessionId,
   () => {
-    panel?.clearArtifactFocus()
+    panel?.clearArtifactFocus();
   },
-)
+);
 
 // --- 左缘拖拽调宽 -------------------------------------------------------
-const resizing = ref(false)
-let resizeStartWidth = 0
+const resizing = ref(false);
+let resizeStartWidth = 0;
 function startResize() {
-  if (!panel) return
-  resizeStartWidth = panel.width.value
-  resizing.value = true
+  if (!panel) return;
+  resizeStartWidth = panel.width.value;
+  resizing.value = true;
 }
 function resizePanel(delta: number) {
-  panel?.setWidth(resizeStartWidth - delta)
+  panel?.setWidth(resizeStartWidth - delta);
 }
-
 </script>
 
 <style scoped lang="less">
@@ -288,11 +348,14 @@ function resizePanel(delta: number) {
   border-left: 1px solid var(--td-component-stroke);
   box-shadow: -6px 0 24px rgba(0, 0, 0, 0.025);
 
-  @media (max-width: 959px) { width: 100% !important; max-width: 100%; }
+  @media (max-width: 959px) {
+    width: 100% !important;
+    max-width: 100%;
+  }
 
   &.is-shifted {
     @media (min-width: 1400px) {
-      right: 420px;
+      right: var(--references-shift, 420px);
     }
   }
 
@@ -320,10 +383,16 @@ function resizePanel(delta: number) {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background var(--app-motion-fast) ease, color var(--app-motion-fast) ease;
+  transition:
+    background var(--app-motion-fast) ease,
+    color var(--app-motion-fast) ease;
 
   &:hover {
-    background: color-mix(in srgb, var(--td-text-color-primary) 8%, var(--td-bg-color-secondarycontainer));
+    background: color-mix(
+      in srgb,
+      var(--td-text-color-primary) 8%,
+      var(--td-bg-color-secondarycontainer)
+    );
     color: var(--td-text-color-primary);
   }
 }
@@ -361,7 +430,9 @@ function resizePanel(delta: number) {
   font-size: var(--app-text-md);
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color var(--app-motion-fast) ease, color var(--app-motion-fast) ease;
+  transition:
+    background-color var(--app-motion-fast) ease,
+    color var(--app-motion-fast) ease;
 
   &:hover {
     color: var(--td-text-color-primary);
@@ -393,6 +464,10 @@ function resizePanel(delta: number) {
   font-variant-numeric: tabular-nums;
 }
 
+.chat-sandbox-panel__more {
+  flex-shrink: 0;
+}
+
 .chat-sandbox-panel__body {
   flex: 1;
   min-height: 0;
@@ -406,7 +481,7 @@ function resizePanel(delta: number) {
 }
 
 .chat-sandbox-panel__terminal,
-.chat-sandbox-panel__desktop,
+.chat-sandbox-panel__preview,
 .chat-sandbox-panel__artifacts {
   flex: 1;
   min-height: 0;

@@ -141,6 +141,7 @@ build_app_image() {
         --build-arg GOPRIVATE_ARG=${GOPRIVATE:-""} \
         --build-arg GOPROXY_ARG=${GOPROXY:-"https://goproxy.cn,direct"} \
         --build-arg GOSUMDB_ARG=${GOSUMDB:-"off"} \
+        --build-arg APK_MIRROR_ARG="${APK_MIRROR_ARG:-}" \
         --build-arg VERSION_ARG="$VERSION" \
         --build-arg COMMIT_ID_ARG="$COMMIT_ID" \
         --build-arg BUILD_TIME_ARG="$BUILD_TIME" \
@@ -169,7 +170,9 @@ build_docreader_image() {
         --platform $PLATFORM \
         --build-arg PLATFORM=$PLATFORM \
         --build-arg TARGETARCH=$TARGETARCH \
-        --build-arg APT_MIRROR=${APT_MIRROR:-} \
+        --build-arg APT_MIRROR="${APT_MIRROR:-}" \
+        --build-arg PLAYWRIGHT_DOWNLOAD_HOST="${PLAYWRIGHT_DOWNLOAD_HOST:-}" \
+        --build-arg PLAYWRIGHT_WEBKIT_DOWNLOAD_HOST="${PLAYWRIGHT_WEBKIT_DOWNLOAD_HOST:-}" \
         -f docker/Dockerfile.docreader \
         -t wechatopenai/weknora-docreader:latest \
         .
@@ -234,13 +237,11 @@ build_sandbox_image() {
 
     # Cube 从镜像直接构建模板，并以 :49983/health 探活，缺 envd 必然失败，
     # 因此 Cube 用的是注入了 envd 的变体镜像。详见 website-docs/06-development/04-sandbox-deployment.md。
-    # 固定 linux/amd64：envd 的来源镜像 cubesandbox-base 不发布 arm64。
     log_info "构建沙箱镜像 Cube 变体 (weknora-sandbox:main-cube)..."
 
     docker build \
-        --platform linux/amd64 \
-        --build-arg TARGETPLATFORM=linux/amd64 \
-        --build-arg TARGETARCH=amd64 \
+        --platform $PLATFORM \
+        --build-arg TARGETPLATFORM=$PLATFORM \
         -f docker/Dockerfile.sandbox \
         --target cube \
         -t wechatopenai/weknora-sandbox:latest-cube \
@@ -252,43 +253,8 @@ build_sandbox_image() {
         return 1
     fi
 
-    # Desktop variant: XFCE + x11vnc + websockify. Tagged for E2B template
-    # builds; the Docker backend does not consume this image yet.
-    log_info "构建沙箱镜像桌面变体 (weknora-sandbox:main-desktop)..."
-
-    docker build \
-        --platform $PLATFORM \
-        --build-arg TARGETPLATFORM=$PLATFORM \
-        -f docker/Dockerfile.sandbox \
-        --target desktop \
-        -t wechatopenai/weknora-sandbox:latest-desktop \
-        -t wechatopenai/weknora-sandbox:main-desktop \
-        .
-
-    if [ $? -ne 0 ]; then
-        log_error "沙箱镜像桌面变体构建失败"
-        return 1
-    fi
-
-    log_info "构建沙箱镜像桌面 Cube 变体 (weknora-sandbox:main-desktop-cube)..."
-
-    docker build \
-        --platform linux/amd64 \
-        --build-arg TARGETPLATFORM=linux/amd64 \
-        --build-arg TARGETARCH=amd64 \
-        -f docker/Dockerfile.sandbox \
-        --target desktop-cube \
-        -t wechatopenai/weknora-sandbox:latest-desktop-cube \
-        -t wechatopenai/weknora-sandbox:main-desktop-cube \
-        .
-
-    if [ $? -eq 0 ]; then
-        log_success "沙箱镜像构建成功"
-        return 0
-    else
-        log_error "沙箱镜像桌面 Cube 变体构建失败"
-        return 1
-    fi
+    log_success "沙箱镜像构建成功"
+    return 0
 }
 
 # 构建所有镜像
@@ -375,12 +341,8 @@ clean_images() {
     docker rmi wechatopenai/weknora-ui:latest 2>/dev/null || true
     docker rmi wechatopenai/weknora-sandbox:latest 2>/dev/null || true
     docker rmi wechatopenai/weknora-sandbox:latest-cube 2>/dev/null || true
-    docker rmi wechatopenai/weknora-sandbox:latest-desktop 2>/dev/null || true
-    docker rmi wechatopenai/weknora-sandbox:latest-desktop-cube 2>/dev/null || true
     docker rmi wechatopenai/weknora-sandbox:main 2>/dev/null || true
     docker rmi wechatopenai/weknora-sandbox:main-cube 2>/dev/null || true
-    docker rmi wechatopenai/weknora-sandbox:main-desktop 2>/dev/null || true
-    docker rmi wechatopenai/weknora-sandbox:main-desktop-cube 2>/dev/null || true
     
     docker image prune -f
     

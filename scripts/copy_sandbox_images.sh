@@ -10,7 +10,7 @@
 # 依赖: skopeo (brew install skopeo)
 # 用法:
 #   ./scripts/copy_sandbox_images.sh --registry ccr.ccs.tencentyun.com/my-ns
-#   ./scripts/copy_sandbox_images.sh --registry harbor.example.com/weknora --image desktop-cube
+#   ./scripts/copy_sandbox_images.sh --registry harbor.example.com/weknora --image cube
 # =============================================================================
 
 set -euo pipefail
@@ -34,13 +34,13 @@ usage() {
   --registry  目标仓库地址 (如 ccr.ccs.tencentyun.com/my-ns)
 
 可选:
-  --image     要复制的镜像: desktop-cube | cube | all (默认: desktop-cube)
+  --image     要复制的镜像: cube | sandbox | all (默认: cube)
   --source    源仓库 (默认: docker.io/wechatopenai/weknora-sandbox)
   --dry-run   打印命令，不实际操作
   -h, --help  显示帮助
 
 示例:
-  # 复制 desktop-cube 镜像到腾讯云 CCR
+  # 复制 cube 镜像到腾讯云 CCR
   $0 --registry ccr.ccs.tencentyun.com/my-namespace
 
   # 复制所有 sandbox 镜像
@@ -58,7 +58,7 @@ EOF
 
 # 解析参数
 REGISTRY=""
-IMAGE_SELECT="desktop-cube"
+IMAGE_SELECT="cube"
 SOURCE="docker.io/wechatopenai/weknora-sandbox"
 DRY_RUN=false
 
@@ -82,24 +82,18 @@ REGISTRY="${REGISTRY%/}"
 # 待复制的镜像 tags（按 target 分类）
 TAGS=()
 case "$IMAGE_SELECT" in
-    desktop-cube)
-        TAGS=("main-desktop-cube")
-        ;;
     cube)
         TAGS=("main-cube")
-        ;;
-    desktop)
-        TAGS=("main-desktop")
         ;;
     sandbox)
         TAGS=("main" "latest")
         ;;
     all)
-        TAGS=("main" "latest" "main-cube" "latest-cube" "main-desktop" "latest-desktop" "main-desktop-cube" "latest-desktop-cube")
+        TAGS=("main" "latest" "main-cube" "latest-cube")
         ;;
     *)
         log_error "未知 --image: $IMAGE_SELECT"
-        log_error "可选: desktop-cube | cube | desktop | sandbox | all"
+        log_error "可选: cube | sandbox | all"
         exit 1
         ;;
 esac
@@ -176,16 +170,9 @@ main() {
     echo ""
     log_info "=== Cube 配置步骤 ==="
     echo ""
-    local desktop_image="${REGISTRY}/weknora-sandbox:main-desktop-cube"
-    echo "1. 如果复制了 desktop-cube 镜像，在 WeKnora 管理后台中："
-    echo "   「设置 → 沙箱 → 编辑 → 模板 → 桌面模板构建镜像」"
-    echo "   填入: $desktop_image"
-    echo ""
-    echo "2. 在失败的桌面模板卡片上点击「重建」"
-    echo ""
-    echo "3. 或者通过 API 更新："
-    echo '   PATCH /api/v1/workspaces/{id}/sandbox'
-    echo '   { "cube": { "desktop_template_image": "'"$desktop_image"'" } }'
+    echo "标准 Cube 镜像: ${REGISTRY}/weknora-sandbox:main-cube"
+    echo "在目标集群构建标准模板，并在 WeKnora 沙箱设置中选择对应模板。"
+
 }
 
 main

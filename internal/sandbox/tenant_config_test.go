@@ -411,25 +411,6 @@ func TestResolveEffectiveConfigTerminalIdleFallsBackToBuiltIn(t *testing.T) {
 	require.Equal(t, DefaultTerminalIdleDisconnect, got.TerminalIdleDisconnect)
 }
 
-func TestResolveEffectiveConfigCarriesDesktopEnabled(t *testing.T) {
-	tenantCfg := completeCubeTenantConfig()
-	tenantCfg.DesktopEnabled = true
-
-	effective, err := ResolveEffectiveConfig(tenantCfg, DefaultConfig())
-	require.NoError(t, err)
-	require.True(t, effective.DesktopEnabled,
-		"DesktopEnabled must reach the runtime Config; the desktop endpoint reads it")
-}
-
-func TestResolveEffectiveConfigDesktopDisabledByDefault(t *testing.T) {
-	tenantCfg := completeCubeTenantConfig()
-
-	effective, err := ResolveEffectiveConfig(tenantCfg, DefaultConfig())
-	require.NoError(t, err)
-	require.False(t, effective.DesktopEnabled,
-		"desktop must be explicit opt-in: the image costs +1.5GB per sandbox")
-}
-
 // Tuning fields fall back to the built-in constants, never to the deployment's:
 // "inherits nothing" would be a much weaker rule with an exception here.
 func TestResolveEffectiveConfigTuningFallsBackToBuiltIns(t *testing.T) {
@@ -672,6 +653,7 @@ func TestResolveEffectiveConfigUsesSkillSnapshotAsE2BTemplate(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, "snap-1", eff.E2BTemplate)
+		require.True(t, eff.TemplateFromSnapshot)
 	})
 
 	t.Run("fingerprint mismatch falls back to the base template", func(t *testing.T) {
@@ -685,6 +667,7 @@ func TestResolveEffectiveConfigUsesSkillSnapshotAsE2BTemplate(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "tpl-base", eff.E2BTemplate,
 			"a snapshot whose fingerprint was computed for cube must not override e2b; the session must still boot")
+		require.False(t, eff.TemplateFromSnapshot)
 	})
 
 	t.Run("empty snapshot keeps the base template", func(t *testing.T) {

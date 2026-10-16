@@ -33,6 +33,8 @@ type SandboxTerminalService struct {
 	resolver sandbox.TenantSandboxResolver
 	fallback sandbox.Manager
 	policy   WorkspaceSandboxPolicy
+	// desktop is Lite: remote pins and configs are never resolved there.
+	desktop bool
 }
 
 // NewSandboxTerminalService wires the terminal service. All dependencies
@@ -43,12 +45,14 @@ func NewSandboxTerminalService(
 	resolver sandbox.TenantSandboxResolver,
 	fallback sandbox.Manager,
 	policy WorkspaceSandboxPolicy,
+	host HostSandboxManager,
 ) *SandboxTerminalService {
 	return &SandboxTerminalService{
 		pinner:   pinner,
 		resolver: resolver,
 		fallback: fallback,
 		policy:   policy,
+		desktop:  host.Desktop,
 	}
 }
 
@@ -90,7 +94,7 @@ func (s *SandboxTerminalService) resolveSessionManager(
 	ctx context.Context,
 	sessionID string,
 ) (sandbox.Manager, SandboxPin, error) {
-	if s.pinner == nil {
+	if s.pinner == nil || s.desktop {
 		return nil, SandboxPin{}, sandbox.ErrNoLiveSessionSandbox
 	}
 	pin, err := s.pinner.Read(ctx, sessionID)
@@ -177,6 +181,7 @@ func (s *SandboxTerminalService) EnsureSessionTerminal(
 	mgr, _, err = resolveSandboxForExecution(
 		ctx, s.resolver, s.fallback, s.pinner,
 		provision.TenantOr(sessionTenantID), sessionID, provision.ConfigID, s.policy,
+		withLiteDesktop(s.desktop),
 	)
 	if err != nil {
 		return nil, err
@@ -215,6 +220,40 @@ func (s *SandboxTerminalService) provisionOnManager(
 		return err
 	}
 	return nil
+}
+
+// EnsureSessionWorkspace creates/resumes only after an explicit start action,
+// following the original pin before the newly selected agent configuration.
+// No PTY or desktop is opened to prepare a web preview.
+func (s *SandboxTerminalService) EnsureSessionWorkspace(ctx context.Context, sessionID string, provision SandboxPin) error {
+	return s.ensureSessionExecution(ctx, sessionID, provision, true)
+}
+
+// EnsureSessionTestWorkspace needs shell execution, not desktop or preview transport.
+func (s *SandboxTerminalService) EnsureSessionTestWorkspace(ctx context.Context, sessionID string, provision SandboxPin) error {
+	return s.ensureSessionExecution(ctx, sessionID, provision, false)
+}
+
+func (s *SandboxTerminalService) ensureSessionExecution(ctx context.Context, sessionID string, provision SandboxPin, preview bool) error {
+	if s == nil {
+		return sandbox.ErrNoLiveSessionSandbox
+	}
+	mgr, _, err := s.resolveSessionManager(ctx, sessionID)
+	if errors.Is(err, sandbox.ErrNoLiveSessionSandbox) && !provision.IsZero() {
+		tenantID, _ := types.TenantIDFromContext(ctx)
+		mgr, _, err = resolveSandboxForExecution(ctx, s.resolver, s.fallback, s.pinner,
+			provision.TenantOr(tenantID), sessionID, provision.ConfigID, s.policy)
+	}
+	if err != nil {
+		return err
+	}
+	if mgr == nil || !sandbox.IsNamedSandboxBackendType(string(mgr.GetType())) {
+		return sandbox.ErrPreviewUnsupported
+	}
+	if _, ok := mgr.(sandbox.SessionPreviewTransport); preview && !ok {
+		return sandbox.ErrPreviewUnsupported
+	}
+	return s.provisionOnManager(ctx, mgr, sessionID)
 }
 
 // openOnManager opens a terminal on an already-resolved manager.

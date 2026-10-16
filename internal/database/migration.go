@@ -125,7 +125,14 @@ func RunMigrationsWithOptions(dsn string, opts MigrationOptions) error {
 			setMigrationState(0, false, wrapped.Error(), false)
 			return wrapped
 		}
-		m, err = migrate.NewWithDatabaseInstance(migrationsPath, "sqlite3", driver)
+		migrationSource, err := newSQLiteMainCompatibilitySource(migrationsPath, sqlDB)
+		if err != nil {
+			_ = driver.Close()
+			wrapped := fmt.Errorf("failed to prepare SQLite migration source: %w", err)
+			setMigrationState(0, false, wrapped.Error(), false)
+			return wrapped
+		}
+		m, err = migrate.NewWithInstance("file", migrationSource, "sqlite3", driver)
 		if err != nil {
 			logger.Errorf(ctx, "Failed to create migrate instance: %v", err)
 			wrapped := fmt.Errorf("failed to create migrate instance: %w", err)

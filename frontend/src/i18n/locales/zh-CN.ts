@@ -1,7 +1,142 @@
-import { workspaceZhCN } from '../workspace'
+import { workspaceZhCN } from "../workspace";
 
 export default {
   workspace: workspaceZhCN,
+  modelCatalog: {
+    title: "模型目录",
+    description:
+      "模型目录决定添加模型时可选的模型列表，以及上下文窗口、是否支持思考等默认参数。在这里修改后，所有空间立即生效。",
+    howItWorks: "配置如何生效",
+    layers: {
+      builtin: "内置目录：随版本发布的默认模型清单。",
+      deployment: "部署文件：服务器上的 models.json，可覆盖内置目录。",
+      console: "管理员修改：在本页所做的修改，优先于以上两者。",
+      explicit:
+        "各空间在模型配置中填写的参数始终优先；修改目录不会改写已保存的模型。",
+    },
+    add: "添加模型",
+    more: "更多",
+    jsonEditor: "JSON 编辑",
+    history: "版本历史",
+    import: "导入 JSON",
+    export: "导出修改",
+    search: "搜索模型 ID 或名称",
+    allProviders: "全部厂商",
+    allTypes: "全部类型",
+    onlyModified: "只看已修改",
+    summary: "{count} 个模型 · 版本 {version}",
+    columns: {
+      model: "模型",
+      provider: "厂商",
+      type: "类型",
+      tokens: "上下文 / 输出",
+      capabilities: "能力",
+      source: "来源",
+    },
+    capability: {
+      reasoning: "思考",
+      image: "图像",
+      audio: "音频",
+      video: "视频",
+    },
+    source: {
+      builtin: "内置",
+      deployment: "部署文件",
+      console: "管理员修改",
+    },
+    rule: "匹配规则",
+    ruleTip: "按名称模式匹配一组模型，只提供默认参数，不会出现在候选列表中。",
+    hidden: "已隐藏",
+    edit: "编辑",
+    view: "查看",
+    empty: "没有匹配的模型",
+    editDescription: "{provider} · {type}",
+    ruleNotice:
+      "这是一条匹配规则，为名称符合该模式的模型提供默认参数。如需修改，请使用「更多 → JSON 编辑」。",
+    fieldsSection: "默认参数",
+    nameDesc: "在模型选择列表中显示的名称。",
+    dimension: "向量维度",
+    dimensionDesc: "添加该向量模型时预填的维度，需与模型实际输出一致。",
+    inputDesc: "模型可接收的输入类型；勾选图像后可作为视觉模型使用。",
+    thinkingLevels: "思考等级",
+    thinkingLevelsDesc:
+      "对话中可选的思考强度。未勾选「关闭」表示该模型始终思考。",
+    levelsNeedReasoning: "开启「支持思考」后可设置。",
+    levelsUnsupported: "该厂商接口不支持分级思考。",
+    textOnly: "仅文本",
+    noLevels: "无",
+    sourceLink: "厂商文档",
+    customHint: "这是管理员在本页添加的模型，参数均来自这里的配置。",
+    fieldsHint:
+      "各空间在模型配置中填写的参数仍然优先。输入框留空即恢复默认值。",
+    context: "上下文窗口",
+    contextDesc: "模型一次可处理的最大 token 数。",
+    output: "最大输出",
+    outputDesc: "单次回复最多生成的 token 数。",
+    reasoning: "支持思考",
+    reasoningDesc: "模型能否输出思考过程。",
+    hide: "在候选列表中隐藏",
+    hideDesc: "隐藏后添加模型时不再出现，已配置的模型不受影响。",
+    inputModes: "输入模态",
+    inherited: "默认：{value}",
+    notSet: "未设置",
+    optional: "可选",
+    yes: "是",
+    no: "否",
+    modified: "已修改",
+    layersSection: "各层取值",
+    layerField: "参数",
+    layerBuiltin: "内置目录",
+    layerDeployment: "部署文件",
+    layerEffective: "当前生效",
+    save: "保存并生效",
+    restore: "恢复默认",
+    restoreConfirm: "移除对该模型的全部管理员修改，并立即生效？",
+    restored: "已恢复，其他实例约 5 秒内同步",
+    remove: "删除模型",
+    removeConfirm: "从目录中删除这个由管理员添加的模型，并立即生效？",
+    removed: "已删除，其他实例约 5 秒内同步",
+    published: "已生效，其他实例约 5 秒内同步",
+    conflict: "目录已被其他管理员更新，已刷新到最新版本，请重新操作。",
+    loadFailed: "模型目录加载失败",
+    deploymentError:
+      "部署文件 models.json 加载失败，当前只使用内置目录：{error}",
+    syncError: "最新版本同步失败，页面显示的可能不是当前生效的配置：{error}",
+    addDescription:
+      "为厂商补充目录中没有的模型，添加后可在模型配置中直接选择。",
+    modelId: "模型 ID",
+    modelIdPlaceholder: "与厂商 API 中的模型名一致，如 gpt-5-mini",
+    displayName: "显示名称",
+    required: "请选择厂商并填写模型 ID",
+    exists: "该模型已在目录中，请直接编辑",
+    jsonDescription:
+      "用 models.json 格式直接编辑全部管理员修改，适合批量调整或迁移。",
+    jsonHint:
+      "只写需要修改的字段，删除字段即恢复默认。凭据、请求头和环境变量引用请在模型配置或部署文件中维护；图标仅支持内联 SVG；最大 1 MiB。",
+    jsonClear: "清空全部修改",
+    jsonCheck: "检查变更",
+    jsonPublish: "发布 {count} 项变更",
+    jsonUnchanged: "与当前生效的配置一致，无需发布。",
+    changesTitle: "将要生效的变更",
+    change: {
+      added: "新增",
+      removed: "移除",
+      updated: "修改",
+      provider: "厂商",
+    },
+    publishHint: "发布后本实例立即生效，其他实例约 5 秒内同步。",
+    invalid: "请输入包含 providers 对象的 models.json。",
+    tooLarge: "文件不能超过 1 MiB。",
+    historyDescription: "保留最近 20 个版本，恢复后立即生效。",
+    historyVersion: "版本 {version}",
+    historyCurrent: "当前",
+    historyRestore: "恢复",
+    historyRestoreConfirm:
+      "恢复到版本 {version} 的配置，并立即对所有空间生效？",
+    historyEmpty: "暂无历史版本",
+    historyModels: "修改了 {count} 个模型",
+    historyNoOverrides: "无管理员修改",
+  },
   toolbox: {
     title: "工具箱",
     description: "管理智能体可用的技能、外部工具和浏览器连接。",
@@ -968,6 +1103,15 @@ export default {
       addProject: "添加项目",
       projectRequired: "请至少添加一个 GitLab 项目",
     },
+    seafile: {
+      baseUrl: "Seafile 地址",
+      apiToken: "API 令牌",
+      apiTokenHint:
+        "在 Seafile「设置 → Web API 令牌」中生成；账号对所选资料库有读权限即可，令牌不会随文件下载请求发送。",
+      singleLibraryOnly:
+        "一个数据源只能同步一个资料库，请先取消已选资料库中的内容再改选。",
+      selectionRequired: "请至少勾选一个资料库、目录或文件",
+    },
     resourceHint: "选择要同步的内容空间/文件夹",
     untitled: "无标题",
     resourceLoadFailed: "加载资源列表失败",
@@ -984,6 +1128,12 @@ export default {
       "点击右上角的「···」菜单，选择「Connect to」或「Add connections」",
     guideStep3_notion:
       "搜索并选择你的集成应用（Integration），然后回到这里点重新加载",
+    noResourcesDesc_seafile:
+      "该令牌能访问的资料库为空，或全部为加密资料库（不支持同步）",
+    guideStep1_seafile:
+      "登录 Seafile，确认账号至少拥有一个未加密资料库的读取权限",
+    guideStep2_seafile: "在「设置 → Web API 令牌」中生成或重新生成令牌",
+    guideStep3_seafile: "回到这里填入新令牌并点重新加载",
     permissionDocLink: "查看飞书知识库权限配置文档",
     syncScheduleLabel: "同步频率",
     conflictLabel: "冲突策略",
@@ -1011,6 +1161,19 @@ export default {
     prereqStep3Desc_yuque:
       "公有云用户无需填写；语雀企业版或私有部署请填写企业域名",
     prereqOpenConsole_yuque: "前往语雀 Token 设置",
+    yuqueFolderModeLabel: "目录结构",
+    yuqueFolderModeToc: "按语雀目录分层",
+    yuqueFolderModeNone: "平铺在根目录",
+    yuqueFolderModeHint:
+      "按语雀的目录层级放置文档。注意：之后在知识库里手动调整的目录，会在该文档下次同步时被覆盖回语雀的结构。",
+    yuqueTOCOnly: "只同步语雀目录中可见的文档",
+    yuqueTOCOnlyHint:
+      "需要先选择「按语雀目录分层」。已经同步进知识库的文档不受影响——语雀中不在目录里的文档只是不再新增，不会被删除。",
+    dingtalkIngestLabel: "钉钉摄取范围",
+    dingtalkIncludeUploadedFiles:
+      "摄取知识库中的上传文件（docx / pptx / xlsx / pdf）",
+    dingtalkIncludeUploadedFilesHint:
+      "默认关闭。开启后，所选范围内的 Word / PowerPoint / Excel / PDF 上传文件会被下载并解析入库，单个文件上限 64 MiB；这些文件的正文会计入存储与向量化成本。关闭时它们只是被跳过，同步日志会说明开关未开启，不会删除知识库中已有的副本。",
     prereqBarText_dingtalk: "首次使用？点击查看钉钉应用配置指引",
     prereqStep1Brief_dingtalk: "创建企业内部应用",
     prereqStep1Desc_dingtalk:
@@ -1083,6 +1246,7 @@ export default {
       wikiSpace: "知识库空间",
       docCategory: "文档标签",
       book: "语雀知识库",
+      library: "Seafile 资料库",
     },
     scheduleHuman: {
       "30min": "每 30 分钟",
@@ -1119,6 +1283,10 @@ export default {
       authHeadersHint:
         "用于访问私有订阅源，每行一个，格式为「名称: 值」，例如 Authorization: Bearer xxxx",
     },
+    confluence: {
+      cloudFolderLimitation:
+        "Confluence Cloud 暂不支持在此列出空间顶层文件夹等容器下的页面；选择整个空间仍会同步它们。",
+    },
     connectorDesc: {
       feishu: "同步飞书知识库中的文档、表格、文件",
       lark: "同步 Lark 知识库中的文档、表格、文件（飞书国际版）",
@@ -1131,6 +1299,7 @@ export default {
       ima: "同步腾讯 IMA 知识库中的文档、笔记与文件（暂不支持 AI 会话与视频解析）",
       rss: "同步 RSS / Atom 订阅源中的文章",
       gitlab: "同步 GitLab 项目中的文件",
+      seafile: "同步 Seafile 资料库中的目录与文件",
     },
     connector: {
       feishu: "飞书",
@@ -1144,6 +1313,7 @@ export default {
       ima: "腾讯 IMA",
       rss: "RSS / Atom 订阅",
       gitlab: "GitLab",
+      seafile: "Seafile",
     },
     logDetail: {
       startTime: "开始时间",
@@ -1214,6 +1384,19 @@ export default {
       deletion_lookup_failed: "删除前查找文档失败，请查看服务器日志",
       deletion_failed: "删除失败，请查看服务器日志",
       ingest_failed: "导入失败，请查看服务器日志",
+      seafile_permission_denied:
+        "无权访问该 Seafile 文件，请检查令牌所属账号的资料库权限。",
+      seafile_not_found: "Seafile 文件不存在或已被移动，下次同步将重试。",
+      seafile_file_too_large:
+        "Seafile 文件超过大小限制，请调大 MAX_FILE_SIZE_MB 或缩小该文件。",
+      seafile_empty_file: "Seafile 文件内容为空，已跳过。",
+      seafile_source_changed:
+        "Seafile 文件在获取过程中发生变化，下次同步将重试。",
+      seafile_invalid_response:
+        "Seafile 返回了无法解析的响应，请检查服务器版本与反向代理配置。",
+      seafile_ssrf_blocked:
+        "Seafile 文件下载地址被 SSRF 策略拦截，请将 fileserver 域名加入 SSRF_WHITELIST。",
+      seafile_fetch_failed: "从 Seafile 获取文件失败，下次同步将重试。",
     },
   },
   ollama: {
@@ -1543,6 +1726,17 @@ export default {
       kbMetricRag: "RAG 知识库",
       kbMetricWiki: "Wiki 知识库",
       statusInactive: "有 {count} 个已勾选工具在当前配置下无法生效",
+      searchConversations: "回顾历史对话",
+      searchConversationsDesc: "在用户自己的历史会话中查找之前聊过的内容",
+      groupStored: "已保存但未提供的工具",
+      switchManagedDesc:
+        "由智能体的其他设置控制，而不是由此列表决定，在此勾选不会启用它。取消勾选即可移除。",
+      unrecognizedDesc:
+        "当前版本不提供该工具，智能体无法调用它。取消勾选即可移除。",
+      keptUnknownWarning:
+        "已保存。以下已保存的工具在当前版本中不提供，已保留，但智能体无法调用：{names}",
+      droppedWarning:
+        "已保存。以下工具由智能体的其他设置控制，已从工具列表中移除：{names}",
       effectiveLabel: "最终启用的工具",
       effectiveDesc: "根据当前配置计算，这是智能体保存后实际能调用的工具集合",
       effectiveEmpty: "当前没有可用工具，智能体将退化为纯模型问答",
@@ -1828,6 +2022,22 @@ export default {
       script: "脚本",
       instructions: "技能说明",
     },
+    attachmentTarget: {
+      list: "全部附件",
+      file: "附件",
+      images: "{name} 中的图片",
+      imagesUnnamed: "附件中的图片",
+      image: "{name} 第 {n} 张图片",
+      imageUnnamed: "附件第 {n} 张图片",
+    },
+    imageView: {
+      summary: "已查看「{file}」第 {numbers} 张图片，共 {total} 张",
+      single: "已查看图片「{file}」",
+      descriptionsHeading: "视觉模型的图片描述",
+      imageLabel: "图片 #{n}",
+      noDescription: "未能生成描述",
+      remaining: "还有 {count} 张未查看",
+    },
     sandboxFiles: {
       found: "找到 {count} 个文件",
       empty: "暂无文件",
@@ -2050,6 +2260,8 @@ export default {
     retry: "重试",
     unsupported: "该文件类型暂不支持在线预览",
     unsupportedHint: "请下载文件后使用本地应用查看",
+    zoomIn: "放大",
+    zoomOut: "缩小",
     fullscreen: "全屏预览",
     exitFullscreen: "退出全屏",
     htmlRendered: "渲染预览",
@@ -2424,6 +2636,9 @@ export default {
     noServerDocumentation:
       "该 MCP Server 的 initialize 未返回 instructions / serverInfo.description（均为可选字段）。工具说明在下方各工具的 description 里。",
     policyHint: "工具开关与审批设置即时保存；刷新目录不会覆盖这些设置。",
+    columnTool: "工具",
+    columnEnabled: "启用",
+    columnApproval: "需审批",
     failed: "工具目录读取失败",
     setupProgress: "MCP 配置步骤",
     connection: "连接配置",
@@ -2469,6 +2684,10 @@ export default {
     authTypeApiKey: "API Key / Token",
     authTypeOAuth: "OAuth 2.0（首次连接授权）",
     oauthScopes: "Scopes（可选，空格分隔）",
+    oauthClientId: "Client ID（可选）",
+    oauthClientIdDesc:
+      "填写在授权服务器预先注册的客户端；留空则自动进行动态客户端注册。更换 Client ID 时请同时更新 Client Secret。",
+    oauthClientSecret: "Client Secret（可选）",
     oauthAuthorization: "授权状态",
     oauthAuthorized: "已授权",
     oauthRefreshable: "Token 已过期，将在下次使用时自动刷新",
@@ -2628,6 +2847,15 @@ export default {
       documentsPlaceholder: "每行输入一个候选文档",
       documentsHint: "每个非空行会作为一个独立文档发送给 ReRank 模型",
       imageFile: "图片文件",
+      similarityMode: "相似度",
+      similarityQuery: "查询文本",
+      similarityQueryPlaceholder: "输入一条查询，例如：草地上奔跑的狗",
+      similarityCandidates: "候选文本",
+      similarityCandidatesPlaceholder: "每行输入一个候选文本",
+      similarityHint:
+        "查询按检索查询方式向量化，候选按文档方式向量化，与线上检索一致；结果按余弦相似度从高到低排列",
+      similarityImage: "候选图片（可选）",
+      similarityImageCandidate: "图片",
       audioFile: "音频文件",
       chooseFile: "选择文件",
       parameters: "请求参数",
@@ -2982,6 +3210,7 @@ export default {
   },
   language: {
     zhCN: "简体中文",
+    zhTW: "繁體中文",
     enUS: "English",
     ruRU: "Русский",
     koKR: "한국어",
@@ -3065,7 +3294,8 @@ export default {
         compat: {
           label: "协议兼容覆盖（JSON）",
           placeholder: "{'{'} \"max_tokens_field\": \"max_tokens\" {'}'}",
-          desc: "按协议合并到目录默认值的兼容开关，字段见后端 catalog/compat.go。留空表示不覆盖。",
+          desc: "只在接口与目录默认值不一致时填写，只写需要改的字段。留空表示不覆盖。",
+          docLink: "查看字段说明",
           invalid: "JSON 格式不正确",
           mustBeObject: "必须是 JSON 对象",
         },
@@ -3110,6 +3340,9 @@ export default {
         "仅在确认该模型支持 dimensions 参数时开启；默认只使用检测到的实际维度。",
       supportsVisionLabel: "支持视觉/多模态",
       supportsVisionDesc: "模型是否支持图片等多模态输入",
+      embeddingImageInputLabel: "图片输入",
+      embeddingImageInputDesc:
+        "模型能把图片编码到与文本相同的向量空间。目录内的模型自动识别，自定义模型需手动声明",
       contextWindowLabel: "上下文窗口",
       contextWindowPlaceholder: "默认 {value}",
       contextWindowDesc:
@@ -3121,7 +3354,8 @@ export default {
       maxConcurrencyDesc:
         "限制文档入库/富化等后台任务对该模型的并发调用数（按模型全副本共享）。0 或留空表示沿用全局默认；不影响交互式对话。",
       isDefaultLabel: "设为默认",
-      isDefaultDesc: "创建知识库/长记忆库时预选该模型；同类型仅有一个默认模型。",
+      isDefaultDesc:
+        "创建知识库/长记忆库时预选该模型；同类型仅有一个默认模型。",
       dimensionHint: '模型已选择，点击"检测维度"按钮自动获取向量维度',
       loadModelListFailed: "加载模型列表失败",
       listRefreshed: "列表已刷新",
@@ -3364,16 +3598,47 @@ export default {
         success: "已将 {count} 个空间的存储配额更新为 {gb} GB",
         failed: "应用到所有空间失败",
       },
+      userList: {
+        title: "平台用户列表",
+        rowLabel: "用户管理",
+        rowDesc:
+          "查看平台上的全部注册用户（跨空间），支持分页与按用户名/邮箱筛选。",
+        searchPlaceholder: "按用户名或邮箱筛选（当前页）",
+        refresh: "刷新",
+        active: "正常",
+        inactive: "已停用",
+        colUsername: "用户名",
+        colStatus: "状态",
+        colRole: "角色",
+        colCreated: "创建日期",
+        colAction: "操作",
+        prev: "上一页",
+        next: "下一页",
+        pageCount: "{shown} 条 / 本页 {total}",
+        enable: "启用",
+        disable: "停用",
+        resetPassword: "重置密码",
+        confirmDisable: "确定停用账号 {name} 吗？将立即吊销其登录状态。",
+        confirmEnable: "确定启用账号 {name} 吗？",
+        enabledMsg: "已启用 {name}",
+        disabledMsg: "已停用 {name}",
+        actionFailed: "操作失败",
+        loadFailed: "加载用户列表失败",
+        roleAdmin: "系统管理员",
+        roleUser: "普通用户",
+        confirmRevoke: "确定撤销 {name} 的系统管理员权限吗？",
+        confirmPromote: "确定将 {name} 提升为系统管理员吗？",
+        revokeBtn: "撤销",
+        promoteBtn: "提升",
+        revokedMsg: "已撤销 {name} 的管理员权限",
+        promotedMsg: "已将 {name} 提升为系统管理员",
+        roleFailed: "修改角色失败",
+      },
       passwordReset: {
-        label: "重置用户密码",
-        description:
-          "为忘记密码的其他用户设置新密码。重置成功后，该用户当前所有登录会话都会失效，需要使用新密码重新登录。",
-        action: "重置密码",
         dialogTitle: "重置其他用户的密码",
         warning:
           "这是高风险操作。请核对用户邮箱；出于安全考虑，不能在这里重置自己的密码。",
         emailLabel: "用户邮箱",
-        emailPlaceholder: "输入需要重置密码的用户邮箱",
         newPasswordLabel: "新密码",
         newPasswordPlaceholder: "请输入新密码",
         confirmPasswordLabel: "确认新密码",
@@ -3383,9 +3648,6 @@ export default {
         failed: "重置密码失败",
       },
       createUser: {
-        label: "创建用户",
-        description:
-          "开通一个新的本地用户账号。如果平台的默认空间模式设置为「自动创建个人空间」，该用户会像自助注册的用户一样，同时获得一个个人空间。",
         action: "创建用户",
         dialogTitle: "创建新用户",
         warning:
@@ -3410,10 +3672,6 @@ export default {
           usernameLength: "用户名长度必须为 2-50 个字符",
           emailRequired: "请输入邮箱",
           emailInvalid: "请输入有效的邮箱地址",
-          passwordRequired: "请输入新密码",
-          passwordLength: "密码长度必须为 8-32 个字符",
-          passwordLetter: "密码必须包含字母",
-          passwordNumber: "密码必须包含数字",
           confirmRequired: "请再次输入新密码",
           passwordMismatch: "两次输入的密码不一致",
         },
@@ -3426,27 +3684,6 @@ export default {
           copyBtn: "复制账号信息",
           copySuccess: "账号信息已复制到剪贴板",
           acknowledgeBtn: "我已保存密码",
-        },
-      },
-      admins: {
-        label: "系统管理员",
-        description:
-          "拥有平台级权限的用户。在右侧输入邮箱并回车即可提升用户为管理员；点击 × 即为撤销其权限。当前你（自己）已是管理员，不在列表中显示，也无法被自己撤销。",
-        placeholder: "输入用户邮箱并回车",
-        loadFailed: "加载系统管理员失败",
-        saveSuccess: "已更新系统管理员",
-        saveFailed: "更新系统管理员失败",
-        confirm: {
-          revoke: {
-            header: "撤销系统管理员",
-            body: "确认撤销 {email} 的系统管理员权限？撤销后该用户将无法再访问任何系统级功能。",
-            confirmBtn: "撤销",
-          },
-          promote: {
-            header: "提升为系统管理员",
-            body: "确认将 {email} 提升为系统管理员？该用户将获得平台级权限，可访问所有空间、修改系统设置、管理其他管理员。",
-            confirmBtn: "提升",
-          },
         },
       },
       reset: {
@@ -3496,7 +3733,8 @@ export default {
           },
           registration_mode: {
             self_serve: "自助注册（任何人可注册）",
-            invite_only: "仅邀请（关闭公网注册）",
+            invite_register: "仅限邀请注册（需有效邀请链接）",
+            invite_only: "禁止注册（已有账号仍可接受邀请）",
           },
         },
       },
@@ -3545,7 +3783,7 @@ export default {
         },
         auth: {
           registration_mode:
-            "自助注册模式。self_serve = 任何人可注册账号；invite_only = 关闭公网注册，仅 Owner/Admin 可邀请。修改后立即生效，但谨慎对待 self_serve（公网会接受 spam）。",
+            "注册模式。开放注册允许任何人创建账号；仅限邀请注册要求有效邀请链接；禁止注册不允许创建账号，但已有账号仍可接受邀请。保存后立即生效。",
           default_tenant_mode:
             "公开注册后的空间初始化策略。create_personal 会自动创建个人空间并授予 Owner；tenantless 仅创建账户，用户需要接受邀请或主动创建空间。只影响之后注册的用户。",
           complex_password_enabled:
@@ -3581,7 +3819,7 @@ export default {
           docker_enabled: "启用 Docker 沙箱",
         },
         auth: {
-          registration_mode: "自助注册模式",
+          registration_mode: "注册模式",
           default_tenant_mode: "注册默认空间策略",
           complex_password_enabled: "启用复杂密码",
         },
@@ -3812,38 +4050,29 @@ export default {
           generic: "获取队列状态失败",
         },
       },
-      runtimeTable: {
-        setting: "配置项与用途",
-        value: "当前值",
-      },
       sections: {
         other: {
-          tab: "其他 {count}",
           title: "其他配置",
           description: "当前部署中未归入标准分组的配置项。",
         },
         security: {
-          tab: "网络安全 {count}",
           title: "网络安全",
           description:
             "管理 SSRF 白名单，以及是否允许 Docker 沙箱（本机 docker.sock 等同宿主机 root）。",
         },
         runtime: {
-          tab: "运行与并发 {count}",
           title: "运行与并发",
           description: "配置后台任务池与模型服务的并发容量。",
           restartHint: "Worker 配置需重启生效",
         },
         tenant: {
-          tab: "空间默认值 {count}",
           title: "空间默认值",
           description:
             "设置新空间的初始配额与兼容性行为，不会自动改写已有空间。",
         },
         access: {
-          tab: "账户与访问 {count}",
-          title: "账户与访问",
-          description: "管理系统管理员、公开注册与用户创建空间的规则。",
+          title: "注册与访问",
+          description: "管理注册方式、密码要求和用户创建空间的规则。",
         },
       },
       priorityHint: {
@@ -4032,34 +4261,17 @@ export default {
       panelTitle: "沙箱可视化",
       tabArtifacts: "产物",
       tabTerminal: "终端",
-      tabDesktop: "桌面",
       artifactsEmpty: "本会话尚未生成可下载的文件",
       artifactScope: "产物范围",
       artifactsCurrent: "本轮",
       artifactsAll: "全部",
       artifactsSearch: "搜索文件名",
       artifactsNoMatches: "没有匹配的文件",
-      desktopNotStarted: "桌面尚未连接。连接后会接入本会话的沙箱环境。",
-      desktopStart: "连接桌面",
-      desktopStarting: "正在连接桌面…（首次约需 3–8 秒）",
-      desktopUnsupported:
-        "当前沙箱配置不支持桌面。需要在工作区沙箱设置的模板列表里选中带桌面的镜像，且后端为 Cube 或 E2B。",
-      desktopBusy:
-        "本会话已有一个桌面连接。桌面同一时刻只允许一个连接，否则会出现两个人抢同一套键鼠。",
-      desktopStartFailed: "桌面启动失败，可以重试。",
-      desktopRebuilt:
-        "沙箱已因技能更新重建，原桌面及未保存的内容已丢失。重新连接会得到一个全新桌面。",
-      desktopNeedsProvision:
-        "本会话当前没有运行中的沙箱环境。创建并连接会新建一个沙箱，并按工作区配置计费。",
-      desktopCreateAndStart: "创建并连接",
-      desktopPaused: "本会话的沙箱已暂停。连接桌面会唤醒它。",
-      desktopDisconnected: "桌面连接已断开",
-      desktopIdleDisconnected:
-        "桌面空闲已断开，沙箱将按工作区 TTL 自行暂停。可重新连接。",
-      desktopRetry: "重新连接",
       notStarted:
         "终端尚未启动。启动后会连接本会话的沙箱环境；若沙箱不存在或已暂停，将为你创建或唤醒它。",
       paused: "本会话的沙箱已暂停。启动终端会唤醒它。",
+      stopped:
+        "本会话的沙箱未在运行：可能已停止，或因长时间空闲已被回收。启动终端会重新启动它；若已被回收，则会新建一个沙箱，之前的文件和安装的软件不会保留。",
       start: "启动终端",
       connecting: "正在连接沙箱…",
       needsProvision:
@@ -4073,6 +4285,10 @@ export default {
       sessionEnded: "终端会话已结束",
       idleDisconnected:
         "终端空闲已断开，沙箱将按工作区 TTL 自行暂停。可重新连接。",
+      idleDisconnectedNewShell:
+        "终端空闲已断开，其中的 shell 已结束（nohup 启动的后台任务不受影响）。重新连接会打开一个新的 shell。",
+      disconnectedNewShell:
+        "连接已断开，终端中的 shell 已结束（nohup 启动的后台任务不受影响）。重新连接会打开一个新的 shell。",
       authRevoked: "登录状态已失效，终端已断开。请重新登录后再连接。",
     },
     questionMinimapTitle: "问答",
@@ -4084,8 +4300,9 @@ export default {
     truncatedHint: "回答在模型单次输出上限处被截断，以上为截断前已生成的内容",
     rewind: {
       tooltip: "回滚到这里",
+      confirmTitle: "回滚到这里？",
       confirmBody:
-        "将删除此条之后的对话。从用户消息回滚时会删掉该问题本身，并填回输入框。若有可用检查点，工作区会一并回退。此操作不可撤销。",
+        "此条之后的对话将被删除；从提问回滚时，该问题会填回输入框。有检查点时工作区也会一并回退，操作不可撤销。",
       confirmButton: "回滚",
       cancelButton: "取消",
       success: "已回滚",
@@ -4111,6 +4328,20 @@ export default {
     channelIm: "IM",
     chunkLabel: "片段{index}:",
     navigateToDocument: "查看文档详情",
+    referenceSourceBack: "全部引用",
+    referenceSourceView: "查看原文",
+    referenceSourceRelocate: "重新定位",
+    referenceSourceLocating: "正在定位引用位置…",
+    referenceSourceExact: "已精确定位原文片段",
+    referenceSourcePartial: "已高亮核验通过的原文片段，部分引用内容尚未匹配",
+    referenceSourceBlock: "已定位到来源区域，尚未精确匹配文字",
+    referenceSourceAmbiguous: "原文有多处相同内容，无法唯一定位",
+    referenceSourceStale: "原文或内容已更新，当前引用无法精确定位",
+    referenceSourcePrevious: "上一处引用",
+    referenceSourceNext: "下一处引用",
+    referenceSourceFoundPage: "已定位到第 {page} 页",
+    referenceSourceNotFound: "未能精确定位引用内容，已为你打开原文",
+    referenceSourceOpenWeb: "打开原网页并定位",
     chunkIdLabel: "片段ID:",
     documentIdLabel: "文档ID:",
     faqIdLabel: "FAQ ID:",
@@ -4233,6 +4464,24 @@ export default {
           "补充需要重点识别的视觉信息，OCR 和 Markdown 格式协议保持不变",
         customInstructionsPlaceholder:
           "例如：重点识别设备铭牌、型号、告警代码和表格中的单位…",
+        imageAttrsLabel: "图片属性观察",
+        imageAttrsDescription:
+          "开启后，解析时对每张图片先「观察属性＋描述」，再按属性决定是否对图内文字再跑一轮 OCR；关闭则沿用基础模式：所有图片逐张描述并全部 OCR",
+        imageVectorLabel: "图片向量检索",
+        imageVectorDescription:
+          "开启后，生成图片描述之后再用向量模型直接对图片编码，检索时按图片内容召回描述没写到的信息。需要向量模型支持图片输入；每张图片多一次向量调用，向量检索的候选范围也会放大。只对此后入库或重新解析的文档生效，扫描件 PDF 页不生成",
+        imageVectorModelUnsupported:
+          "当前向量模型未声明图片输入，开启后不会生成或召回图片向量",
+        imageAttrsSchemaLabel: "可观察的图片属性",
+        imageAttrsSchemaDescription:
+          "模型会观察以下属性（由后端注册表定义）以驱动 OCR 策略",
+        imageAttrsOcrConditions: "根据观察到的属性条件触发 OCR",
+        imageAttrsOcrConditionsDesc:
+          "当观察到的属性满足以下条件时，对图片进行 OCR",
+        imageAttrsOcrOnUnobserved: "图片属性观察失败时仍执行 OCR",
+        imageAttrsOcrOnUnobservedDesc:
+          "当模型未能正确观察到图片属性时，默认仍执行 OCR 兜底，以免漏掉正文文字；关闭则跳过。（采用 4B 等小参数视觉模型，或自定义的图片解析提示词与系统提示词冲突时，可能造成观察失败；8B 及以上模型的失败概率很低，不建议关闭）",
+        imagePipelineKbNote: "默认跟随知识库设置，可针对本次任务调整",
       },
       tableMetadataInstructions: {
         label: "表格元数据生成要求",
@@ -4642,6 +4891,92 @@ export default {
       editingBadge: "编辑中",
       pageActions: "页面操作",
       tabDocuments: "文档",
+      tabGallery: "画廊",
+      tabDocumentsTip: "上传和管理原始文档",
+      tabWikiTip: "由文档自动整理生成的 Wiki 页面",
+      tabGalleryTip: "浏览从文档中解析出的全部图片",
+      viewTabs: "知识库视图",
+      gallery: {
+        title: "画廊",
+        allImages: "全部图片",
+        count: "共 {count} 张",
+        countFiltered: "筛选出 {count} 张",
+        searchPlaceholder: "搜索图片描述或文字",
+        filters: "筛选",
+        clearFilters: "清除筛选",
+        searchIn: "搜索范围",
+        searchInHint: "关键词只在勾选的内容中匹配",
+        attrSection: "图片属性",
+        attrHint:
+          "「隐藏」不显示带该属性的图片；「始终显示」即使被其他条件隐藏也保留",
+        verdictDefault: "不限",
+        verdictOff: "隐藏",
+        verdictOn: "始终显示",
+        keywordsPlaceholder: "多个关键词用逗号分隔",
+        noAttrs: "暂无可筛选的属性",
+        sort: "排序",
+        sortField: "排序依据",
+        sortOrder: "顺序",
+        orderAsc: "升序",
+        orderDesc: "降序",
+        empty: "还没有可浏览的图片",
+        emptyHint: "文档中的图片在解析完成后会出现在这里",
+        emptyFiltered: "没有符合条件的图片",
+        imageLoadError: "图片加载失败",
+        noCaption: "暂无描述",
+        noOcr: "未识别到文字",
+        caption: "图片描述",
+        ocr: "图中文字",
+        attributes: "图片属性",
+        source: "来源文档",
+        details: "基本信息",
+        dimensions: "尺寸",
+        status: "状态",
+        openSource: "打开来源文档",
+        copy: "复制",
+        zoomIn: "放大 (+)",
+        zoomOut: "缩小 (-)",
+        zoomReset: "适应窗口 (0)",
+        actualSize: "原始尺寸",
+        rotate: "旋转 (R)",
+        download: "下载",
+        openOriginal: "在新标签页打开",
+        toggleInfo: "图片信息 (I)",
+        viewerClose: "关闭 (Esc)",
+        prev: "上一张 (←)",
+        next: "下一张 (→)",
+        sourceFilter: "按文档",
+        sourceFilterTitle: "按来源文档筛选",
+        sourceFilterSearch: "搜索文档名称",
+        sourceFilterEmpty: "没有匹配的文档",
+        sourceFilterSubtitle:
+          "画廊仅展示所选文档中的图片，便于逐个核对摘要与 OCR 结果",
+        sourceFilterSelected: "已选 {count} 个文档",
+        sourceFilterClear: "清空已选",
+        sourceFilterTooMany: "最多只能选择 1000 个文档",
+        sourceFilterSelectAll: "全选 / 全不选（含全部命中结果）",
+        sourceFilterOverflowRecent:
+          "文档较多，仅显示最近 {cap} 条，请输入关键字精确定位",
+        sourceFilterOverflowHits:
+          "命中 {total} 个文档，仅显示前 {cap} 条，请细化关键字后再全选",
+        // Display names for the builtin attributes the gallery itself
+        // declares. Attributes contributed by other sources fall back to the
+        // pipeline's own wording (see the imageAttr namespace).
+        attr: {
+          builtin_caption: "描述",
+          builtin_caption_description: "模型生成的图片描述",
+          builtin_ocr_text: "OCR 文本",
+          builtin_ocr_text_description: "OCR 从图片中提取的文字",
+          builtin_created_at: "创建时间",
+          builtin_created_at_description: "所属文档片段的创建时间",
+          builtin_updated_at: "更新时间",
+          builtin_updated_at_description: "所属文档片段的最后更新时间",
+          builtin_is_enabled: "启用状态",
+          builtin_is_enabled_description: "所属文档片段是否参与检索",
+          builtin_is_enabled_value_true: "已启用",
+          builtin_is_enabled_value_false: "已停用",
+        },
+      },
       tabGraph: "图谱",
       tabGraphTip:
         "Wiki 页面之间的引用关系图（即页面链接图谱），与「知识库设置 → 知识图谱」中基于 LLM 抽取的实体-关系图谱不是同一个概念",
@@ -4727,6 +5062,16 @@ export default {
         "已显示邻居 {visible}/{total}（还有 {hidden} 个未加载）",
       neighborsAllShown:
         '全部 {total} 个邻居已在图中（可点"展开邻居"聚焦到该节点子图）',
+      graphNavigationHint: "拖拽空白处移动 · 滚轮缩放",
+      focusGroup: "聚焦这组页面",
+      focusGroupViewing: "正在查看：{name}",
+      focusGroupBack: "返回全图",
+      focusGroupSwitch: "切换到其他分组",
+      unlinkedHidden: "已隐藏 {count} 个无关联页面",
+      unlinkedSection: "无关联页面 · {count}",
+      offscreenSection: "当前视图无连线（存在链接）· {count}",
+      hideUnlinked: "隐藏无关联页面（{count}）",
+      showUnlinked: "显示无关联页面（{count}）",
       neighborsNone: "该节点没有链接邻居",
       neighborsCenterUnreachable:
         "已显示邻居 {visible}/{total}（还有 {hidden} 个无法连通：可能是死链、被过滤或已删除）",
@@ -5407,6 +5752,12 @@ export default {
     belongsToOrg: "所属空间：",
     noCompatibleKbForAgent:
       "当前智能体的工具与作用域内知识库的能力不匹配，暂无可引用的知识库。",
+    tag: "标签",
+    searchPlaceholder: "搜索知识库、文件、技能等",
+    searchInGroup: "在{group}中搜索…",
+    typeToSearch: "在 {'@'} 后继续输入以搜索…",
+    viewAll: "查看全部",
+    back: "返回",
   },
   common: {
     add: "添加",
@@ -5812,7 +6163,23 @@ export default {
   },
   envVarSettings: {
     title: "沙箱密钥",
-    description: "由超级管理员全平台统一配置的加密密钥，所有空间的技能与沙箱运行时默认使用。",
+    host: {
+      title: "环境变量",
+      description: "给本机技能用的个人密钥，不是 WeKnora 的系统或部署配置。",
+      helpAria: "环境变量说明",
+      introRuntimeBody:
+        "技能在这台电脑上运行时才会注入；对话里也可以当场提供。保存后不再显示明文。",
+      loadFailed: "环境变量加载失败。",
+      sandboxTitle: "在这台电脑上始终带上的值",
+      sandboxHint:
+        "只带给你在这台电脑上跑的命令。多数情况用不到；需要时再加，对话里也可以当场提供。",
+      nameInvalid:
+        "这个名字不能用。保留名（例如 PATH，或以 WEKNORA_ 开头的名字）不接受。",
+      deleteConfirm: "删除 {name}？之后在这台电脑上运行的东西都不会再带上它。",
+    },
+        description:
+      "由超级管理员全平台统一配置的加密密钥，所有空间的技能与沙箱运行时默认使用。",
+
     helpAria: "沙箱密钥说明",
     introGlobalTitle: "全平台统一密钥",
     introGlobalBody:
@@ -5866,21 +6233,25 @@ export default {
       "清除你为 {name} 设置的值？之后会重新使用空间共用值（如果有）。",
     clearSuccess: "已清除你的值。",
     secretListTitle: "全局密钥",
-    globalHint: "所有空间与用户运行时默认使用的密钥。值保存后不再显示，只能覆盖成新值。",
+    globalHint:
+      "所有空间与用户运行时默认使用的密钥。值保存后不再显示，只能覆盖成新值。",
     addSecret: "新建密钥",
     hasValue: "已设置",
     noValue: "未设置",
     globalEmptyTitle: "还没有全局密钥",
-    globalEmptyDesc: "点击「新建密钥」添加名称与值；保存后所有空间都会默认使用它。",
+    globalEmptyDesc:
+      "点击「新建密钥」添加名称与值；保存后所有空间都会默认使用它。",
     updatedAt: "更新于 {time}",
   },
   memoryWorkspaceSettings: {
     title: "长期记忆",
-    description: "由超级管理员全平台统一配置，开启后助手跨会话记住成员说过的个人信息、偏好、事实与在办事项，对所有工作空间生效。",
+    description:
+      "由超级管理员全平台统一配置，开启后助手跨会话记住成员说过的个人信息、偏好、事实与在办事项，对所有工作空间生效。",
     introTitle: "默认关闭，由超级管理员统一开启",
     introDescription:
       "长期记忆会保留成员在对话中说过的内容，因此默认不开启，并由平台超级管理员统一配置、对所有工作空间生效。开启后每位成员的记忆彼此隔离，成员可以在「我的记忆」里随时查看、修改、删除或整体关闭。生效中的个人信息与偏好会进入之后的每一轮对话；事实和在办事项只在相关问题时召回。",
-    platformManagedReadonly: "长期记忆由平台超级管理员统一配置，你对以下设置为只读。",
+    platformManagedReadonly:
+      "长期记忆由平台超级管理员统一配置，你对以下设置为只读。",
     enableLabel: "启用长期记忆（全平台）",
     enableDescription: "关闭后所有空间的会话都不会读取或写入记忆。",
     writeModeLabel: "记忆写入方式",
@@ -5933,17 +6304,16 @@ export default {
     enableDescription:
       "全局开关：开启后，所有空间的新对话消息将自动向量化索引到各自知识库，支持语义搜索；关闭后所有空间立即停用",
     embeddingModelLabel: "Embedding 模型",
-    embeddingModelDescription: "选择用于消息向量化的 Embedding 模型（全局，所有空间共用）",
+    embeddingModelDescription:
+      "选择用于消息向量化的 Embedding 模型（全局，所有空间共用）",
     embeddingModelLocked:
       "已有消息被索引，Embedding 模型不可修改（修改需清空索引数据）",
     statsTitle: "索引统计",
     statsIndexedMessages: "已索引消息",
     statsNotConfigured: "消息索引未配置",
-    statsNotConfiguredDesc:
-      "选择 Embedding 模型后，对话消息将自动向量化索引",
+    statsNotConfiguredDesc: "选择 Embedding 模型后，对话消息将自动向量化索引",
     statsUnused: "消息索引未使用",
-    statsUnusedDesc:
-      "超级管理员未开启消息索引，对话消息不会被向量化检索",
+    statsUnusedDesc: "超级管理员未开启消息索引，对话消息不会被向量化检索",
     toasts: {
       saveSuccess: "消息管理配置已保存",
       saveFailed: "保存配置失败: {message}",
@@ -6211,7 +6581,7 @@ export default {
         "模板由当前集群实时返回，保存时仅记录模板 ID，无需手工复制。",
       templateSelectPlaceholder: "先连接集群并加载模板",
       templateLoadHint:
-        "填写集群连接后刷新模板。没有官方标准模板时，会从 Docker Hub 镜像自动构建。桌面模板体积更大，需在下方单独点「创建」。改 DNS 或镜像后在对应卡片上点「重建」。",
+        "连接集群后刷新模板。缺少标准模板时点击创建；更改 DNS 后可在卡片上重建。",
       templateLoadFailed: "模板列表加载失败",
       standardTemplateProvisioning:
         "已开始在集群中创建 WeKnora 标准模板，请稍后刷新查看状态",
@@ -6220,7 +6590,7 @@ export default {
       connectionPassed: "连接验证通过，以下模板均从当前集群实时加载。",
       connectionPassedTitle: "集群连接成功",
       templateStepHint:
-        "进入此步会列出集群模板；若还没有官方标准模板，会从 Docker Hub 镜像自动构建。桌面模板（XFCE）体积较大，需单独点「创建」。改 DNS 或镜像后在对应卡片上点「重建」。选好并就绪后才能继续。",
+        "选择已就绪的模板后继续。缺少标准模板时可点击创建，更改 DNS 后可重建。",
       loadingTemplates: "正在从集群加载模板…",
       templateBuildingHint: "模板正在构建，列表会自动刷新。",
       templateUntaggedHint:
@@ -6231,20 +6601,9 @@ export default {
       createStandardTemplate: "创建",
       createStandardTemplateHint:
         "按当前连接配置构建，包含 DNS。之后改配置可在卡片上重建。",
-      weknoraDesktopTemplate: "WeKnora 桌面模板",
-      createDesktopTemplate: "创建",
-      createDesktopTemplateHint:
-        "从官方桌面镜像构建 XFCE 图形桌面。体积明显大于标准模板，仅在需要图形界面时创建。",
       replaceStandardTemplate: "重建",
       replaceStandardTemplateConfirm:
         "将用当前配置（含 DNS）重建 WeKnora 标准模板。新模板就绪前不会删除仍可启动的旧模板。",
-      desktopTemplateProvisioning:
-        "已开始在集群中创建 WeKnora 桌面模板，请稍后刷新查看状态",
-      desktopTemplateReplaced:
-        "已删除原桌面模板并开始重建，请等待状态就绪。标准（CLI）模板不受影响。",
-      desktopTemplateTag: "桌面",
-      replaceDesktopTemplateConfirm:
-        "将用当前配置（含 DNS）重建 WeKnora 桌面模板。新模板就绪前不会删除仍可启动的旧桌面模板，也不会删除标准（CLI）模板。",
       templateLockedBySkills:
         "该沙箱已安装 Skill，技能环境绑在当前快照上，不能更换或重建运行模板。请新建一份沙箱，从新模板再装 Skill。",
       templateLockedByInFlight:
@@ -6274,7 +6633,7 @@ export default {
       howToBuildTemplate: "沙箱集群搭建与模板说明",
       noEnvVars: "暂无额外环境变量。",
       fieldRequired: "必填",
-      cubeApiKeyOptional: "可留空 —— 自建 CubeSandbox 通常无鉴权",
+      cubeApiKeyOptional: "集群启用鉴权时必填；仅未启用鉴权的集群可留空",
       cubeApiKeyWhere: "自建集群如何开启鉴权",
       cubeDnsServers: "DNS 服务器",
       cubeDnsServersHelp:
@@ -6330,9 +6689,9 @@ export default {
       defaultTimeout: "执行超时（秒）",
       defaultTimeoutHelp:
         "单次技能脚本允许运行的最长时间，超时会被强制终止。留空按 60 秒。",
-      terminalIdleDisconnect: "终端 / 桌面空闲断开（秒）",
+      terminalIdleDisconnect: "终端空闲断开（秒）",
       terminalIdleDisconnectHelp:
-        "打开终端或桌面后，这段时间内没有交互就断开连接，沙箱随后按 TTL 自行暂停。终端看键盘和输出，桌面看键鼠。留空按 900 秒；最短 60 秒，最长 24 小时。",
+        "终端没有键盘输入或 PTY 输出时断开，随后按提供商 TTL 暂停。默认 900 秒，范围 60 秒到 24 小时。",
       envVars: "环境变量",
       envKey: "变量名",
       envValue: "变量值",
@@ -6449,6 +6808,7 @@ export default {
       skillTranscriptLive: "安装过程",
       skillTranscriptLiveHint: "正在安装，点击查看过程",
       skillTranscriptTitle: "安装过程",
+      skillTranscriptPrompt: "安装指令",
       skillTranscriptHide: "收起安装过程",
       skillGuidance: {
         placeholder: "补充安装说明，例如需要安装的 CLI、安装文档或环境限制",
@@ -6519,6 +6879,37 @@ export default {
         "技能属于空间目录，可以只登记，也可以装到一份或多份沙箱。智能体只能启用当前沙箱里已就绪的技能。",
       helpTooltip:
         "目录里的技能可以不装任何沙箱。脚本要跑起来，必须装进智能体所用的那份沙箱镜像。Docker、Cube、E2B 互不通用，装到几份就要装几次。",
+      hostTarget: "本机",
+      host: {
+        description: "技能属于空间目录。装到这台电脑上之后，智能体才能启用。",
+        helpTooltip:
+          "目录里的技能可以先只登记。脚本要跑起来，需要装到这台电脑上。",
+        emptyDesc: "还没有技能。添加后会装到这台电脑上。",
+        addStepInstallDesc:
+          "确认解析结果后选择安装模型。技能会装到这台电脑上。",
+        installToSandbox: "安装到本机",
+        installToSandboxDesc:
+          "安装会在这台电脑上准备依赖，装好后智能体可以直接使用。",
+        installDrawerDesc: "把「{name}」装到这台电脑上。",
+        noInstalls: "尚未安装到本机",
+        installedOnName: "已安装到本机",
+        manageDrawerDesc: "在这台电脑上管理启用、变量和卸载。",
+        manageUninstall: "从本机卸载",
+        manageUninstallConfirm: "确定从这台电脑卸载「{name}」？",
+        deleteCatalogConfirm: "确定从目录删除「{name}」？请先从本机卸载。",
+        deleteCatalogBlocked: "请先从本机卸载此技能。",
+        upgradeDrawerDesc:
+          "把「{name}」升级到目录中的当前版本。升级期间继续使用当前版本，升级失败也不影响它。",
+        disableHint:
+          "禁用后该技能对智能体不可见，文件仍留在这台电脑上。变更将在会话下一次执行时生效。",
+        removeDone:
+          "已从本机卸载「{name}」。技能仍在目录里，可以稍后再装回去。",
+        removeWaiting: "已开始卸载，正在等待进度…",
+        removeSandboxReady: "正在准备本机目录",
+        removeRemoved: "文件已删除",
+        envWorkspaceHint:
+          "所有没有填写自己值的成员都会用这里的值。成员可以在「设置 → 环境变量」里填自己的值。",
+      },
       goSandboxSettings: "去配置沙箱",
       noConfigsDesc: "还没有沙箱，技能需要先有一份可写入的镜像。",
       addSkill: "添加技能",
@@ -6552,6 +6943,7 @@ export default {
       installedCount: "已安装到 {count} 个沙箱",
       installPanelGroup: "已安装",
       installPanelAvailable: "未安装",
+      installAction: "安装",
       viewInstallProgress: "查看进度",
       manageOnSandbox: "管理沙箱「{name}」上的安装",
       manageDrawerDesc: "在沙箱「{name}」上管理启用、变量和卸载。",
@@ -6767,6 +7159,22 @@ export default {
       vlmServerUrlPlaceholder: "如 http://your-vllm-server:8000",
       vlmServerUrlHint:
         "当 Backend 选择 vlm-http-client 或 hybrid-http-client 时需要填写",
+      mineruEndpointHint:
+        "自动识别服务版本：MinerU 4.0 及以上走 V1 API，更早版本走 /file_parse。",
+      mineruServerApiKeyPlaceholder:
+        "服务端启动参数 --api-key 的值（未启用鉴权可留空）",
+      mineruServerApiKeyHint: "仅 MinerU 4.0 及以上使用。",
+      mineruTierLabel: "解析档位",
+      mineruTierDefault: "服务端默认（优先 standard）",
+      mineruTierFlash: "flash（最快，质量最低）",
+      mineruTierBasic: "basic（基础模型，CPU 可运行）",
+      mineruTierStandard: "standard（VLM，高质量）",
+      mineruTierAdvanced: "advanced（VLM，质量最高、最慢）",
+      mineruTierHint:
+        "仅 MinerU 4.0 及以上生效；可选档位取决于服务端启动时的 --tier。",
+      mineruLegacySection: "旧版参数（MinerU 3.x 及更早）",
+      mineruLegacySectionHint:
+        "MinerU 4.0 已移除以下请求参数，连接 4.0 及以上服务时会被忽略；VLM 地址改在 MinerU 服务端配置。",
       paddleocrVlEndpointPlaceholder: "如 http://your-paddleocr-vl:8080",
       paddleocrVlEndpointHint:
         "填写 PaddleOCR-VL 完整服务（pipeline）地址，无需 /layout-parsing 后缀",
@@ -7021,6 +7429,17 @@ export default {
       skillsConfig: "技能",
       skillsConfigDesc:
         "先选择运行沙箱，再从下面列表选用技能。没装到该沙箱的会显示「安装」，装好后才能勾选。",
+      hostSkillsConfigDesc:
+        "从下面列表选用已经装到这台电脑上的技能。没装的会显示「安装」，装好后才能勾选。",
+      hostSkillsSelectionDesc:
+        "这里列出空间目录中的技能。已经装到这台电脑上的可以直接用；没装的请先点「安装」。",
+      hostSelectSkillsDesc:
+        "勾选要给这个智能体用的技能。没装到这台电脑上的不能勾选，请先点右侧「安装」。",
+      hostSkillsAllListHint:
+        "「全部」只包含已经装到这台电脑上的技能。没装的不会自动带上，点「安装」装好后才会算进去。",
+      hostInstallToThisComputer: "安装到这台电脑",
+      hostUpgradeOnThisComputer: "把这台电脑上的技能升级到目录版本",
+      hostSkillDisabled: "已在本机停用",
       skillsSelection: "技能列表",
       skillsSelectionDesc:
         "这里列出空间目录中的技能。已装到当前沙箱的可以直接用；没装的请先点「安装」。",
@@ -7172,6 +7591,15 @@ export default {
     noActivity: "暂无解析记录",
     totalDuration: "总耗时：{d}",
     errorCode: {
+      DOCREADER_UNAVAILABLE: "文档解析服务不可用",
+      DOCREADER_UNAVAILABLE_SUGGESTION:
+        "无法连接 DocReader，或连接已中断。请检查解析服务是否启动、是否反复重启以及网络是否正常；服务恢复后再重试，无需重复上传文件。",
+      DOCREADER_TIMEOUT: "文档解析超时",
+      DOCREADER_TIMEOUT_SUGGESTION:
+        "请检查 DocReader 的健康状态和负载；服务正常后再重试，必要时拆分大文件。",
+      DOCREADER_PARSE_FAILED: "文档解析失败",
+      DOCREADER_PARSE_FAILED_SUGGESTION:
+        "请检查文件格式，并让管理员查看本次解析对应的 DocReader 日志。",
       TASK_STALLED: "长时间无进展，已自动终止",
       TASK_STALLED_SUGGESTION:
         "处理超过阈值仍没有任何进展，且队列中已无对应任务，已被系统标记为失败。请点击「重试」；如反复出现，请检查该阶段依赖的服务（文档解析、模型、向量库）是否正常。",
@@ -7250,6 +7678,13 @@ export default {
     },
   },
   uploadConfirm: {
+    imageEmbeddingModel: "图像索引 Embedding 模型",
+    imageIndexInherited:
+      "图像索引使用知识库绑定的 Embedding 模型；如需更换，请前往知识库设置。",
+    imageVectorIndex: "本次图片向量索引",
+    imageVectorIndexHint:
+      "为本次上传或重新解析的图片生成向量，不改变知识库默认配置。是否参与检索仍由知识库的“图片向量检索”开关决定。",
+    imageVectorRequiresIndex: "请先在知识库设置中开启向量索引。",
     documentSummary: "文档摘要",
     documentSummaryDescription: "为本次导入的文档选择是否自动生成摘要。",
     generateSummary: "生成文档摘要",
@@ -7438,6 +7873,7 @@ export default {
     channelConfluence: "Confluence",
     channelYuque: "语雀",
     channelGitLab: "GitLab",
+    channelSeafile: "Seafile",
     channelIma: "腾讯 IMA",
     channelUpload: "上传",
     channelManual: "手动",
@@ -7612,10 +8048,10 @@ export default {
     statusFailed: "失败",
     statusCancelled: "已取消",
     statusDraft: "草稿",
-    noDescription: "无描述",
+    noDescription: "暂无描述",
     emptyKnowledgeDragDrop: "知识为空，拖放上传",
-    pdfDocFormat: "pdf、doc 格式文件，不超过10M",
-    textMarkdownFormat: "text、markdown格式文件，不超过200K",
+    pdfDocFormat: "pdf、doc 格式文件，不超过{size}M",
+    textMarkdownFormat: "text、markdown格式文件，不超过{size}M",
     dragFileNotText: "请拖拽文件而不是文本或链接",
     searchPlaceholder: "搜索知识库...",
     docSearchPlaceholder: "搜索文档名称...",
@@ -8033,6 +8469,7 @@ export default {
   },
   menu: {
     sessionInProgress: "会话进行中",
+    sessionUnread: "有新回复",
     knowledgeBase: "知识库",
     agents: "智能体",
     artifacts: "产物",
@@ -8059,5 +8496,53 @@ export default {
     myChats: "我的对话",
     apiChats: "API 会话",
     noSessions: "暂无对话",
+    folderSectionTitle: "项目",
+    folderSortMode: "项目排序方式",
+    folderSortRecent: "最近更新",
+    folderSortManual: "手动排序",
+    moveFolderUp: "上移",
+    moveFolderDown: "下移",
+    createFolder: "新建文件夹",
+    renameFolder: "重命名项目",
+    deleteFolder: "删除文件夹",
+    deleteFolderConfirmTitle: "确认删除文件夹？",
+    deleteFolderConfirmBody:
+      "删除“{folder}”文件夹？其中的对话会移回“未收纳”，不会删除对话。",
+    folderNamePlaceholder: "文件夹名称",
+    emptyFolder: "暂无任务",
+    removeFromFolder: "移出文件夹",
+    moveToProject: "移动到项目",
+    newProject: "新项目",
+    newChatInFolder: "在此文件夹中新建对话",
+  },
+  // 图片属性的展示文案，按属性名索引（后端注册表给出属性名，这里只做翻译）。
+  // 注意：属性名里的点号要转义成下划线（contain.text → contain_text）——vue-i18n 按点号
+  // 逐段下钻，写成字面量 'contain.text' 的键永远取不到。
+  // 未翻译的属性会回落到后端注册表自带的说明，所以新增属性不会显示成空行。
+  imageAttr: {
+    contain_text: {
+      label: "图中文字量",
+      description: "图片自身承载多少正文文字，决定是否值得为它单独跑一轮 OCR。",
+      values: {
+        none: { label: "无文字", description: "完全没有文字" },
+        sparse: {
+          label: "少量文字",
+          description: "只有少量文字 —— 图标、路牌、单个标签",
+        },
+        block: {
+          label: "成段正文",
+          description: "成段正文 —— 截图、表格、文档页面",
+        },
+      },
+    },
+    contain_data_visual: {
+      label: "数据可视化",
+      description:
+        "图片是否以图表、曲线、示意图或信息图的方式承载数据；这类图即使看起来文字很少，也会保留在 OCR 路径上。",
+      values: {
+        true: { label: "是", description: "是 —— 图表、曲线或示意图" },
+        false: { label: "否", description: "否 —— 照片、插画、图标或装饰图" },
+      },
+    },
   },
 };

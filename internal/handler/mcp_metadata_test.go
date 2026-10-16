@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/Tencent/WeKnora/internal/mcp"
 	"github.com/Tencent/WeKnora/internal/types"
+	secutils "github.com/Tencent/WeKnora/internal/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,6 +31,40 @@ func TestMCPMetadataAppErrorDoesNotLeakUpstreamDetails(t *testing.T) {
 	require.Equal(t, "Failed to refresh MCP tools. Check the connection and try again.", refresh.Message)
 	require.NotContains(t, refresh.Error(), "secret.internal")
 	require.NotContains(t, refresh.Error(), "10.1.2.3")
+}
+
+// An outbound policy block must not fall through to the generic refresh text:
+// "check the connection" points users at the upstream when the address itself
+// is what the server refused.
+func TestMCPMetadataAppErrorExplainsOutboundPolicyBlocks(t *testing.T) {
+	// A direct IP is refused by the URL layer before DNS, so this stays
+	// hermetic. It is the plain SSRF block, not whitelist-only mode.
+	directIP := "http://10.1.2.3:8080/mcp"
+	blocked := mcp.ValidateServiceOutboundURLs(&types.MCPService{URL: &directIP})
+	require.ErrorIs(t, blocked, mcp.ErrOutboundURLBlocked)
+	require.NotErrorIs(t, blocked, secutils.ErrSSRFHostNotWhitelisted)
+
+	appErr := mcpMetadataAppError(blocked, true)
+	require.Equal(t, http.StatusBadRequest, appErr.HTTPCode)
+	require.NotEqual(t, "Failed to refresh MCP tools. Check the connection and try again.", appErr.Message)
+	require.Contains(t, appErr.Message, "SSRF_WHITELIST_EXTRA")
+	require.NotContains(t, appErr.Message, "10.1.2.3")
+}
+
+func TestMCPMetadataAppErrorNamesWhitelistOnlyMode(t *testing.T) {
+	t.Setenv("SSRF_DNS_WHITELIST_ONLY", "true")
+	secutils.ResetSSRFWhitelistForTest()
+	t.Cleanup(secutils.ResetSSRFWhitelistForTest)
+
+	host := "https://blocked.example.com/mcp"
+	blocked := mcp.ValidateServiceOutboundURLs(&types.MCPService{URL: &host})
+	require.ErrorIs(t, blocked, secutils.ErrSSRFHostNotWhitelisted)
+
+	appErr := mcpMetadataAppError(blocked, true)
+	require.Equal(t, http.StatusBadRequest, appErr.HTTPCode)
+	require.Contains(t, appErr.Message, "SSRF_DNS_WHITELIST_ONLY")
+	require.Contains(t, appErr.Message, "SSRF_WHITELIST_EXTRA")
+	require.NotContains(t, appErr.Message, "blocked.example.com")
 }
 
 func TestMayWriteSharedMCPMetadata(t *testing.T) {

@@ -140,7 +140,8 @@ async function handleLogout() {
 
 <style scoped lang="less">
 .workspace-onboarding {
-  min-height: 100vh;
+  min-height: 100dvh;
+  box-sizing: border-box;
   display: grid;
   place-items: center;
   padding: 32px 20px;
@@ -155,11 +156,12 @@ async function handleLogout() {
 
 .workspace-card {
   width: min(520px, 100%);
-  padding: 44px;
+  padding: clamp(24px, 5vw, 44px);
+  box-sizing: border-box;
   border: 1px solid var(--td-component-stroke);
-  border-radius: 20px;
+  border-radius: var(--app-radius-2xl);
   background: var(--td-bg-color-container);
-  box-shadow: var(--td-shadow-2);
+  box-shadow: var(--app-surface-shadow);
   text-align: center;
 }
 
@@ -177,6 +179,8 @@ async function handleLogout() {
 h1 {
   margin: 0;
   color: var(--td-text-color-primary);
+  font-family: var(--app-font-family-display);
+  font-weight: 500;
   font-size: 26px;
   line-height: 1.3;
 }

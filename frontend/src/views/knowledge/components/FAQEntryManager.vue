@@ -1439,6 +1439,7 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useOrganizationStore } from "@/stores/organization";
+import { useChatResourcesStore } from "@/stores/chatResources";
 import {
   listFAQEntries,
   upsertFAQEntries,
@@ -1451,7 +1452,6 @@ import {
   listKnowledgeTags,
   updateFAQEntryTagBatch,
   getKnowledgeBaseById,
-  listKnowledgeBases,
   getFAQImportProgress,
   updateFAQImportResultDisplayStatus,
 } from "@/api/knowledge-base";
@@ -1508,6 +1508,7 @@ const router = useRouter();
 const uiStore = useUIStore();
 const authStore = useAuthStore();
 const orgStore = useOrganizationStore();
+const chatResources = useChatResourcesStore();
 
 // Permission control: check if current user owns this KB or has edit/manage permission.
 //
@@ -1702,14 +1703,13 @@ const loadKnowledgeInfo = async (kbId: string) => {
 
 const loadKnowledgeList = async () => {
   try {
-    const res: any = await listKnowledgeBases();
-    const myKbs: typeof knowledgeList.value = (res?.data || []).map(
-      (item: any) => ({
+    await chatResources.ensureKnowledgeBases();
+    const myKbs: typeof knowledgeList.value =
+      chatResources.rawKnowledgeBases.map((item: any) => ({
         id: String(item.id),
         name: item.name,
         type: item.type,
-      }),
-    );
+      }));
 
     // Also include shared knowledge bases from orgStore
     const sharedKbs: typeof knowledgeList.value = (

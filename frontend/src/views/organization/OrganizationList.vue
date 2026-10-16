@@ -20,8 +20,7 @@
               <t-tooltip :content="canManageOrg ? $t('organization.createOrg') : noPermissionTip" placement="bottom">
                 <t-button variant="text" theme="default" size="small" class="header-action-btn"
                   style="--wails-draggable: no-drag" :disabled="!canManageOrg" @click="handleCreateOrganization">
-                  <template #icon><img src="@/assets/img/organization-green.svg" class="org-create-icon" alt=""
-                      aria-hidden="true" /></template>
+                  <template #icon><span class="org-create-icon" aria-hidden="true" /></template>
                 {{ $t('organization.createOrg') }}
                 </t-button>
               </t-tooltip>
@@ -123,7 +122,7 @@
 
             <!-- 卡片内容 -->
             <div class="card-content">
-              <div class="card-description" :title="org.description || $t('organization.noDescription')">
+              <div class="card-description" :class="{ 'is-empty': !org.description }" :title="org.description || $t('organization.noDescription')">
                   {{ org.description || $t('organization.noDescription') }}
               </div>
             </div>
@@ -183,8 +182,7 @@
           </t-tooltip>
           <t-tooltip :content="noPermissionTip" placement="top" :disabled="canManageOrg">
             <t-button theme="primary" class="org-create-btn" :disabled="!canManageOrg" @click="handleCreateOrganization">
-              <template #icon><img src="@/assets/img/organization-green.svg" class="org-create-icon" alt=""
-                  aria-hidden="true" /></template>
+              <template #icon><span class="org-create-icon" aria-hidden="true" /></template>
               {{ $t('organization.createOrg') }}
             </t-button>
           </t-tooltip>
@@ -1156,10 +1154,24 @@ watch(keyword, () => { collapsedOrgSections.value = new Set() })
   }
 }
 
-.org-create-btn .org-create-icon {
+// organization-green.svg 的描边是硬编码绿色，不会跟随 --td-brand-color；
+// 这里用 mask + currentColor 染色，让「创建共享空间」按钮的图标与知识库 / 智能体
+// 列表的创建按钮同色（跟随主题品牌色），而不是固定的绿色。
+.org-create-icon {
+  display: inline-block;
   width: 16px;
   height: 16px;
-  filter: brightness(0) invert(1);
+  flex-shrink: 0;
+  vertical-align: middle;
+  background-color: currentColor;
+  -webkit-mask-image: url("@/assets/img/organization.svg");
+  mask-image: url("@/assets/img/organization.svg");
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
 }
 
 .header-subtitle {
@@ -1249,48 +1261,15 @@ watch(keyword, () => { collapsedOrgSections.value = new Set() })
     line-height: 1;
   }
 
-  &.stat-member {
-    background: color-mix(in srgb, var(--td-text-color-secondary) 8%, transparent);
-    color: var(--td-text-color-secondary);
-
-    .t-icon {
-      color: var(--td-text-color-secondary);
-    }
-
-    &:hover {
-      background: color-mix(in srgb, var(--td-text-color-secondary) 12%, transparent);
-    }
-  }
-
-  &.stat-kb {
-    background: var(--td-bg-color-secondarycontainer);
-    color: var(--td-text-color-secondary);
-
-    .t-icon {
-      color: var(--td-text-color-secondary);
-    }
-
-    &:hover {
-      background: var(--td-bg-color-container-hover);
-    }
-  }
-
-  &.stat-agent {
-    background: color-mix(in srgb, var(--app-accent-purple) 8%, transparent);
-    color: var(--td-brand-color);
+  &.stat-kb .t-icon { color: var(--td-brand-color); }
 
     .stat-agent-icon {
       width: 14px;
       height: 14px;
       flex-shrink: 0;
-      /* 将绿色 icon 着色为紫色，与标签统一 */
+    /* 将绿色 icon 着色为紫色，与智能体能力色一致 */
       filter: brightness(0) saturate(100%) invert(48%) sepia(79%) saturate(2476%) hue-rotate(236deg);
     }
-
-    &:hover {
-      background: color-mix(in srgb, var(--app-accent-purple) 12%, transparent);
-    }
-  }
 }
 
 // 待审核角标：与 feature-badge 同高

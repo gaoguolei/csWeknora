@@ -31,14 +31,20 @@
   <body>
     <script>
       (function () {
-        var t = localStorage.getItem("WeKnora_theme") || "light";
+        var t = "light";
+        try {
+          var user = JSON.parse(localStorage.getItem("weknora_user") || "null");
+          var userId = user && user.id ? String(user.id) : "anon";
+          var savedTheme = localStorage.getItem("WeKnora_" + userId + "_theme");
+          if (["light", "dark", "system"].indexOf(savedTheme) !== -1) t = savedTheme;
+        } catch (_) {}
         if (t === "system")
           t = window.matchMedia("(prefers-color-scheme:dark)").matches
             ? "dark"
             : "light";
         document.documentElement.setAttribute("theme-mode", t);
-        /* 与 theme.css 中 --td-bg-color-page 一致，避免样式加载后整页背景从 #fff 跳到 #eee 触发重绘闪动 */
-        var bg = t === "dark" ? "#181818" : "#eee";
+        /* Match workspace-theme.css before the stylesheet loads. */
+        var bg = t === "dark" ? "#141414" : "#f8f8f6";
         document.documentElement.style.background = bg;
         document.documentElement.style.minHeight = "100%";
         document.documentElement.style.colorScheme =
@@ -51,11 +57,11 @@
             if (t === "dark") {
               if (w.WindowSetDarkTheme) w.WindowSetDarkTheme();
               if (w.WindowSetBackgroundColour)
-                w.WindowSetBackgroundColour(24, 24, 24, 255);
+                w.WindowSetBackgroundColour(20, 20, 20, 255);
             } else {
               if (w.WindowSetLightTheme) w.WindowSetLightTheme();
               if (w.WindowSetBackgroundColour)
-                w.WindowSetBackgroundColour(238, 238, 238, 255);
+                w.WindowSetBackgroundColour(248, 248, 246, 255);
             }
           }
         } catch (_) {}
@@ -100,12 +106,12 @@
     <div id="app"></div>
     <script>
       (function () {
-        var t = localStorage.getItem("WeKnora_theme") || "light";
+        var t = document.documentElement.getAttribute("theme-mode") || "light";
         if (t === "system")
           t = window.matchMedia("(prefers-color-scheme:dark)").matches
             ? "dark"
             : "light";
-        var bg = t === "dark" ? "#181818" : "#eee";
+        var bg = t === "dark" ? "#141414" : "#f8f8f6";
         var el = document.getElementById("app");
         if (el) {
           el.style.background = bg;

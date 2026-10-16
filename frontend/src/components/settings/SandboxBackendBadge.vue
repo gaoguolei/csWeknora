@@ -43,7 +43,7 @@ const badgeStyle = computed((): Record<string, string> => (
   flex-shrink: 0;
   border-radius: 9px;
   background: rgba(0, 82, 217, 0.1);
-  color: #0052d9;
+  color: var(--td-brand-color);
 }
 
 .sandbox-badge--md {
@@ -67,13 +67,13 @@ const badgeStyle = computed((): Record<string, string> => (
 }
 
 .sandbox-badge--e2b {
-  background: rgba(98, 53, 187, 0.1);
-  color: #6235bb;
+  background: color-mix(in srgb, var(--app-accent-purple) 10%, transparent);
+  color: var(--app-accent-purple);
 }
 
 .sandbox-badge--docker {
-  background: rgba(29, 99, 237, 0.1);
-  color: #1d63ed;
+  background: color-mix(in srgb, var(--td-brand-color) 10%, transparent);
+  color: var(--td-brand-color);
 }
 
 .sandbox-badge--mono::before {
@@ -100,7 +100,7 @@ const badgeStyle = computed((): Record<string, string> => (
 }
 
 .sandbox-badge--xs.sandbox-badge--mono::before {
-  width: 10px;
-  height: 10px;
+  width: 16px;
+  height: 16px;
 }
 </style>

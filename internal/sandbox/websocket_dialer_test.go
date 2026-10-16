@@ -9,7 +9,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
-	cubesandbox "github.com/tencentcloud/CubeSandbox/sdk/go"
 )
 
 // desktopEchoServer is a websockify stand-in: it records the handshake
@@ -164,95 +163,4 @@ func TestWebsocketDialerE2BConfiguredDomainWinsOverDefault(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = conn.Close() }()
 	require.Equal(t, "6080-sbx-1.sandbox.internal", seen.Host)
-}
-
-func TestE2BDialDesktopWithoutPoolIsUnsupported(t *testing.T) {
-	// NewE2BRemoteClientWithTransport has no pool, so it has no dialer. It
-	// must say "unsupported" rather than nil-panic.
-	client, err := NewE2BRemoteClientWithTransport(&Config{
-		Type: SandboxTypeE2B, E2BAPIKey: "k", E2BTemplate: "tpl",
-	}, nil)
-	require.NoError(t, err)
-
-	_, derr := client.DialDesktop(context.Background(), nil, RemoteDesktopOptions{})
-	require.Error(t, derr)
-	var remoteErr *RemoteError
-	require.ErrorAs(t, derr, &remoteErr)
-	require.Equal(t, RemoteErrorKindUnsupported, remoteErr.Kind)
-	require.Equal(t, "DialDesktop", remoteErr.Op)
-}
-
-func TestCubeDialDesktopReachesWebsockifyPath(t *testing.T) {
-	var seen http.Request
-	srv := desktopEchoServer(t, &seen)
-	defer srv.Close()
-
-	pool := NewSandboxGatewayTransportPoolWithPolicy(nil, OutboundURLPolicy{AllowPrivate: true})
-	pool.InboundTokens().Put("sbx-9", "tok-9")
-
-	cfg := &Config{
-		Type:                  SandboxTypeCube,
-		CubeAPIURL:            "http://127.0.0.1:33000",
-		CubeProxyURL:          srv.URL,
-		CubeSandboxDomain:     "cube.app",
-		AllowPrivateEndpoints: true,
-	}
-	client, err := NewCubeRemoteClientWithPool(cfg, pool)
-	require.NoError(t, err)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-	conn, err := client.DialDesktop(ctx,
-		&cubeRemoteHandle{sb: &cubesandbox.Sandbox{SandboxID: "sbx-9"}},
-		RemoteDesktopOptions{BasicAuthUser: "weknora", BasicAuthPassword: "s3cret"})
-	require.NoError(t, err)
-	defer func() { _ = conn.Close() }()
-
-	require.Equal(t, "/websockify", seen.URL.Path)
-	require.Equal(t, "6080-sbx-9.cube.app", seen.Host)
-	require.Equal(t, "tok-9", seen.Header.Get(InboundTokenHeader))
-	user, pass, ok := seen.BasicAuth()
-	require.True(t, ok)
-	require.Equal(t, "weknora", user)
-	require.Equal(t, "s3cret", pass)
-}
-
-func TestCubeDialDesktopUsesHandleTokenWhenRegistryEmpty(t *testing.T) {
-	// Cube exec/PTY attach the traffic token from the SDK sandbox object, so
-	// the terminal keeps working after a restart. DialDesktop used to read
-	// only the pool registry, which Cube Create/Connect never wrote — CubeProxy
-	// then 401'd the websockify handshake while envd still answered.
-	var seen http.Request
-	srv := desktopEchoServer(t, &seen)
-	defer srv.Close()
-
-	pool := NewSandboxGatewayTransportPoolWithPolicy(nil, OutboundURLPolicy{AllowPrivate: true})
-
-	cfg := &Config{
-		Type:                  SandboxTypeCube,
-		CubeAPIURL:            "http://127.0.0.1:33000",
-		CubeProxyURL:          srv.URL,
-		CubeSandboxDomain:     "cube.app",
-		AllowPrivateEndpoints: true,
-	}
-	client, err := NewCubeRemoteClientWithPool(cfg, pool)
-	require.NoError(t, err)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-	conn, err := client.DialDesktop(ctx,
-		&cubeRemoteHandle{sb: &cubesandbox.Sandbox{
-			SandboxID:          "sbx-9",
-			TrafficAccessToken: "from-handle",
-		}},
-		RemoteDesktopOptions{BasicAuthUser: "weknora", BasicAuthPassword: "s3cret"})
-	require.NoError(t, err)
-	defer func() { _ = conn.Close() }()
-
-	require.Equal(t, "from-handle", seen.Header.Get(InboundTokenHeader),
-		"websockify dial must carry the handle's traffic token even when the registry is empty")
-	user, pass, ok := seen.BasicAuth()
-	require.True(t, ok)
-	require.Equal(t, "weknora", user)
-	require.Equal(t, "s3cret", pass)
 }

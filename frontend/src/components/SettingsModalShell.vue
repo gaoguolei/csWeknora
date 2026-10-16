@@ -8,7 +8,7 @@
         :style="{ zIndex }"
         @click.self="emit('close')"
       >
-        <div class="settings-modal">
+        <div class="settings-modal" role="dialog" aria-modal="true" :aria-label="title">
           <div
             v-if="loading"
             class="editor-initializing"
@@ -50,9 +50,11 @@
                 <slot name="nav">
                   <template v-for="group in navGroups" :key="group.key">
                     <div class="nav-group-title">{{ group.label }}</div>
-                    <div
+                    <button
                       v-for="item in group.items"
                       :key="item.key"
+                      type="button"
+                      :aria-current="modelValue === item.key ? 'page' : undefined"
                       :class="['nav-item', { active: modelValue === item.key }]"
                       :data-guide="
                         navItemGuidePrefix
@@ -74,7 +76,7 @@
                         :class="['nav-badge', item.badgeClass]"
                         >{{ item.badge }}</span
                       >
-                    </div>
+                    </button>
                   </template>
                 </slot>
               </nav>
@@ -169,7 +171,7 @@ function showBadge(item: SettingsModalNavItem): boolean {
 .settings-modal-shell.settings-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--app-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -180,15 +182,17 @@ function showBadge(item: SettingsModalNavItem): boolean {
 
 .settings-modal-shell {
   .settings-modal {
+    box-sizing: border-box;
     position: relative;
     width: 100%;
     // 1080×780：给成员表 / 系统设置这类多列内容留足空间；外层 20px padding 后 1120，
     // 1280+ 的笔记本都放得下；更窄的视口由 width: 100% 收缩。
     max-width: 1080px;
     height: 780px;
-    max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - 40px);
     background: var(--td-bg-color-container);
-    border-radius: var(--app-radius-xl);
+    border: 1px solid var(--td-component-stroke);
+    border-radius: var(--app-radius-2xl);
     box-shadow: var(--td-shadow-3);
     overflow: hidden;
     display: flex;
@@ -248,15 +252,16 @@ function showBadge(item: SettingsModalNavItem): boolean {
   }
 
   .sidebar-header {
-    padding: 16px 14px 12px;
+    padding: 24px 20px 20px;
     border-bottom: 1px solid var(--td-component-stroke);
     flex-shrink: 0;
   }
 
   .sidebar-title {
     margin: 0;
-    font-size: var(--app-text-xl);
-    font-weight: 600;
+    font-family: var(--app-font-family-display);
+    font-size: var(--app-text-4xl);
+    font-weight: 500;
     color: var(--td-text-color-primary);
   }
 
@@ -297,11 +302,18 @@ function showBadge(item: SettingsModalNavItem): boolean {
   }
 
   .nav-item {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+    min-height: 38px;
     display: flex;
     align-items: center;
     padding: 6px 12px;
     margin-bottom: 2px;
-    border-radius: var(--app-radius-sm);
+    border-radius: var(--app-radius-md);
     cursor: pointer;
     transition:
       background-color var(--app-motion-base) ease,
@@ -316,9 +328,15 @@ function showBadge(item: SettingsModalNavItem): boolean {
     }
 
     &.active {
-      background-color: var(--td-bg-color-secondarycontainer);
+      background-color: var(--app-selection-bg);
+      border-color: var(--td-component-stroke);
       color: var(--td-brand-color);
       font-weight: 500;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--app-focus-border);
+      outline-offset: -2px;
     }
   }
 
@@ -442,6 +460,27 @@ function showBadge(item: SettingsModalNavItem): boolean {
     gap: 12px;
     flex-shrink: 0;
   }
+}
+
+@media (max-width: 720px) {
+  .settings-modal-shell.settings-overlay { padding: 8px; }
+  .settings-modal-shell {
+    .settings-modal { height: calc(100dvh - 16px); max-height: calc(100dvh - 16px); }
+    .settings-container { flex-direction: column; }
+    .settings-sidebar { width: 100%; max-height: 180px; border-right: 0; border-bottom: 1px solid var(--td-component-stroke); }
+    .sidebar-header { padding: 16px 48px 12px 20px; border-bottom: 0; }
+    .sidebar-title { font-size: var(--app-text-3xl); }
+    .settings-nav { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 12px 12px; }
+    .nav-group-title { display: none; }
+    .nav-item { width: auto; flex-shrink: 0; margin: 0; font-size: var(--app-text-md); }
+    .settings-footer { padding: 16px; flex-wrap: wrap; }
+    .settings-footer-actions { flex-wrap: wrap; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-modal-shell-leave-active,
+  .settings-modal-shell-leave-active .settings-modal { transition: none; }
 }
 
 .settings-modal-shell-leave-active {

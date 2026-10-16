@@ -17,8 +17,8 @@
 }
 
 :root[theme-mode="dark"] .wk-popover .t-popup__content {
-  background: rgba(36, 36, 36, 0.92);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: var(--td-bg-color-container);
+  border-color: var(--td-component-stroke);
 }
 
 // .wk-popover clips to its rounded corners with overflow:hidden, which also
@@ -27,6 +27,19 @@
 // Restore vertical scrolling for any select wearing this skin; the horizontal
 // axis stays clipped, which is what the rounded corners needed.
 .t-select__dropdown.wk-popover .t-popup__content {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+// The skin's padding:0 suits menus, whose items bring their own spacing. A popup
+// that holds a form (invite, create user, change password) has no such inner
+// padding, so add `wk-popover--form` next to `wk-popover` to give it the frame
+// back, and let a tall form scroll instead of being clipped.
+.wk-popover.wk-popover--form .t-popup__content {
+  padding: 14px 16px;
+  min-width: 300px;
+  max-width: min(392px, calc(100vw - 24px));
+  max-height: min(480px, calc(100vh - 96px));
   overflow-y: auto;
   overscroll-behavior: contain;
 }

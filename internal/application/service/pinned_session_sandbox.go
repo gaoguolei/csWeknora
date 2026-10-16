@@ -212,6 +212,42 @@ func (a *PinnedSessionSandbox) HasActiveTurn(ctx context.Context, sessionID stri
 	return false, nil
 }
 
+// RequireRunningWorkspace is lookup-only, including when the panel is polling.
+func (a *PinnedSessionSandbox) RequireRunningWorkspace(ctx context.Context, sessionID string) error {
+	mgr := a.workspaceManager(ctx, sessionID)
+	if mgr == nil {
+		return sandbox.ErrNoLiveSessionSandbox
+	}
+	return requireRunningSessionSandbox(ctx, mgr, sessionID)
+}
+
+func (a *PinnedSessionSandbox) HoldTestExecution(ctx context.Context, sessionID string) (func(), error) {
+	mgr := a.workspaceManager(ctx, sessionID)
+	if mgr == nil {
+		return nil, sandbox.ErrNoLiveSessionSandbox
+	}
+	type holder interface {
+		BeginSessionTurn(context.Context, string) error
+		EndSessionTurn(context.Context, string) error
+	}
+	release := func() {}
+	if h, ok := mgr.(holder); ok {
+		if err := h.BeginSessionTurn(ctx, sessionID); err != nil {
+			return nil, err
+		}
+		release = func() { _ = h.EndSessionTurn(context.WithoutCancel(ctx), sessionID) }
+	}
+	if keeper, ok := mgr.(interface {
+		KeepSessionAlive(context.Context, string) error
+	}); ok {
+		if err := keeper.KeepSessionAlive(ctx, sessionID); err != nil {
+			release()
+			return nil, err
+		}
+	}
+	return release, nil
+}
+
 // TryLockRewind takes an exclusive rewind lock through the session's pinned
 // manager. Managers that do not expose the method succeed as a no-op.
 func (a *PinnedSessionSandbox) TryLockRewind(ctx context.Context, sessionID string) (func(), error) {

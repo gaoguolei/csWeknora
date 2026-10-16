@@ -181,16 +181,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	logger.Info(ctx, "Start user registration")
 
-	// 当 auth.registration_mode=invite_only 时，public 注册被关闭。
-	// 优先级：DB system_settings > cfg.Auth.RegistrationMode > "self_serve"。
-	// SystemAdmin 通过「全局设置」UI 实时切换 self_serve / invite_only，立即
-	// 生效，不需要重启服务。历史变量 DISABLE_REGISTRATION=true 仍在 config
-	// 启动阶段被等价提升为 invite_only（applyAuthAndTenantDefaults），
-	// 作为 cfg-default 进入 resolveRegistrationMode。
-	if h.resolveRegistrationMode(ctx) == config.AuthRegistrationModeInviteOnly {
-		logger.Warn(ctx, "Registration rejected: auth.registration_mode=invite_only")
-		appErr := errors.NewForbiddenError("Registration is invite-only")
-		c.Error(appErr)
+	// Only self_serve permits registration without an invitation. Resolve
+	// each request so system-settings changes take effect immediately.
+	if h.resolveRegistrationMode(ctx) != config.AuthRegistrationModeSelfServe {
+		logger.Warn(ctx, "Public registration rejected by auth.registration_mode")
+		_ = c.Error(errors.NewForbiddenError("Public registration is disabled"))
 		return
 	}
 
@@ -695,6 +690,12 @@ type updateMyPreferencesRequest struct {
 	// login, not here. Nil = field omitted from the PATCH and stays
 	// untouched.
 	LastActiveTenantID *uint64 `json:"last_active_tenant_id"`
+	// SessionFolders carries the sidebar "项目" folder layout of the active
+	// workspace so it survives a device switch. The SPA sends exactly one
+	// workspace key per request; the service merges per key, so a request
+	// never clobbers the workspaces it did not mention. Nil = field omitted
+	// from the PATCH and the stored layout stays untouched.
+	SessionFolders *types.SessionFolders `json:"session_folders"`
 }
 
 // UpdateMyPreferences godoc
@@ -730,6 +731,7 @@ func (h *AuthHandler) UpdateMyPreferences(c *gin.Context) {
 	patch := types.UserPreferences{
 		LastActiveTenantID:        req.LastActiveTenantID,
 		BrowserSearchInstructions: req.BrowserSearchInstructions,
+		SessionFolders:            req.SessionFolders,
 	}
 	prefs, err := h.userService.UpdateUserPreferences(ctx, user.ID, patch)
 	if err != nil {

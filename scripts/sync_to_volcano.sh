@@ -120,10 +120,10 @@ do_login() {
 # =============================================================================
 SOURCE="docker.io/wechatopenai/weknora-sandbox"
 
-# 需要的 tags: 桌面 Cube 变体 + 标准 Cube 变体（可选）
+# 标准 Cube 模板镜像 tags
 TAGS=(
-    "main-desktop-cube"
-    "latest-desktop-cube"
+    "main-cube"
+    "latest-cube"
 )
 
 check_source() {
@@ -195,25 +195,10 @@ main() {
     echo -e "${GREEN}================================================${NC}"
 
     if [[ "$copied" -gt 0 ]]; then
-        local desktop_image="${DEST_PREFIX}:main-desktop-cube"
         echo ""
-        log_info "=== 下一步：配置 WeKnora ==="
-        echo ""
-        echo "在 WeKnora 管理后台:"
-        echo "  「设置 → 沙箱 → 编辑 → 模板」"
-        echo ""
-        echo "  桌面模板构建镜像 填入:"
-        echo "  ${desktop_image}"
-        echo ""
-        echo "  然后在失败的桌面模板卡片上点击「重建」"
-        echo ""
-        echo "或者通过 API:"
-        echo '  PATCH /api/v1/workspaces/{id}/sandbox'
-        echo '  {'
-        echo '    "cube": {'
-        echo '      "desktop_template_image": "'${desktop_image}'"'
-        echo '    }'
-        echo '  }'
+        log_info "标准 Cube 镜像已同步，请在集群构建模板后，在 WeKnora 中选择新模板。"
+        echo "  ${DEST_PREFIX}:main-cube"
+
     fi
 }
 

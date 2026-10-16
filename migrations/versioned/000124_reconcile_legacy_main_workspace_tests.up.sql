@@ -1,0 +1,28 @@
+-- Reconcile main version 114 (operations_admin) with dev version 114 (workspace_test_runs).
+-- Preserve recorded history, existing reports and control flags.
+
+CREATE TABLE IF NOT EXISTS workspace_test_runs (
+    id VARCHAR(36) PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    user_id VARCHAR(255) NOT NULL,
+    session_id VARCHAR(36) NOT NULL,
+    project_id VARCHAR(64) NOT NULL DEFAULT '',
+    sandbox_id VARCHAR(255) NOT NULL DEFAULT '',
+    status VARCHAR(32) NOT NULL,
+    runner_started BOOLEAN NOT NULL DEFAULT false,
+    cancel_requested BOOLEAN NOT NULL DEFAULT false,
+    request TEXT NOT NULL DEFAULT '{}',
+    result TEXT NOT NULL DEFAULT '{}',
+    report_message_id VARCHAR(36) NOT NULL DEFAULT '',
+    report_error TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_workspace_test_runs_history ON workspace_test_runs (tenant_id, user_id, session_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_test_runs_active ON workspace_test_runs (tenant_id, session_id) WHERE status IN ('queued', 'preparing', 'running', 'cancelling');
+
+-- Some development databases applied 000114 before these fields were added.
+-- A completed migration is never replayed, so repair existing tables here.
+ALTER TABLE IF EXISTS workspace_test_runs
+    ADD COLUMN IF NOT EXISTS runner_started BOOLEAN NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS cancel_requested BOOLEAN NOT NULL DEFAULT false;

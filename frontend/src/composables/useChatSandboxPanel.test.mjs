@@ -81,3 +81,17 @@ test('both answer renderers toggle folders while retaining explicit preview open
     assert.match(component, /else\s*\{\s*sandboxPanel\.open\('artifacts',/)
   }
 })
+
+
+test('new panels open preview by default and reopening keeps the explicit tab', () => {
+  const panel = createPanel()
+  panel.open()
+  assert.equal(panel.activeTab.value, 'preview')
+  panel.close()
+  panel.open()
+  assert.equal(panel.activeTab.value, 'preview')
+  panel.open('source')
+  panel.close()
+  panel.open()
+  assert.equal(panel.activeTab.value, 'source')
+})

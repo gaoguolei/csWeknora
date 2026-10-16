@@ -2,7 +2,8 @@
     <div class="main" ref="dropzone" :style="{ '--sidebar-width': `${uiStore.sidebarDisplayWidth}px` }">
         <Menu></Menu>
         <div v-if="isRouterAlive" class="platform-route-outlet">
-            <RouterView />
+            <!-- Settings is mounted once below; its route only controls visibility. -->
+            <RouterView v-if="route.name !== 'settings'" />
         </div>
         <div class="upload-mask" v-show="ismask">
             <UploadMask></UploadMask>
@@ -269,7 +270,7 @@ onUnmounted(() => {
 }
 
 .upload-mask {
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: color-mix(in srgb, var(--td-bg-color-container) 80%, transparent);
     position: fixed;
     width: 100%;
     height: 100%;

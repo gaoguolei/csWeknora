@@ -76,9 +76,7 @@ func configHasSkillSnapshot(cfg *types.TenantSandboxConfig) bool {
 }
 
 // skillRetargetWouldChange reports edits that would retarget the environment
-// a skill snapshot is built from: identity, spawn template, Cube DNS, or the
-// desktop/CLI base bit. Flipping DesktopEnabled changes the image generation
-// skills were stacked on, so installed skills must be rebuilt.
+// a skill snapshot is built from: identity, spawn template, or Cube DNS.
 func skillRetargetWouldChange(stored, merged *types.TenantSandboxConfig) bool {
 	if SandboxIdentityChanged(stored, merged) {
 		return true
@@ -86,14 +84,8 @@ func skillRetargetWouldChange(stored, merged *types.TenantSandboxConfig) bool {
 	if spawnTemplateID(stored) != spawnTemplateID(merged) {
 		return true
 	}
-	if desktopEnabledOf(stored) != desktopEnabledOf(merged) {
-		return true
-	}
-	return !sameStrings(cubeDNSServers(stored), cubeDNSServers(merged))
-}
 
-func desktopEnabledOf(cfg *types.TenantSandboxConfig) bool {
-	return cfg != nil && cfg.DesktopEnabled
+	return !sameStrings(cubeDNSServers(stored), cubeDNSServers(merged))
 }
 
 // spawnTemplateID is the template/image this config would boot without a
@@ -281,15 +273,13 @@ type SandboxTemplateQueryInput struct {
 	ConfigID        string
 	EnsureStandard  bool
 	ReplaceStandard bool
-	EnsureDesktop   bool
-	ReplaceDesktop  bool
 }
 
 type SandboxTemplateCatalog struct {
 	Templates          []sandbox.RemoteTemplate `json:"templates"`
 	StandardTemplateID string                   `json:"standard_template_id,omitempty"`
-	DesktopTemplateID  string                   `json:"desktop_template_id,omitempty"`
-	Provisioned        bool                     `json:"provisioned"`
+
+	Provisioned bool `json:"provisioned"`
 }
 
 // SandboxConfigAgentRepo is the slice of the agent repository this service
@@ -547,7 +537,7 @@ func (s *TenantSandboxConfigService) Get(
 }
 
 // QueryTemplates reads the provider's template catalog and, when asked,
-// installs the published WeKnora CLI and desktop images if that cluster has
+// installs the published WeKnora execution image if that cluster has
 // none. Credentials come from the workspace connection, not env vars.
 func (s *TenantSandboxConfigService) QueryTemplates(
 	ctx context.Context, tenantID uint64, in SandboxTemplateQueryInput,
@@ -556,10 +546,7 @@ func (s *TenantSandboxConfigService) QueryTemplates(
 		return nil, apperrors.NewBadRequestError(
 			"config_id is required to rebuild the standard template")
 	}
-	if in.ReplaceDesktop && strings.TrimSpace(in.ConfigID) == "" {
-		return nil, apperrors.NewBadRequestError(
-			"config_id is required to rebuild the desktop template")
-	}
+
 	var existing *types.TenantSandboxConfig
 	if strings.TrimSpace(in.ConfigID) != "" {
 		entity, err := s.repo.GetByID(ctx, tenantID, in.ConfigID)
@@ -578,7 +565,7 @@ func (s *TenantSandboxConfigService) QueryTemplates(
 	if merged == nil {
 		return nil, apperrors.NewBadRequestError("sandbox config is required")
 	}
-	if in.ReplaceStandard || in.ReplaceDesktop {
+	if in.ReplaceStandard {
 		if err := s.refuseClusterSkillTemplateReplace(ctx, tenantID, merged); err != nil {
 			return nil, err
 		}
@@ -650,11 +637,8 @@ func (s *TenantSandboxConfigService) QueryTemplates(
 		result.StandardTemplateID = usable.ID
 	}
 	oldStandardIDs := standardTemplateIDs(result.Templates)
-	// Missing first-party templates are filled from the published Hub images
-	// (ensure_standard / ensure_desktop). That is idempotent while a usable
-	// template already exists, so a catalog refresh cannot apply a new DNS or
-	// image spec — replace_standard / replace_desktop remains the explicit
-	// rebuild.
+	// Explicit provisioning uses the published standard image. Refreshing a
+	// usable template is read-only; spec changes require replace_standard.
 	wantStandard := in.ReplaceStandard || (in.EnsureStandard && usable == nil)
 	if wantStandard {
 		op := "ensure"
@@ -698,78 +682,12 @@ func (s *TenantSandboxConfigService) QueryTemplates(
 			}
 		}
 	}
-	usableDesktop := pickDesktopTemplate(result.Templates)
-	if usableDesktop != nil {
-		result.DesktopTemplateID = usableDesktop.ID
-	}
-	oldDesktopIDs := desktopTemplateIDs(result.Templates)
-	wantDesktop := in.ReplaceDesktop || (in.EnsureDesktop && usableDesktop == nil)
-	if wantDesktop {
-		desktopCatalog, ok := any(client).(sandbox.RemoteDesktopTemplateCatalog)
-		if !ok {
-			if in.ReplaceDesktop {
-				return nil, fmt.Errorf("sandbox: provider %q does not expose desktop templates", effective.Type)
-			}
-		} else {
-			op := "ensure-desktop"
-			if in.ReplaceDesktop {
-				op = "replace-desktop"
-			}
-			key := op + ":" + ensureTemplateKey(tenantID, sandbox.IdentityOf(merged))
-			ensured, ensureErr, _ := s.ensureTemplate.Do(key, func() (any, error) {
-				if in.ReplaceDesktop {
-					return desktopCatalog.ReplaceDesktopTemplate(ctx)
-				}
-				return desktopCatalog.EnsureDesktopTemplate(ctx)
-			})
-			if ensureErr != nil {
-				if in.ReplaceDesktop {
-					return nil, ensureErr
-				}
-				logger.Warnf(ctx, "[sandbox] ensure desktop template: %v", ensureErr)
-			} else {
-				desktop, ok := ensured.(*sandbox.RemoteTemplate)
-				if !ok || desktop == nil {
-					if in.ReplaceDesktop {
-						return nil, fmt.Errorf("sandbox: provider %q returned no desktop template", effective.Type)
-					}
-					logger.Warnf(ctx, "[sandbox] ensure desktop template: provider %q returned no desktop template",
-						effective.Type)
-				} else {
-					result.Templates = deduplicateSandboxTemplates(append(result.Templates, *desktop))
-					if sandbox.IsTemplateReady(desktop.Status) {
-						result.Provisioned = true
-						if in.ReplaceDesktop {
-							persistErr := s.persistSpawnTemplateID(ctx, tenantID, merged, desktop.ID, oldDesktopIDs)
-							if persistErr != nil {
-								logger.Warnf(ctx,
-									"[sandbox] persist rebuilt desktop template id: %v; keeping previous templates",
-									persistErr)
-							} else {
-								result.DesktopTemplateID = desktop.ID
-								result.Templates = hideSupersededDesktopTemplates(result.Templates, desktop.ID)
-								s.deleteSupersededDesktopTemplates(ctx, desktopCatalog, desktop.ID)
-							}
-						} else {
-							result.DesktopTemplateID = desktop.ID
-						}
-					} else if !sandbox.IsTemplateBuildFailed(desktop.Status) {
-						result.Provisioned = true
-						if result.DesktopTemplateID == "" {
-							result.DesktopTemplateID = desktop.ID
-						}
-					}
-				}
-			}
-		}
-	}
+
 	sort.SliceStable(result.Templates, func(i, j int) bool {
 		if result.Templates[i].Standard != result.Templates[j].Standard {
 			return result.Templates[i].Standard
 		}
-		if result.Templates[i].Desktop != result.Templates[j].Desktop {
-			return result.Templates[i].Desktop
-		}
+
 		return strings.ToLower(result.Templates[i].Name) < strings.ToLower(result.Templates[j].Name)
 	})
 	return result, nil
@@ -797,30 +715,6 @@ func standardTemplateIDs(items []sandbox.RemoteTemplate) []string {
 		}
 	}
 	return out
-}
-
-func desktopTemplateIDs(items []sandbox.RemoteTemplate) []string {
-	out := make([]string, 0, len(items))
-	for _, item := range items {
-		if item.Desktop {
-			if id := strings.TrimSpace(item.ID); id != "" {
-				out = append(out, id)
-			}
-		}
-	}
-	return out
-}
-
-func hideSupersededDesktopTemplates(items []sandbox.RemoteTemplate, keepID string) []sandbox.RemoteTemplate {
-	keepID = strings.TrimSpace(keepID)
-	kept := make([]sandbox.RemoteTemplate, 0, len(items))
-	for _, item := range items {
-		if item.Desktop && strings.TrimSpace(item.ID) != keepID {
-			continue
-		}
-		kept = append(kept, item)
-	}
-	return kept
 }
 
 func (s *TenantSandboxConfigService) refuseClusterSkillTemplateReplace(
@@ -933,17 +827,6 @@ func (s *TenantSandboxConfigService) deleteSupersededStandardTemplates(
 	}
 }
 
-func (s *TenantSandboxConfigService) deleteSupersededDesktopTemplates(
-	ctx context.Context, catalog sandbox.RemoteDesktopTemplateCatalog, keepID string,
-) {
-	if catalog == nil || strings.TrimSpace(keepID) == "" {
-		return
-	}
-	if err := catalog.DeleteSupersededDesktopTemplates(ctx, keepID); err != nil {
-		logger.Warnf(ctx, "[sandbox] delete superseded desktop templates failed: %v", err)
-	}
-}
-
 func setSpawnTemplateID(cfg *types.TenantSandboxConfig, id string) {
 	if cfg == nil {
 		return
@@ -967,19 +850,6 @@ func pickStandardTemplate(items []sandbox.RemoteTemplate) *sandbox.RemoteTemplat
 	var best *sandbox.RemoteTemplate
 	for i := range items {
 		if !items[i].Standard || sandbox.IsTemplateBuildFailed(items[i].Status) {
-			continue
-		}
-		if best == nil || templateStatusRank(items[i].Status) > templateStatusRank(best.Status) {
-			best = &items[i]
-		}
-	}
-	return best
-}
-
-func pickDesktopTemplate(items []sandbox.RemoteTemplate) *sandbox.RemoteTemplate {
-	var best *sandbox.RemoteTemplate
-	for i := range items {
-		if !items[i].Desktop || sandbox.IsTemplateBuildFailed(items[i].Status) {
 			continue
 		}
 		if best == nil || templateStatusRank(items[i].Status) > templateStatusRank(best.Status) {
@@ -1018,7 +888,6 @@ func deduplicateSandboxTemplates(items []sandbox.RemoteTemplate) []sandbox.Remot
 		}
 		current := &result[idx]
 		current.Standard = current.Standard || item.Standard
-		current.Desktop = current.Desktop || item.Desktop
 		if templateStatusRank(item.Status) > templateStatusRank(current.Status) {
 			current.Status = item.Status
 			current.Version = item.Version

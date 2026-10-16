@@ -6,12 +6,18 @@
           <ResourceIcon type="artifact" :size="24" />
           {{ $t('artifactLibrary.title') }}
         </h2>
-        <p class="header-subtitle" style="--wails-draggable: drag">{{ $t('artifactLibrary.subtitle') }}</p>
+        <p class="header-subtitle" style="--wails-draggable: drag">
+          {{ $t('artifactLibrary.subtitle') }}
+        </p>
       </div>
     </div>
 
     <div class="toolbar">
-      <div class="category-tabs" role="tablist" :aria-label="$t('artifactLibrary.typeFilter')">
+      <div
+        class="category-tabs"
+        role="tablist"
+        :aria-label="$t('artifactLibrary.typeFilter')"
+      >
         <button
           v-for="c in ARTIFACT_CATEGORIES"
           :key="c"
@@ -37,8 +43,15 @@
     <div ref="scrollRoot" class="library-main">
       <div v-if="loading && !items.length" class="artifact-rows">
         <div v-for="n in 6" :key="'skel-' + n" class="artifact-row is-skeleton">
-          <t-skeleton animation="gradient" :row-col="[[{ width: '32px', height: '38px', type: 'rect' },
-            { width: '40%', height: '14px' }]]" />
+          <t-skeleton
+            animation="gradient"
+            :row-col="[
+              [
+                { width: '32px', height: '38px', type: 'rect' },
+                { width: '40%', height: '14px' },
+              ],
+            ]"
+          />
         </div>
       </div>
 
@@ -47,7 +60,9 @@
         icon="error-circle"
         :title="$t('artifactLibrary.loadFailed')"
       >
-        <t-button variant="outline" @click="reload">{{ $t('artifactLibrary.retry') }}</t-button>
+        <t-button variant="outline" @click="reload">{{
+          $t('artifactLibrary.retry')
+        }}</t-button>
       </EmptyState>
 
       <EmptyState
@@ -56,7 +71,9 @@
         :title="$t('artifactLibrary.noMatches.title')"
         :description="$t('artifactLibrary.noMatches.description')"
       >
-        <t-button variant="outline" @click="clearFilters">{{ $t('artifactLibrary.clearFilters') }}</t-button>
+        <t-button variant="outline" @click="clearFilters">{{
+          $t('artifactLibrary.clearFilters')
+        }}</t-button>
       </EmptyState>
 
       <EmptyState
@@ -67,9 +84,17 @@
       />
 
       <template v-else>
-        <div class="result-count">{{ $t('artifactLibrary.total', { count: total }) }}</div>
-        <section v-for="section in sections" :key="section.group" class="date-section">
-          <h3 class="date-heading">{{ $t(`artifactLibrary.groups.${section.group}`) }}</h3>
+        <div class="result-count">
+          {{ $t('artifactLibrary.total', { count: total }) }}
+        </div>
+        <section
+          v-for="section in sections"
+          :key="section.group"
+          class="date-section"
+        >
+          <h3 class="date-heading">
+            {{ $t(`artifactLibrary.groups.${section.group}`) }}
+          </h3>
           <ul class="artifact-rows">
             <li
               v-for="item in section.items"
@@ -77,10 +102,16 @@
               class="artifact-row"
               @click="openPreview(item)"
             >
-              <button type="button" class="artifact-open" :title="$t('artifactLibrary.preview')">
+              <button
+                type="button"
+                class="artifact-open"
+                :title="$t('artifactLibrary.preview')"
+              >
                 <ArtifactFileIcon :file-name="item.file_name" />
                 <span class="artifact-body">
-                  <span class="artifact-name" :title="item.file_name">{{ item.file_name }}</span>
+                  <span class="artifact-name" :title="item.file_name">{{
+                    item.file_name
+                  }}</span>
                   <span class="artifact-meta">
                     <span>{{ formatArtifactSize(item.file_size) }}</span>
                     <span class="meta-sep">·</span>
@@ -88,7 +119,11 @@
                     <template v-if="item.version_count > 1">
                       <span class="meta-sep">·</span>
                       <span class="version-badge">
-                        {{ $t('artifactLibrary.versions', { count: item.version_count }) }}
+                        {{
+                          $t('artifactLibrary.versions', {
+                            count: item.version_count,
+                          })
+                        }}
                       </span>
                     </template>
                   </span>
@@ -101,7 +136,9 @@
                 @click.stop="openSession(item)"
               >
                 <t-icon name="chat" size="14px" />
-                <span>{{ item.session_title || $t('artifactLibrary.untitledSession') }}</span>
+                <span>{{
+                  item.session_title || $t('artifactLibrary.untitledSession')
+                }}</span>
               </button>
               <t-button
                 class="row-action"
@@ -113,7 +150,9 @@
                 :loading="isDownloading(item)"
                 @click.stop="handleDownload(item)"
               >
-                <template #icon><t-icon name="download" size="16px" /></template>
+                <template #icon
+                  ><t-icon name="download" size="16px"
+                /></template>
               </t-button>
               <t-button
                 class="row-action row-action--danger"
@@ -153,12 +192,24 @@
     >
       <template #header>
         <div v-if="previewItem" class="preview-header">
-          <ArtifactFileIcon class="preview-header-icon" :file-name="previewItem.file_name" />
+          <ArtifactFileIcon
+            class="preview-header-icon"
+            :file-name="previewItem.file_name"
+          />
           <div class="preview-header-text">
-            <div class="preview-header-title" :title="previewItem.file_name">{{ previewItem.file_name }}</div>
-            <button type="button" class="session-link session-link--inline" @click="openSession(previewItem)">
+            <div class="preview-header-title" :title="previewItem.file_name">
+              {{ previewItem.file_name }}
+            </div>
+            <button
+              type="button"
+              class="session-link session-link--inline"
+              @click="openSession(previewItem)"
+            >
               <t-icon name="chat" size="12px" />
-              <span>{{ previewItem.session_title || $t('artifactLibrary.untitledSession') }}</span>
+              <span>{{
+                previewItem.session_title ||
+                $t('artifactLibrary.untitledSession')
+              }}</span>
             </button>
           </div>
           <div ref="previewActions" class="preview-actions" />
@@ -222,7 +273,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { downloadArtifact } from '@/api/chat'
-import { deleteArtifactLibraryItem, listArtifactLibrary, type ArtifactLibraryItem } from '@/api/artifacts'
+import {
+  deleteArtifactLibraryItem,
+  listArtifactLibrary,
+  type ArtifactLibraryItem,
+} from '@/api/artifacts'
 import {
   ARTIFACT_CATEGORIES,
   artifactCategoryExtensions,
@@ -230,7 +285,10 @@ import {
   parseArtifactCategory,
   type ArtifactCategory,
 } from '@/utils/artifactLibrary'
-import { formatArtifactDateTime, formatArtifactSize } from '@/utils/sessionArtifacts'
+import {
+  formatArtifactDateTime,
+  formatArtifactSize,
+} from '@/utils/sessionArtifacts'
 import { resolveFilePreviewExt } from '@/utils/filePreview'
 import { useConfirmDelete } from '@/components/settings/useConfirmDelete'
 import EmptyState from '@/components/EmptyState.vue'
@@ -263,7 +321,9 @@ const sentinel = ref<HTMLElement | null>(null)
 
 const sections = computed(() => groupArtifactsByDate(items.value))
 const hasMore = computed(() => items.value.length < total.value)
-const isFiltered = computed(() => category.value !== 'all' || keyword.value.trim() !== '')
+const isFiltered = computed(
+  () => category.value !== 'all' || keyword.value.trim() !== '',
+)
 const previewFileType = computed(() => {
   const item = previewItem.value
   return item ? resolveFilePreviewExt(item.file_name, item.file_type) : ''
@@ -293,9 +353,13 @@ async function fetchPage(nextPage: number) {
       items.value = rows
     } else {
       const shown = new Set(items.value.map(itemKey))
-      items.value = [...items.value, ...rows.filter((row) => !shown.has(itemKey(row)))]
+      items.value = [
+        ...items.value,
+        ...rows.filter((row) => !shown.has(itemKey(row))),
+      ]
     }
-    total.value = typeof res?.total === 'number' ? res.total : items.value.length
+    total.value =
+      typeof res?.total === 'number' ? res.total : items.value.length
     page.value = nextPage
   } catch (err) {
     if (mine !== ticket) return
@@ -378,7 +442,11 @@ async function handleDownload(item: ArtifactLibraryItem) {
   if (downloading[key]) return
   downloading[key] = true
   try {
-    const blob = await downloadArtifact(item.session_id, item.message_id, item.index)
+    const blob = await downloadArtifact(
+      item.session_id,
+      item.message_id,
+      item.index,
+    )
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -408,7 +476,10 @@ function handleDelete(item: ArtifactLibraryItem) {
     title: t('artifactLibrary.deleteTitle'),
     body:
       item.version_count > 1
-        ? t('artifactLibrary.deleteConfirmVersions', { name: item.file_name, count: item.version_count })
+        ? t('artifactLibrary.deleteConfirmVersions', {
+            name: item.file_name,
+            count: item.version_count,
+          })
         : t('artifactLibrary.deleteConfirm', { name: item.file_name }),
     onConfirm: () => performDelete(item),
   })
@@ -427,7 +498,8 @@ async function performDelete(item: ArtifactLibraryItem) {
       items.value.splice(at, 1)
       total.value = Math.max(0, total.value - 1)
     }
-    if (previewItem.value && itemKey(previewItem.value) === key) previewVisible.value = false
+    if (previewItem.value && itemKey(previewItem.value) === key)
+      previewVisible.value = false
     MessagePlugin.success(t('artifactLibrary.deleted'))
   } catch (err) {
     console.error('[ArtifactLibrary] delete failed:', err)
@@ -449,7 +521,8 @@ onMounted(() => {
   if (typeof IntersectionObserver !== 'undefined') {
     observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((e) => e.isIntersecting) && !loadError.value) loadMore()
+        if (entries.some((e) => e.isIntersecting) && !loadError.value)
+          loadMore()
       },
       { root: scrollRoot.value, rootMargin: '200px' },
     )
@@ -466,30 +539,26 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="less">
+@import (reference) '@/components/css/workspace-page.less';
 @import '@/components/css/artifact-filter-tabs.less';
+@import (reference) '@/components/css/resource-card.less';
 
 .artifact-library {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  margin: 0 16px 0 0;
-  padding: 20px 28px 0;
+  .workspace-page();
 }
 
 .header {
+  .workspace-page-header();
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   flex-shrink: 0;
 
   .header-title {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
   }
 
   h2 {
@@ -498,10 +567,7 @@ onBeforeUnmount(() => {
     gap: 8px;
     margin: 0;
     color: var(--td-text-color-primary);
-    font-family: var(--app-font-family);
-    font-size: var(--app-text-4xl);
-    font-weight: 600;
-    line-height: 32px;
+    .workspace-page-title();
   }
 }
 
@@ -523,13 +589,23 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid var(--td-component-stroke);
 }
 
+// 与右侧 32px 的搜索框同高：3px 内边距 × 2 + 26px 按钮
 .category-tabs {
   .artifact-filter-tabs();
+  button {
+    display: inline-flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 12px;
+  }
 }
 
 .search-input {
   width: 260px;
   max-width: 100%;
+  :deep(.t-input) {
+    border-radius: var(--app-radius-sm);
+  }
 }
 
 .library-main {
@@ -539,7 +615,7 @@ onBeforeUnmount(() => {
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  padding: var(--app-space-3) 0 var(--app-space-6);
+  padding: var(--app-space-5) 0 var(--app-space-8);
 }
 
 .result-count {
@@ -658,7 +734,9 @@ onBeforeUnmount(() => {
   font: inherit;
   font-size: var(--app-text-sm);
   cursor: pointer;
-  transition: background var(--app-motion-fast) ease, color var(--app-motion-fast) ease;
+  transition:
+    background var(--app-motion-fast) ease,
+    color var(--app-motion-fast) ease;
 
   span {
     overflow: hidden;
@@ -700,7 +778,11 @@ onBeforeUnmount(() => {
   color: var(--td-text-color-secondary);
 
   &:not(.t-is-disabled):not(.t-is-loading):hover {
-    background: color-mix(in srgb, var(--td-text-color-primary) 10%, var(--td-bg-color-container));
+    background: color-mix(
+      in srgb,
+      var(--td-text-color-primary) 10%,
+      var(--td-bg-color-container)
+    );
     color: var(--td-text-color-primary);
   }
 

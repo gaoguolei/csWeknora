@@ -3,7 +3,7 @@
     <!-- <header class="welcome-topbar">
       <span class="workspace-wordmark">WeKnora <span>Workspace</span></span>
       <button type="button" class="knowledge-link" @click="$emit('knowledge')"><t-icon name="folder" />{{
-        t('workspace.knowledgeLink') }}<t-icon name="arrow-top-right" /></button>
+        t('workspace.knowledgeLink') }}<t-icon name="arrow-right-up" /></button>
     </header> -->
     <main class="welcome-content">
       <div class="welcome-intro">
@@ -44,7 +44,7 @@
           ><span
             ><strong>{{ t("workspace.recipeBuild") }}</strong
             ><small>{{ t("workspace.recipeBuildDesc") }}</small></span
-          ><t-icon name="arrow-top-right" />
+          ><t-icon name="arrow-right-up" />
         </button>
         <button type="button" @click="$emit('select', 'knowledge')">
           <span
@@ -54,7 +54,7 @@
           ><span
             ><strong>{{ t("workspace.recipeKnowledge") }}</strong
             ><small>{{ t("workspace.recipeKnowledgeDesc") }}</small></span
-          ><t-icon name="arrow-top-right" />
+          ><t-icon name="arrow-right-up" />
         </button>
       </div>
     </main>
@@ -157,7 +157,7 @@ button {
   margin-bottom: 32px;
 
   h1 {
-    font-family: Georgia, "Songti SC", "Noto Serif SC", serif;
+    font-family: var(--app-font-family-display);
     font-size: clamp(28px, 3vw, 40px);
     font-weight: 500;
     letter-spacing: -1.3px;
@@ -236,7 +236,7 @@ button {
 
     &:hover,
     &.selected {
-      // background: var(--td-bg-color-secondarycontainer);
+      background: var(--td-bg-color-secondarycontainer);
       border-color: var(--td-component-border);
     }
   }

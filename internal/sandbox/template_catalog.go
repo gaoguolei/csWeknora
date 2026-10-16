@@ -8,11 +8,6 @@ import (
 const (
 	// StandardTemplateName is the provider-side name of the CLI template.
 	StandardTemplateName = "weknora"
-
-	// DesktopTemplateName is the provider-side name of the desktop template.
-	// It is a sibling of StandardTemplateName, not a replacement: a config
-	// uses one or the other, decided by Config.DesktopEnabled.
-	DesktopTemplateName = "weknora-desktop"
 )
 
 // DefaultE2BTemplateTag is the tag E2B resolves when a sandbox is created from a
@@ -36,10 +31,7 @@ type RemoteTemplate struct {
 	CreatedAt string `json:"created_at,omitempty"`
 	UpdatedAt string `json:"updated_at,omitempty"`
 	Standard  bool   `json:"standard"`
-	// Desktop marks the XFCE sibling of Standard. The two coexist in one
-	// cluster; the admin picks which ID this config boots. Not a second
-	// boot-target field on the config.
-	Desktop bool `json:"desktop,omitempty"`
+
 	// Error carries the provider's own explanation for a failed build. Without
 	// it a failed template is a red badge with no way to tell a registry
 	// credential problem from an out-of-disk node.
@@ -69,27 +61,8 @@ type RemoteTemplateCatalog interface {
 	DeleteSupersededStandardTemplates(ctx context.Context, keepID string) error
 }
 
-// RemoteDesktopTemplateCatalog is the desktop sibling of RemoteTemplateCatalog.
-// Cube and E2B implement it; Docker does not (SupportsDesktop stays false).
-type RemoteDesktopTemplateCatalog interface {
-	// EnsureDesktopTemplate returns the cluster's WeKnora desktop template,
-	// building it when absent.
-	EnsureDesktopTemplate(ctx context.Context) (*RemoteTemplate, error)
-	// ReplaceDesktopTemplate applies the current spec to the desktop
-	// template. Callers persist a READY replacement first, then
-	// DeleteSupersededDesktopTemplates.
-	ReplaceDesktopTemplate(ctx context.Context) (*RemoteTemplate, error)
-	// DeleteSupersededDesktopTemplates removes desktop templates other than
-	// keepID after that ID is spawnable and stored on the config.
-	DeleteSupersededDesktopTemplates(ctx context.Context, keepID string) error
-}
-
 func isStandardTemplate(name string) bool {
 	return isTemplateName(name, StandardTemplateName)
-}
-
-func isDesktopTemplate(name string) bool {
-	return isTemplateName(name, DesktopTemplateName)
 }
 
 func isTemplateName(name, want string) bool {
@@ -101,24 +74,9 @@ func isTemplateName(name, want string) bool {
 	return len(parts) > 1 && strings.EqualFold(parts[len(parts)-1], want)
 }
 
-// classifyWeKnoraTemplate decides whether a catalog entry is our CLI template,
-// our desktop sibling, or neither. Name wins over image: a template aliased
-// weknora-desktop is desktop even if the image repository matches the CLI
-// image, and a nameless Cube template falls back to the image tag.
-func classifyWeKnoraTemplate(name, image string) (standard, desktop bool) {
-	if isDesktopTemplate(name) {
-		return false, true
-	}
-	if isStandardTemplate(name) {
-		return true, false
-	}
-	if isDesktopTemplateImage(image) {
-		return false, true
-	}
-	if isStandardTemplateImage(image) {
-		return true, false
-	}
-	return false, false
+// classifyWeKnoraTemplate recognizes the standard execution environment.
+func classifyWeKnoraTemplate(name, image string) bool {
+	return !isTemplateName(name, "weknora-desktop") && (isStandardTemplate(name) || isStandardTemplateImage(image))
 }
 
 // isStandardTemplateImage recognises our template by the image it was built
@@ -128,15 +86,7 @@ func classifyWeKnoraTemplate(name, image string) (standard, desktop bool) {
 // yet another one.
 func isStandardTemplateImage(image string) bool {
 	candidate := normalizeImageRepository(image)
-	return candidate != "" && candidate == normalizeImageRepository(DefaultDockerImage)
-}
-
-func isDesktopTemplateImage(image string) bool {
-	if !isStandardTemplateImage(image) {
-		return false
-	}
-	tag := strings.ToLower(imageTag(image))
-	return tag == "main-desktop" || strings.HasSuffix(tag, "-desktop") || strings.HasSuffix(tag, "-desktop-cube")
+	return candidate != "" && candidate == normalizeImageRepository(DefaultDockerImage) && !strings.Contains(strings.ToLower(imageTag(image)), "desktop")
 }
 
 func imageTag(image string) string {

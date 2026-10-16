@@ -12,9 +12,9 @@
   align-items: flex-start;
   gap: 12px;
   min-width: 0;
-  padding: 14px 16px;
+  padding: 18px;
   border: 1px solid var(--td-component-stroke);
-  border-radius: var(--app-radius-lg);
+  border-radius: var(--app-radius-xl);
   background: var(--td-bg-color-container);
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
 }
@@ -24,8 +24,9 @@
   cursor: pointer;
 
   &:hover {
-    border-color: var(--td-brand-color-3);
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--td-text-color-primary) 6%, transparent);
+    border-color: var(--td-component-border);
+    background: var(--td-bg-color-container-hover);
+    box-shadow: var(--app-surface-shadow);
   }
 
   &:focus-visible {
@@ -95,7 +96,7 @@
 
 // 厂商品牌色：前景向文字主色靠拢（深色模式下自动变亮），底色为同色 12% 透明叠加
 .provider-card-badge-color(@c) {
-  color: color-mix(in srgb, @c 75%, var(--td-text-color-primary));
+  color: color-mix(in srgb, @c var(--app-provider-tint), var(--td-text-color-primary));
   background: color-mix(in srgb, @c 12%, transparent);
 }
 
