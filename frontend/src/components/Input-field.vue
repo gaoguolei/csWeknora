@@ -4708,7 +4708,7 @@ const getImgSrc = (url: string) => {
 .stop-btn,
 .send-btn {
   background-color: var(--td-brand-color);
-  color: var(--td-text-color-anti);
+  color: #fff;
 
   &:hover:not(.disabled):not(:disabled) {
     background-color: var(--td-brand-color-hover);
