@@ -80,11 +80,21 @@ const onHover = (e: MouseEvent) => {
   text-align: left;
   font: inherit;
   color: var(--td-text-color-primary);
-  transition: background 0.1s ease;
+  transition: background var(--app-motion-fast) ease, color var(--app-motion-fast) ease;
+}
+
+/* 与侧边栏菜单一致：普通悬停浅灰底，当前选中行品牌蓝高亮 */
+.cmdk-item:hover:not(.cmdk-item--selected) {
+  background: var(--td-bg-color-container-hover);
 }
 
 .cmdk-item--selected {
-  background: var(--td-bg-color-secondarycontainer);
+  background: var(--app-nav-active-bg, var(--td-bg-color-secondarycontainer));
+  color: var(--app-nav-active-text, var(--td-text-color-primary));
+
+  .cmdk-item__icon {
+    color: var(--app-nav-active-text, var(--td-text-color-primary));
+  }
 }
 
 .cmdk-item__icon {

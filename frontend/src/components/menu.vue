@@ -25,16 +25,8 @@
               <span class="cmdk-tip-keys">{{ cmdModKeyLabel }}K</span>
             </span>
           </template>
-          <div
-            class="header-icon-btn"
-            @click="commandPaletteStore.openPalette('')"
-            :aria-label="t('menu.search')"
-          >
-            <img
-              class="header-icon-img"
-              :src="getImgSrc('search.svg')"
-              alt=""
-            />
+          <div class="header-icon-btn" @click="commandPaletteStore.openPalette('')" :aria-label="t('menu.search')">
+            <t-icon name="search" size="18px" />
           </div>
         </t-tooltip>
         <div
@@ -213,32 +205,8 @@
             ]"
           >
             <div class="menu_item-box">
-              <div class="menu_icon" :class="`menu_icon--${item.icon}`">
-                <img
-                  class="icon"
-                  :src="
-                    getImgSrc(
-                      item.icon == 'zhishiku'
-                        ? knowledgeIcon
-                        : item.icon == 'agent'
-                          ? agentIcon
-                          : item.icon == 'artifact'
-                            ? artifactIcon
-                            : item.icon == 'programming'
-                              ? programmingIcon
-                              : item.icon == 'toolbox'
-                                ? toolboxIcon
-                                : item.icon == 'organization'
-                                  ? organizationIcon
-                                  : item.icon == 'logout'
-                                    ? logoutIcon
-                                    : item.icon == 'setting'
-                                      ? settingIcon
-                                      : prefixIcon,
-                    )
-                  "
-                  alt=""
-                />
+              <div class="menu_icon">
+                <span class="icon icon--mask" :style="menuItemIconStyle(item)"></span>
               </div>
               <template v-if="!uiStore.sidebarCollapsed">
                 <span class="menu_title" :title="item.title">{{
@@ -2404,8 +2372,33 @@ const getImgSrc = (url: string) => {
   return new URL(`/src/assets/img/${url}`, import.meta.url).href
 }
 
-const mouseenteMenu = (path: string) => {}
-const mouseleaveMenu = (path: string) => {}
+// 顶部菜单图标改用 mask 着色：img 不继承 color，换成遮罩后图标随
+// .menu_icon 的 currentColor 变化（hover 变深、选中变品牌蓝）。
+const menuItemIconStyle = (item: any) => {
+  const src = getImgSrc(
+    item.icon == 'zhishiku'
+      ? knowledgeIcon.value
+      : item.icon == 'agent'
+        ? agentIcon.value
+        : item.icon == 'artifact'
+          ? artifactIcon.value
+          : item.icon == 'programming'
+            ? programmingIcon.value
+            : item.icon == 'toolbox'
+              ? toolboxIcon.value
+              : item.icon == 'organization'
+                ? organizationIcon.value
+                : item.icon == 'logout'
+                  ? logoutIcon.value
+                  : item.icon == 'setting'
+                    ? settingIcon.value
+                    : prefixIcon.value,
+  );
+  return { '--menu-icon-src': `url("${src}")` };
+};
+
+const mouseenteMenu = (path: string) => { };
+const mouseleaveMenu = (path: string) => { };
 
 let sidebarResizeStartWidth = 0
 const startSidebarResize = () => {
@@ -2526,13 +2519,13 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     flex-shrink: 0;
     cursor: pointer;
     color: var(--td-text-color-secondary);
-    border-radius: var(--app-radius-xs);
-    transition: background-color var(--app-motion-base) ease;
+    border-radius: var(--app-radius-sm);
+    transition: background-color var(--app-motion-fast) ease, color var(--app-motion-fast) ease;
     box-sizing: border-box;
 
     &:hover {
@@ -2684,18 +2677,18 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
 
   .menu_item_active {
     border-radius: var(--app-radius-xs);
-    background: var(--td-bg-color-secondarycontainer) !important;
+    background: var(--app-nav-active-bg) !important;
 
     .menu_icon,
     .menu_title {
-      color: var(--td-text-color-primary) !important;
+      color: var(--app-nav-active-text) !important;
     }
   }
 
   .menu_item_c_active {
     .menu_icon,
     .menu_title {
-      color: var(--td-text-color-primary);
+      color: var(--app-nav-active-text);
     }
   }
 
@@ -2735,6 +2728,7 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
     height: var(--sidebar-icon-size);
     margin-right: var(--sidebar-icon-gap);
     color: var(--td-text-color-secondary);
+    transition: color var(--app-motion-fast) ease;
 
     .icon {
       width: 18px;
@@ -2742,12 +2736,12 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
       overflow: hidden;
     }
 
-    // 图形几乎占满画布的图标缩小显示，否则会比其他图标大一圈
-    &.menu_icon--zhishiku .icon,
-    &.menu_icon--organization .icon,
-    .icon.icon--toggle {
-      width: 16px;
-      height: 16px;
+    // 仅限 mask 着色的 span，不能命中同层的 img.icon / svg.icon，
+    // 否则 background 会把它们填成实心色块。
+    .icon--mask {
+      background-color: currentColor;
+      -webkit-mask: var(--menu-icon-src) no-repeat center / 100% 100%;
+      mask: var(--menu-icon-src) no-repeat center / 100% 100%;
     }
   }
 
@@ -3221,14 +3215,14 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
     }
 
     &.session-chat-row--active .session-list-row {
-      background: transparent;
+      background: var(--app-nav-active-bg);
 
       :deep(.submenu_item) {
-        color: var(--td-text-color-primary);
+        color: var(--app-nav-active-text);
       }
 
       :deep(.menu-more) {
-        color: var(--td-text-color-primary);
+        color: var(--app-nav-active-text);
       }
     }
 
@@ -3276,6 +3270,10 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
     .menu-more-wrap {
       transition: opacity var(--app-motion-base) ease;
       flex-shrink: 0;
+      /* 侧栏调宽手柄（PanelResizeHandle）的 52px 感应区叠在右缘，
+         垂直居中的会话行会被它盖住点击；抬高按钮层级让 ⋯ 可点。 */
+      position: relative;
+      z-index: 11;
     }
 
     .menu-more {
@@ -3360,17 +3358,12 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
   cursor: pointer;
   border-radius: var(--app-radius-sm);
   color: var(--td-text-color-secondary);
-  transition: background-color var(--app-motion-base) ease;
+  transition: background-color var(--app-motion-fast) ease, color var(--app-motion-fast) ease;
   box-sizing: border-box;
 
   &:hover {
     background: var(--td-bg-color-container-hover);
-  }
-
-  .header-icon-img {
-    width: 18px;
-    height: 18px;
-    display: block;
+    color: var(--td-text-color-primary);
   }
 }
 
@@ -3569,15 +3562,6 @@ html[theme-mode='dark'] .aside_box .menu_top::-webkit-scrollbar-thumb:hover {
   background-color: rgba(255, 255, 255, 0.38);
 }
 
-// Dark mode: invert the top search icon button image to match text color
-html[theme-mode='dark'] .aside_box .header-icon-img {
-  filter: invert(1);
-  opacity: 0.55;
-}
-
-html[theme-mode='dark'] .aside_box .header-icon-btn:hover .header-icon-img {
-  opacity: 0.9;
-}
 
 // 下拉菜单样式已统一至 @/assets/dropdown-menu.less
 
