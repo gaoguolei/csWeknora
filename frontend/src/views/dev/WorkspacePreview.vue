@@ -147,7 +147,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { files } from "./workspaceFixture";
 import { useI18n } from "vue-i18n";
 import WorkspaceWelcome from "@/components/workspace/WorkspaceWelcome.vue";
@@ -156,14 +156,15 @@ import type { WorkspaceGateway } from "@/components/workspace/ConversationWorksp
 import { provideFileChanges } from "@/composables/useFileChanges";
 import { provideChatSandboxPanel } from "@/composables/useChatSandboxPanel";
 import { intentPanelTab, type WorkspaceIntent } from "@/utils/workspaceEvents";
+import { composerModeFromIntent } from "@/utils/composerMode";
 const { t } = useI18n();
-const panel = provideChatSandboxPanel();
 const fileChanges = provideFileChanges();
 const home = ref(true),
   knowledgeOpen = ref(false),
   intent = ref<WorkspaceIntent>("chat"),
   prompt = ref(""),
   session = ref("sample");
+const panel = provideChatSandboxPanel(computed(() => composerModeFromIntent(intent.value)));
 function selectIntent(value: WorkspaceIntent) {
   intent.value = value;
   if (value !== "chat") prompt.value = t(`workspace.${value}Prompt`);

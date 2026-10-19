@@ -500,6 +500,9 @@ import { provideChatReferencesDrawer } from "@/composables/useChatReferencesDraw
 import { provideChatAttachmentPreviewDrawer } from "@/composables/useChatAttachmentPreviewDrawer";
 import { useSessionActivityStore } from "@/stores/sessionActivity";
 import { provideChatSandboxPanel } from "@/composables/useChatSandboxPanel";
+import { conversationComposerMode } from "@/utils/composerMode";
+import { useChatResourcesStore } from "@/stores/chatResources";
+import { useOrganizationStore } from "@/stores/organization";
 import { provideFileChanges } from "@/composables/useFileChanges";
 import SandboxSidePanel from "@/components/chat/SandboxSidePanel.vue";
 import {
@@ -524,7 +527,6 @@ import {
 import { isCollectingSkillArtifacts } from "@/utils/skillArtifacts";
 const referencesDrawer = provideChatReferencesDrawer();
 provideChatAttachmentPreviewDrawer();
-const sandboxPanel = provideChatSandboxPanel();
 const fileChanges = provideFileChanges();
 const { visible: referencesDrawerVisible, panelWidth: referencesPanelWidth } =
   referencesDrawer;
@@ -595,6 +597,17 @@ const attachStreamDebugToMessage = (message) => {
 };
 const route = useRoute();
 const router = useRouter();
+const chatResources = useChatResourcesStore();
+const orgStore = useOrganizationStore();
+const composerMode = computed(() => {
+  const id = useSettingsStoreInstance.selectedAgentId;
+  const source = useSettingsStoreInstance.selectedAgentSourceTenantId;
+  const agent = source
+    ? orgStore.sharedAgents.find(shared => shared.agent.id === id && String(shared.source_tenant_id) === source)?.agent
+    : chatResources.agents.find(agent => agent.id === id);
+  return conversationComposerMode(route.query.mode, agent || { id });
+});
+const sandboxPanel = provideChatSandboxPanel(composerMode);
 const session_id = ref(props.session_id || route.params.chatid);
 const currentSession = ref(null);
 
@@ -669,7 +682,7 @@ function recordWorkspaceFileChange(change, live) {
  * follows A → B as the turn proceeds instead of staying on a stale file.
  */
 function showLiveWorkspaceDiff(path) {
-  if (props.embeddedMode || !path) return;
+  if (props.embeddedMode || composerMode.value !== 'coding' || !path) return;
   if (path !== workspacePath.value) {
     workspacePath.value = path;
     workspaceRevision.value++;
@@ -693,6 +706,7 @@ function openCompletedWorkspacePanel() {
   workspaceTurnIntent = "chat";
   if (
     !decision ||
+    composerMode.value !== 'coding' ||
     props.embeddedMode ||
     !sandboxPanel.visible.value ||
     !sandboxPanel.autoOpenAllowed.value

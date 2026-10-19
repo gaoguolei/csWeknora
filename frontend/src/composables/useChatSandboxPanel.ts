@@ -1,4 +1,5 @@
-import { inject, provide, ref, type InjectionKey, type Ref } from 'vue'
+import { inject, provide, ref, watch, type InjectionKey, type Ref } from 'vue'
+import type { ComposerMode } from '@/utils/composerMode'
 
 export type SandboxPanelTab = 'artifacts' | 'terminal' | 'preview' | 'source' | 'tests'
 
@@ -32,6 +33,7 @@ function initialPanelWidth(): number {
 }
 
 export type ChatSandboxPanelContext = {
+  mode: Readonly<Ref<ComposerMode>>
   visible: Ref<boolean>
   activeTab: Ref<SandboxPanelTab>
   width: Ref<number>
@@ -48,9 +50,17 @@ const CHAT_SANDBOX_PANEL_KEY: InjectionKey<ChatSandboxPanelContext> = Symbol(
   'chatSandboxPanel',
 )
 
-export function provideChatSandboxPanel(): ChatSandboxPanelContext {
+export function provideChatSandboxPanel(mode: Readonly<Ref<ComposerMode>> = ref<ComposerMode>('coding')): ChatSandboxPanelContext {
+  const allowedTab = (tab: SandboxPanelTab): SandboxPanelTab =>
+    mode.value === 'coding' || tab === 'artifacts' || tab === 'terminal' ? tab : 'artifacts'
   const visible = ref(false)
-  const activeTab = ref<SandboxPanelTab>('preview')
+  const activeTab = ref<SandboxPanelTab>(allowedTab('preview'))
+  // Guard direct assignments as well as open(): stream/history callbacks and
+  // session changes must never bring a coding-only view into chat mode.
+  watch([mode, activeTab], () => {
+    const next = allowedTab(activeTab.value)
+    if (next !== activeTab.value) activeTab.value = next
+  }, { flush: 'sync' })
   const width = ref(initialPanelWidth())
   const artifactFocus = ref<ArtifactPanelFocusState | null>(null)
   const autoOpenAllowed = ref(true)
@@ -64,7 +74,7 @@ export function provideChatSandboxPanel(): ChatSandboxPanelContext {
   const open = (tab?: SandboxPanelTab, focus?: ArtifactPanelFocus) => {
     autoOpenAllowed.value = true
     // Reopening keeps the selected tab; a new panel starts with preview.
-    if (tab) activeTab.value = tab
+    activeTab.value = allowedTab(tab || activeTab.value)
     if (focus) {
       artifactFocus.value = { ...focus, nonce: ++focusNonce }
     }
@@ -94,6 +104,7 @@ export function provideChatSandboxPanel(): ChatSandboxPanelContext {
   }
 
   const ctx: ChatSandboxPanelContext = {
+    mode,
     visible,
     activeTab,
     width,

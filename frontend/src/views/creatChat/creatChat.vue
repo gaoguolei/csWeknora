@@ -1,7 +1,7 @@
 <template>
-    <WorkspaceWelcome :mode="currentIntent" @select="selectIntent" @knowledge="router.push('/platform/knowledge-bases')">
+    <WorkspaceWelcome :mode="currentIntent" :disabled="creatingSession" @select="selectIntent" @knowledge="router.push('/platform/knowledge-bases')">
             <div class="create-chat-composer">
-                <div v-if="hostSandboxEnabled" class="project-dir-bar">
+                <div v-if="hostSandboxEnabled && composerMode === 'coding'" class="project-dir-bar">
                     <button type="button" class="project-dir-bar__btn"
                         :class="{ 'is-bound': !!selectedProjectDir, 'is-picking': pickingProjectDir }"
                         :disabled="pickingProjectDir" :title="selectedProjectDir || $t('createChat.openProject')"
@@ -14,7 +14,7 @@
                     <button v-if="selectedProjectDir" type="button" class="project-dir-bar__clear"
                         :aria-label="$t('createChat.clearProject')" @click="clearProjectDir">×</button>
                 </div>
-                <InputField ref="inputFieldRef" :composer-locked="creatingSession" @send-msg="sendMsg"></InputField>
+                <InputField ref="inputFieldRef" :agent-audience="composerMode" :composer-locked="creatingSession" @send-msg="sendMsg"></InputField>
             </div>
         <template #suggestions>
             <!-- 推荐问题 -->
@@ -73,12 +73,14 @@ import ContextualGuide from '@/components/ContextualGuide.vue';
 import InputField from '@/components/Input-field.vue';
 import WorkspaceWelcome from '@/components/workspace/WorkspaceWelcome.vue';
 import { workspaceIntent, type WorkspaceIntent } from '@/utils/workspaceEvents';
-import { activateWorkspaceAgent, workspaceIntentFromPrompt } from '@/utils/workspaceIntent';
+import { chooseComposerAgent, composerModeFromIntent, type ComposerAgentChoice } from '@/utils/composerMode';
+import { useChatResourcesStore } from '@/stores/chatResources';
+import { useOrganizationStore } from '@/stores/organization';
 import { createSessions } from "@/api/chat/index";
 import { pickHostProjectDir } from '@/utils/desktopProjectDir';
 import { projectDirBasename, shouldRenderHostProjectSettings, withOptionalProjectDir } from '@/utils/hostWorkspace';
 import { getSuggestedQuestions } from "@/api/agent/index";
-import type { SuggestedQuestion } from "@/api/agent/index";
+import type { CustomAgent, SuggestedQuestion } from "@/api/agent/index";
 import { questionOriginFromSuggestion, type SendMessageOptions } from '@/utils/questionOrigin';
 import { useMenuStore } from '@/stores/menu';
 import { useSettingsStore } from '@/stores/settings';
@@ -94,6 +96,8 @@ const router = useRouter();
 const route = useRoute();
 const usemenuStore = useMenuStore();
 const settingsStore = useSettingsStore();
+const chatResources = useChatResourcesStore();
+const orgStore = useOrganizationStore();
 onBeforeRouteLeave((to) => {
     // The first send carries the draft into its new session; abandoning the
     // composer must not make this a default for the next conversation.
@@ -236,22 +240,36 @@ onMounted(() => {
 
 const inputFieldRef = ref();
 const currentIntent = ref<WorkspaceIntent>(workspaceIntent(route.query.mode));
-async function ensureWorkspaceAgent() {
-    if (['build', 'code', 'test'].includes(currentIntent.value)) await activateWorkspaceAgent(settingsStore, nextTick);
-}
+const composerMode = computed(() => composerModeFromIntent(currentIntent.value));
+const composerAgentsReady = ref(false);
+const composerAgentChoices = computed<ComposerAgentChoice<CustomAgent>[]>(() => [
+    ...chatResources.agents.filter(agent => !chatResources.disabledOwnAgentIds.includes(agent.id))
+        .map(agent => ({ agent, sourceTenantId: undefined as string | undefined })),
+    ...orgStore.sharedAgents.filter(shared => !shared.disabled_by_me)
+        .map(shared => ({ agent: { is_builtin: false, config: {}, ...shared.agent }, sourceTenantId: String(shared.source_tenant_id) })),
+]);
+
+watch([composerMode, composerAgentChoices, () => settingsStore.selectedAgentId,
+    () => settingsStore.selectedAgentSourceTenantId, composerAgentsReady], () => {
+    if (!composerAgentsReady.value || creatingSession.value) return;
+    const choice = chooseComposerAgent(composerMode.value, composerAgentChoices.value,
+        settingsStore.selectedAgentId, settingsStore.selectedAgentSourceTenantId);
+    if (!choice || (choice.agent.id === settingsStore.selectedAgentId
+        && (choice.sourceTenantId || '') === (settingsStore.selectedAgentSourceTenantId || ''))) return;
+    settingsStore.selectAgent(choice.agent.id, choice.sourceTenantId);
+    settingsStore.toggleAgent(choice.agent.config?.agent_mode === 'smart-reasoning');
+}, { immediate: true });
 
 function selectIntent(intent: WorkspaceIntent) {
     currentIntent.value = intent;
-    ensureWorkspaceAgent();
-    if (intent !== 'chat') inputFieldRef.value?.prefill(t(`workspace.${intent}Prompt`));
     inputFieldRef.value?.focusInput();
 }
 watch(() => route.query.mode, (mode) => {
     currentIntent.value = workspaceIntent(mode);
-    ensureWorkspaceAgent();
 });
-onMounted(() => {
-    if (currentIntent.value !== 'chat') selectIntent(currentIntent.value);
+onMounted(async () => {
+    await Promise.allSettled([chatResources.ensureAgents(), orgStore.fetchSharedAgents()]);
+    composerAgentsReady.value = true;
 });
 
 // The suggestion's source rides with this send to the new session's first
@@ -268,8 +286,6 @@ async function createNewSession(value: string, modelId: string, mentionedItems: 
     if (creatingSession.value || !value.trim()) return;
     creatingSession.value = true;
     try {
-        currentIntent.value = workspaceIntentFromPrompt(value, currentIntent.value);
-        await ensureWorkspaceAgent();
         const selectedKbs = settingsStore.settings.selectedKnowledgeBases || [];
         const selectedFiles = settingsStore.settings.selectedFiles || [];
     
@@ -286,7 +302,7 @@ async function createNewSession(value: string, modelId: string, mentionedItems: 
             allowed_tools: settingsStore.agentConfig.allowedTools
         };
 
-        const res = await createSessions(withOptionalProjectDir(sessionData, selectedProjectDir.value));
+        const res = await createSessions(withOptionalProjectDir(sessionData, composerMode.value === 'coding' ? selectedProjectDir.value : ''));
         if (res.data && res.data.id) {
             await navigateToSession(res.data.id, value, modelId, mentionedItems, imageFiles, attachmentFiles, options);
         } else {
@@ -315,7 +331,7 @@ const navigateToSession = async (sessionId: string, value: string, modelId: stri
     usemenuStore.updataMenuChildren(obj);
     usemenuStore.changeIsFirstSession(true);
     usemenuStore.changeFirstQuery(value, mentionedItems, modelId, imageFiles, attachmentFiles, options.questionOrigin ?? null);
-    router.push({ path: `/platform/chat/${sessionId}`, query: currentIntent.value === 'chat' ? {} : { mode: currentIntent.value } });
+    router.push({ path: `/platform/chat/${sessionId}`, query: { mode: currentIntent.value } });
 }
 
 const handleKBEditorSuccess = (kbId: string) => {

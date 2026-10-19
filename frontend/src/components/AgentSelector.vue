@@ -12,7 +12,7 @@
 
         <div class="agent-selector-content" @scroll="hideDetailPanel">
           <!-- 内置智能体 -->
-          <div class="agent-group">
+          <div v-if="builtinAgents.length" class="agent-group">
             <div class="agent-group-title">{{ $t('agent.builtinAgents') }}</div>
             <div v-for="agent in builtinAgents" :key="agent.id" class="agent-option"
               :class="{ selected: isMyAgentSelected(agent) }" @mouseenter="onOptionEnter(agent, $event)"
@@ -200,6 +200,7 @@ import {
 } from '@/utils/agent-readiness';
 import { formatLocalizedList } from '@/utils/format-list';
 import { useChatResourcesStore } from '@/stores/chatResources';
+import { agentMatchesComposerMode, type ComposerMode } from '@/utils/composerMode';
 import {
   isAgentWebSearchEnabled,
   isAgentWebSearchReady,
@@ -217,6 +218,7 @@ const props = defineProps<{
   currentAgentId: string;
   agents?: CustomAgent[];
   allModels?: ModelConfig[];
+  audience?: ComposerMode;
 }>();
 
 const emit = defineEmits<{
@@ -246,7 +248,7 @@ const DETAIL_PANEL_WIDTH = 200;
 const DETAIL_PANEL_GAP = 8;
 const DETAIL_HIDE_DELAY_MS = 400;
 
-const agentsList = computed(() => props.agents ?? []);
+const agentsList = computed(() => (props.agents ?? []).filter(agent => agentMatchesComposerMode(agent, props.audience)));
 const webSearchProviders = computed(() => chatResources.webSearchProviders);
 
 const builtinAgents = computed(() => {
@@ -273,7 +275,8 @@ const toCustomAgent = (agent: SharedAgentInfo['agent']): CustomAgent => ({
 const sharedAgentsList = computed<SharedAgentSelection[]>(() =>
   (orgStore.sharedAgents || [])
     .filter(shared => !shared.disabled_by_me)
-    .map(shared => ({ ...shared, agent: toCustomAgent(shared.agent) })),
+    .map(shared => ({ ...shared, agent: toCustomAgent(shared.agent) }))
+    .filter(shared => agentMatchesComposerMode(shared.agent, props.audience)),
 );
 
 const currentAgentSourceTenantId = computed(() => settingsStore.selectedAgentSourceTenantId ?? null);

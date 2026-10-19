@@ -8,14 +8,13 @@ import { computed, effectScope, nextTick, reactive, ref, watch } from 'vue'
 const panel = readFileSync(new URL('./SandboxSidePanel.vue', import.meta.url), 'utf8')
 
 test('preview has one entry before code, artifacts and terminal', () => {
-  const tab = id => panel.search(new RegExp(`id: ["']${id}["']`))
-  assert.notEqual(tab('preview'), -1)
-  assert.ok(tab('preview') < tab('source'))
-  assert.ok(tab('source') < tab('artifacts'))
-  assert.ok(tab('artifacts') < tab('terminal'))
+  const view = mount()
+  assert.deepEqual(Array.from(view.state.tabs.value, tab => tab.id), ['preview', 'source', 'tests', 'artifacts'])
+  assert.equal(view.state.moreTools.value[0].id, 'terminal')
   assert.doesNotMatch(panel, /id: ["']desktop["']/)
   assert.match(panel, /<ChatArtifactsPanel/)
   assert.doesNotMatch(panel, /chat-sandbox-panel__title|<h3/)
+  view.stop()
 })
 
 test('web preview never queries or depends on desktop capabilities', () => {
@@ -29,9 +28,9 @@ const setup = panel.split('<script setup lang="ts">')[1].split('</script>')[0]
 const compiled = ts.transpile(setup, { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None })
 function mount(options = {}) {
   const props = reactive({ sessionId: 'a', workspaceRevision: 0, ...options })
-  const ui = { visible: ref(true), activeTab: ref('preview'), width: ref(560), clearArtifactFocus() {} }
+  const ui = { mode: ref(options.mode || 'coding'), visible: ref(true), activeTab: ref(options.mode === 'chat' ? 'artifacts' : 'preview'), width: ref(560), clearArtifactFocus() {} }
   const scope = effectScope()
-  const state = scope.run(() => vm.runInNewContext(`${compiled}; ({ isWorkspaceTab, previewMounted, terminalMounted, tabs })`, {
+  const state = scope.run(() => vm.runInNewContext(`${compiled}; ({ isWorkspaceTab, previewMounted, terminalMounted, tabs, moreTools })`, {
     computed, nextTick, ref, watch, defineAsyncComponent: () => ({}), defineProps: () => props, withDefaults: value => value, defineEmits: () => () => {},
     useI18n: () => ({ t: key => key }), useChatSandboxPanel: () => ui,
   }))
@@ -69,7 +68,25 @@ test('workspace gateways keep their existing preview path', async () => {
   const view = mount({ workspaceGateway: {} })
   await flush()
   assert.equal(view.state.isWorkspaceTab.value, true)
-  assert.match(panel, /v-if="previewMounted && !workspaceGateway"/)
+  assert.match(panel, /v-if="codingMode && previewMounted && !workspaceGateway"/)
+  view.stop()
+})
+
+test('chat mode exposes only artifacts and sandbox, with no hidden coding views or more menu', async () => {
+  const view = mount({ mode: 'chat', workspaceGateway: {} })
+  await flush()
+  assert.deepEqual(Array.from(view.state.tabs.value, tab => tab.id), ['artifacts', 'terminal'])
+  assert.equal(view.state.tabs.value[1].label, 'workspace.sandboxTab')
+  assert.equal(view.state.moreTools.value.length, 0)
+  assert.equal(view.state.previewMounted.value, false)
+  assert.equal(view.state.isWorkspaceTab.value, false)
+  assert.match(panel, /v-if="codingMode && workspaceMounted"/)
+  assert.match(panel, /v-if="moreTools.length"/)
+  view.ui.activeTab.value = 'terminal'; await flush()
+  assert.equal(view.state.terminalMounted.value, true)
+  view.ui.mode.value = 'coding'; await flush()
+  assert.deepEqual(Array.from(view.state.tabs.value, tab => tab.id), ['preview', 'source', 'tests', 'artifacts'])
+  assert.equal(view.state.moreTools.value[0].id, 'terminal')
   view.stop()
 })
 

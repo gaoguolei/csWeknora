@@ -46,6 +46,7 @@
             </button>
           </div>
           <t-dropdown
+            v-if="moreTools.length"
             :options="moreOptions"
             trigger="click"
             placement="bottom-right"
@@ -85,7 +86,7 @@
           }"
         >
           <ConversationWorkspace
-            v-if="workspaceMounted"
+            v-if="codingMode && workspaceMounted"
             v-show="isWorkspaceTab"
             :session-id="sessionId"
             :tab="workspaceTab"
@@ -137,7 +138,7 @@
 
           <!-- Web preview does not require remote desktop capabilities. -->
           <WorkspaceBrowserPreview
-            v-if="previewMounted && !workspaceGateway"
+            v-if="codingMode && previewMounted && !workspaceGateway"
             v-show="panel?.activeTab.value === 'preview'"
             :key="sessionId"
             :session-id="sessionId"
@@ -219,6 +220,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const panel = useChatSandboxPanel();
+const codingMode = computed(() => panel?.mode?.value !== 'chat');
 watch(
   () => [props.sessionId, panel?.visible.value, panel?.activeTab.value],
   () => {
@@ -233,8 +235,8 @@ watch(
 const workspaceMounted = ref(false);
 const isWorkspaceTab = computed(
   () =>
-    ["source", "tests"].includes(panel?.activeTab.value || "") ||
-    (Boolean(props.workspaceGateway) && panel?.activeTab.value === "preview"),
+    codingMode.value && (["source", "tests"].includes(panel?.activeTab.value || "") ||
+    (Boolean(props.workspaceGateway) && panel?.activeTab.value === "preview")),
 );
 const workspaceTab = computed(() =>
   isWorkspaceTab.value ? (panel!.activeTab.value as WorkspaceTab) : "source",
@@ -247,7 +249,11 @@ watch(
   { immediate: true },
 );
 
-const tabs = computed(() => {
+const tabs = computed<Array<{ id: SandboxPanelTab; icon: string; label: string }>>(() => {
+  if (!codingMode.value) return [
+    { id: 'artifacts', icon: 'folder', label: t('chat.sandbox.tabArtifacts') },
+    { id: 'terminal', icon: 'terminal', label: t('workspace.sandboxTab') },
+  ];
   const list: Array<{ id: SandboxPanelTab; icon: string; label: string }> = [
     { id: "preview", icon: "desktop", label: t("workspace.preview") },
     { id: "source", icon: "code", label: t("workspace.source") },
@@ -258,9 +264,9 @@ const tabs = computed(() => {
 });
 
 // Less frequent tools remain available without occupying the default tab bar.
-const moreTools = computed(() => [
+const moreTools = computed(() => codingMode.value ? [
   { id: "terminal", icon: "terminal", label: t("chat.sandbox.tabTerminal") },
-]);
+] : []);
 const activeMoreTool = computed(() =>
   moreTools.value.find((tool) => tool.id === panel?.activeTab.value),
 );

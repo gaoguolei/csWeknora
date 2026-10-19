@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import vm from 'node:vm'
 import ts from 'typescript'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const source = readFileSync(new URL('./useChatSandboxPanel.ts', import.meta.url), 'utf8')
 const start = source.indexOf('export function provideChatSandboxPanel(')
@@ -11,9 +11,9 @@ const end = source.indexOf('\nexport function useChatSandboxPanel(', start)
 assert.ok(start >= 0 && end > start)
 const factory = ts.transpile(source.slice(start, end).replace('export function', 'function'))
 
-function createPanel() {
-  return vm.runInNewContext(`${factory}; provideChatSandboxPanel()`, {
-    ref,
+function createPanel(mode = ref('coding')) {
+  return vm.runInNewContext(`${factory}; provideChatSandboxPanel(testMode)`, {
+    ref, watch, testMode: mode,
     initialPanelWidth: () => 420,
     provide() {},
     CHAT_SANDBOX_PANEL_KEY: Symbol(),
@@ -31,6 +31,37 @@ test('clicking the same folder opens, closes, and reopens its artifacts', () => 
   panel.toggleArtifacts('a')
   assert.equal(panel.visible.value, true)
   assert.equal(panel.artifactFocus.value.messageId, 'a')
+})
+
+test('chat panels start on artifacts and reject coding-only navigation', () => {
+  const panel = createPanel(ref('chat'))
+  panel.open()
+  assert.equal(panel.activeTab.value, 'artifacts')
+  for (const tab of ['preview', 'source', 'tests']) {
+    panel.open(tab)
+    assert.equal(panel.activeTab.value, 'artifacts')
+    panel.activeTab.value = tab
+    assert.equal(panel.activeTab.value, 'artifacts', 'history/direct writes follow the same policy')
+  }
+  panel.open('terminal')
+  assert.equal(panel.activeTab.value, 'terminal')
+})
+
+test('switching to chat normalizes a hidden tab without reopening the panel', () => {
+  const mode = ref('coding')
+  const panel = createPanel(mode)
+  panel.open('source')
+  panel.close()
+  mode.value = 'chat'
+  assert.equal(panel.activeTab.value, 'artifacts')
+  assert.equal(panel.visible.value, false)
+  assert.equal(panel.autoOpenAllowed.value, false)
+  mode.value = 'coding'
+  panel.open('tests')
+  assert.equal(panel.activeTab.value, 'tests')
+  panel.open('terminal')
+  mode.value = 'chat'
+  assert.equal(panel.activeTab.value, 'terminal', 'keep an already open sandbox terminal')
 })
 
 test('clicking another message folder switches focus without closing', () => {

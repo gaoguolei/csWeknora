@@ -52,6 +52,7 @@ import { useEditorResourcesStore } from '@/stores/editorResources'
 import { useDeploymentCapabilitiesStore } from '@/stores/deploymentCapabilities'
 import { hostSkillsOnly, mentionSkillTargetId } from '@/utils/skillTarget'
 import { useI18n } from 'vue-i18n'
+import { agentMatchesComposerMode, type ComposerMode } from '@/utils/composerMode'
 import AttachmentUpload, { type AttachmentFile } from './AttachmentUpload.vue'
 import {
   kbSatisfiesAgentRequirements,
@@ -628,6 +629,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  agentAudience: {
+    type: String as PropType<ComposerMode>,
+    default: undefined,
+  },
   queuedSteers: {
     type: Array as PropType<SteerQueueItem[]>,
     default: () => [],
@@ -1118,6 +1123,16 @@ const ensureSelectedAgentNotDisabled = () => {
 const enabledAgents = computed(() =>
   agents.value.filter((a) => !disabledOwnAgentIds.value.includes(a.id)),
 )
+
+const composerAgentUnavailable = computed(() => {
+  if (!props.agentAudience) return false
+  if (!agentMatchesComposerMode(selectedAgent.value, props.agentAudience)) return true
+  const source = settingsStore.selectedAgentSourceTenantId
+  return source
+    ? !orgStore.sharedAgents.some(shared => shared.agent.id === selectedAgentId.value
+      && String(shared.source_tenant_id) === source && !shared.disabled_by_me)
+    : !enabledAgents.value.some(agent => agent.id === selectedAgentId.value)
+})
 
 // LAST_CHAT_MODEL_KEY scopes the per-user "last selected chat model"
 // to localStorage. The previous implementation wrote this back to the
@@ -2387,6 +2402,10 @@ const createSession = async (
   if (props.composerLocked) {
     return
   }
+  if (composerAgentUnavailable.value) {
+    MessagePlugin.info(t('agent.selectAgent'))
+    return
+  }
   if (!val.trim()) {
     MessagePlugin.info(t('input.messages.enterContent'))
     return
@@ -3368,7 +3387,7 @@ defineExpose({
           >
             <span class="agent-mode-text">
               {{
-                selectedAgent.name ||
+                composerAgentUnavailable ? $t('agent.selectAgent') : selectedAgent.name ||
                 (isAgentEnabled
                   ? $t('input.agentMode')
                   : $t('input.normalMode'))
@@ -3392,6 +3411,7 @@ defineExpose({
             :anchorEl="agentModeButtonRef"
             :currentAgentId="selectedAgentId"
             :agents="enabledAgents"
+            :audience="agentAudience"
             :all-models="allModels"
             @close="closeAgentModeSelector"
             @select="handleSelectAgent"
@@ -3874,7 +3894,7 @@ defineExpose({
               @click="createSession(query)"
               class="control-btn send-btn"
               data-guide="chat-send"
-              :disabled="!query.trim() || composerLocked"
+              :disabled="!query.trim() || composerLocked || composerAgentUnavailable"
               :aria-label="
                 isReplying && canSteer
                   ? $t('input.steerAfter')
