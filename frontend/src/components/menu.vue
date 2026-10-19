@@ -754,7 +754,7 @@ import {
 } from './sessionFolderState'
 import PanelResizeHandle from './PanelResizeHandle.vue'
 import ThemeToggle from './ThemeToggle.vue'
-import thinkerflowMark from '@/assets/img/thinkerflow-mark.png'
+import thinkerflowMark from '@/assets/img/thinkerflow-mark.svg'
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_MIN_WIDTH,

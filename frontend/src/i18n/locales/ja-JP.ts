@@ -3165,7 +3165,7 @@ export default {
     registerSuccess: "登録が完了しました。ログインしてください",
     registerFailed: "登録に失敗しました",
     subtitle:
-      "RAG質問応答、ReActエージェント、Wiki。LLMが支える企業向けナレッジフレームワーク",
+      "AI ネイティブなソフトウェアエンジニアリングのための知能型研究開発運行システム",
     registerSubtitle: "アカウントを作成してWeKnoraを使い始めましょう",
     emailPlaceholder: "メールアドレスを入力",
     passwordPlaceholder: "パスワードを入力",
@@ -6069,9 +6069,14 @@ export default {
     },
   },
   platform: {
-    subtitle: "LLM駆動のエンタープライズ向けナレッジフレームワーク",
+    subtitle: "エンタープライズ向けマルチエージェント研究開発協働プラットフォーム",
     description:
-      "RAG検索、エージェント推論、Wikiナレッジベースにより、ドキュメントを本当に理解し活用できます",
+      "企業の知識を知的資産に、Agent を研究開発の生産力に。人はイノベーションと意思決定に集中できます",
+    valueCognition: "認知ドリブン",
+    valueOrchestration: "インテリジェントなオーケストレーション",
+    valueCollaboration: "協調実行",
+    valueOpenness: "オープンな接続",
+    valueTrust: "安全と信頼",
     rag: "RAG拡張生成",
     agent: "ReActエージェント",
     wiki: "Wikiナレッジベース",

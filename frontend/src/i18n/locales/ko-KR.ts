@@ -3283,9 +3283,14 @@ export default {
     pinned: "고정됨",
   },
   platform: {
-    subtitle: "대규모 언어 모델 기반 엔터프라이즈 지식 프레임워크",
+    subtitle: "엔터프라이즈 멀티 에이전트 R&D 협업 플랫폼",
     description:
-      "RAG 검색, 에이전트 추론, Wiki 지식베이스로 문서를 진정으로 이해하고 활용합니다",
+      "기업 지식을 지능형 자산으로, Agent를 R&D 생산성으로 바꾸고, 사람은 혁신과 의사결정에 집중합니다",
+    valueCognition: "인지 기반",
+    valueOrchestration: "지능형 오케스트레이션",
+    valueCollaboration: "협업 실행",
+    valueOpenness: "오픈 연결",
+    valueTrust: "안전과 신뢰",
     rag: "RAG 강화 생성",
     agent: "ReAct 에이전트",
     wiki: "Wiki 지식베이스",
@@ -6134,7 +6139,7 @@ export default {
     registerSuccess: "가입이 완료되었습니다. 로그인해주세요",
     registerFailed: "가입 실패",
     subtitle:
-      "RAG Q&A, ReAct 에이전트, Wiki 지식베이스 — 대규모 언어 모델 기반 엔터프라이즈 지식 프레임워크",
+      "AI 네이티브 소프트웨어 엔지니어링을 위한 지능형 R&D 운영 시스템",
     registerSubtitle: "계정을 만들고 WeKnora를 시작하세요",
     emailPlaceholder: "이메일 주소 입력",
     passwordPlaceholder: "비밀번호 입력",
