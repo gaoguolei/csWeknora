@@ -24,10 +24,18 @@
 
     &[aria-selected='true'],
     &[aria-pressed='true'] {
-      background: var(--app-selection-bg);
-      color: var(--td-text-color-primary);
-      border-color: var(--td-component-border);
+      /* 选中态统一为品牌蓝实底 + 反白文字。文字固定用 #fff：
+         实心蓝底上两种主题都需白字，而 --td-text-color-anti 在深色
+         主题被 workspace-theme.css 重定义为 #0d0f13，不能依赖。 */
+      background: var(--td-brand-color);
+      color: #fff;
+      border-color: transparent;
       font-weight: 500;
+
+      &:hover {
+        background: var(--td-brand-color-hover);
+        color: #fff;
+      }
     }
 
     &:focus-visible {

@@ -9,6 +9,7 @@
     @keydown.enter.prevent="toggleTheme"
     @keydown.space.prevent="toggleTheme"
   >
+    <!-- 空心线框版：浅色太阳 / 深色月亮，与登录页同款同尺寸。 -->
     <t-icon :name="isDark ? 'moon' : 'sunny'" size="18px" />
   </div>
 </template>

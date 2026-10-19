@@ -722,7 +722,7 @@ onUnmounted(() => {
 
   &:hover {
     color: var(--td-text-color-primary);
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--td-bg-color-container-hover);
   }
 }
 

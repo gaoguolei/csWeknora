@@ -36,8 +36,10 @@
   --td-text-color-disabled: #bcbcbc;
   --td-text-color-brand: var(--td-brand-color);
   --td-text-color-link: var(--td-brand-color);
-  --app-selection-bg: #efefef;
-  --app-text-selection-bg: #cfe1f7;
+  --app-selection-bg: #edede7;
+  /* 导航选中态：品牌蓝浅底 + 蓝字，深浅色下均明显于普通 hover 背景 */
+  --app-nav-active-bg: #e4ecff;
+  --app-nav-active-text: #3a63e6;
   --app-chat-header-height: 52px;
   --app-radius-2xl: 18px;
   --app-surface-shadow: 0 4px 20px rgb(35 35 35 / 4%);
@@ -65,29 +67,29 @@
   --td-brand-color-disabled: #2b3f7a;
   --td-brand-color-light: #162a70;
   --td-brand-color-focus: #1f3893;
-  --td-bg-color-page: #1f201c;
-  --td-bg-color-container: #252620;
-  --td-bg-color-sidebar: #20211c;
-  --td-bg-color-settings-modal: #20211c;
-  --td-bg-color-container-hover: #30312a;
-  --td-bg-color-container-active: #3b3c34;
-  --td-bg-color-secondarycontainer: #2c2d26;
-  --td-bg-color-secondarycontainer-hover: #35362e;
-  --td-bg-color-secondarycontainer-active: #3d3f35;
-  --td-component-stroke: #3b3c33;
-  --td-component-border: #4c4e42;
-  --td-text-color-primary: #e5e6dc;
-  --td-text-color-secondary: #b2b4a5;
-  --td-text-color-placeholder: #8d907f;
-  --td-text-color-disabled: #656859;
-  --td-text-color-anti: #20211c;
-  --app-selection-bg: #383a30;
-  --app-surface-shadow: 0 4px 20px rgb(0 0 0 / 12%);
-  --app-overlay: rgb(10 10 10 / 64%);
-  --app-popup-shadow: 0 12px 40px rgb(0 0 0 / 28%);
-  --app-on-accent: #181818;
-  --app-provider-tint: 45%;
-  --app-scrollbar: #212121;
+  --td-bg-color-page: #0d0f13;
+  --td-bg-color-container: #16181e;
+  --td-bg-color-sidebar: #0a0c10;
+  --td-bg-color-settings-modal: #0a0c10;
+  --td-bg-color-container-hover: #1d2028;
+  --td-bg-color-container-active: #242833;
+  --td-bg-color-secondarycontainer: #1a1d24;
+  --td-bg-color-secondarycontainer-hover: #20242d;
+  --td-bg-color-secondarycontainer-active: #272c38;
+  /* 描边/边框：需比容器底 #16181e、页面底 #0d0f13 明显跳出，
+     否则输入框等卡片边框在近黑底上不可见（TDesign 暗色默认 stroke 为 #4c4c4c）。 */
+  --td-component-stroke: #383f4e;
+  --td-component-border: #4a5265;
+  --td-text-color-primary: rgba(255, 255, 255, 0.92);
+  --td-text-color-secondary: rgba(255, 255, 255, 0.65);
+  --td-text-color-placeholder: rgba(255, 255, 255, 0.4);
+  --td-text-color-disabled: rgba(255, 255, 255, 0.25);
+  --td-text-color-anti: #0d0f13;
+  --app-selection-bg: #20242e;
+  /* 导航选中态：品牌蓝透明叠加，近黑底上足够跳出 */
+  --app-nav-active-bg: color-mix(in srgb, var(--td-brand-color) 26%, var(--td-bg-color-container));
+  --app-nav-active-text: #8faaff;
+  --app-surface-shadow: 0 4px 20px rgb(0 0 0 / 30%);
 }
 
 /* Match the specificity of both base theme modes, including teleported UI. */
@@ -298,9 +300,23 @@
   border-radius: var(--app-radius-2xl);
 }
 :root .t-input,
-:root .t-textarea__inner:not(:where(.answers-input *)) {
-  border-radius: var(--app-radius-md);
+:root .t-textarea__inner { border-radius: var(--app-radius-md); }
+:root .t-button--theme-primary.t-button--variant-base { color: var(--td-font-white-1); }
+/* Dark mode primary button: brand blue gradient #507aff -> #3a63e6 (per UI spec) */
+:root[theme-mode="dark"] .t-button--theme-primary.t-button--variant-base {
+  background: linear-gradient(135deg, var(--td-brand-color), var(--td-brand-color-active));
+  border-color: transparent;
+  color: var(--td-font-white-1);
 }
-:root .t-button--theme-primary.t-button--variant-base {
-  color: var(--app-on-accent);
+:root[theme-mode="dark"] .t-button--theme-primary.t-button--variant-base:hover:not(.t-is-disabled) {
+  background: linear-gradient(135deg, var(--td-brand-color-hover), var(--td-brand-color));
+  border-color: transparent;
+}
+:root[theme-mode="dark"] .t-button--theme-primary.t-button--variant-base:active:not(.t-is-disabled) {
+  background: var(--td-brand-color-active);
+  border-color: transparent;
+}
+:root[theme-mode="dark"] .t-button--theme-primary.t-button--variant-base.t-is-disabled {
+  background: var(--td-brand-color-disabled);
+  border-color: transparent;
 }

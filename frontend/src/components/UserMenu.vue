@@ -865,6 +865,8 @@ onUnmounted(() => {
   border-radius: var(--app-radius-md);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
   border: 1px solid var(--td-component-stroke);
+  /* 内缩让 hover 圆角块与侧边栏菜单观感一致 */
+  padding: 4px 6px 6px;
   overflow: hidden;
   z-index: 1000;
 }
@@ -877,6 +879,7 @@ onUnmounted(() => {
   gap: 6px;
   padding: 9px 12px;
   min-width: 0;
+  border-radius: var(--app-radius-md);
 
   &.is-clickable {
     cursor: pointer;
@@ -988,6 +991,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
+  border-radius: var(--app-radius-md);
   border-top: 1px solid var(--td-component-stroke);
   background: transparent;
   transition: background var(--app-motion-fast) ease;
@@ -1061,6 +1065,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
+  /* 与侧边栏菜单 hover 同款：圆角块而非通栏灰条 */
+  border-radius: var(--app-radius-md);
   cursor: pointer;
   transition: all var(--app-motion-base);
   font-size: var(--app-text-base);

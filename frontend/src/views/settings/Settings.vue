@@ -964,7 +964,8 @@ onUnmounted(() => {
 .submenu-item {
   padding: 5px 12px;
   margin-bottom: 2px;
-  border-radius: var(--app-radius-xs);
+  /* 与侧边栏菜单 hover 同款圆角 */
+  border-radius: var(--app-radius-md);
   cursor: pointer;
   color: var(--td-text-color-primary);
   font-size: var(--app-text-md);

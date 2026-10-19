@@ -13,7 +13,8 @@
         @click="router.push('/platform/creatChat')"
         style="cursor: pointer"
       >
-        <img class="logo" :src="logoSrc" alt="" />
+        <img class="logo_mark" :src="thinkerflowMark" alt="" />
+        <span class="logo_wordmark">ThinkerFlow</span>
         <sup v-if="isLiteEdition" class="lite-badge">Lite</sup>
       </div>
       <div class="logo_actions">
@@ -25,16 +26,8 @@
               <span class="cmdk-tip-keys">{{ cmdModKeyLabel }}K</span>
             </span>
           </template>
-          <div
-            class="header-icon-btn"
-            @click="commandPaletteStore.openPalette('')"
-            :aria-label="t('menu.search')"
-          >
-            <img
-              class="header-icon-img"
-              :src="getImgSrc('search.svg')"
-              alt=""
-            />
+          <div class="header-icon-btn" @click="commandPaletteStore.openPalette('')" :aria-label="t('menu.search')">
+            <t-icon name="search" size="18px" />
           </div>
         </t-tooltip>
         <div
@@ -213,32 +206,8 @@
             ]"
           >
             <div class="menu_item-box">
-              <div class="menu_icon" :class="`menu_icon--${item.icon}`">
-                <img
-                  class="icon"
-                  :src="
-                    getImgSrc(
-                      item.icon == 'zhishiku'
-                        ? knowledgeIcon
-                        : item.icon == 'agent'
-                          ? agentIcon
-                          : item.icon == 'artifact'
-                            ? artifactIcon
-                            : item.icon == 'programming'
-                              ? programmingIcon
-                              : item.icon == 'toolbox'
-                                ? toolboxIcon
-                                : item.icon == 'organization'
-                                  ? organizationIcon
-                                  : item.icon == 'logout'
-                                    ? logoutIcon
-                                    : item.icon == 'setting'
-                                      ? settingIcon
-                                      : prefixIcon,
-                    )
-                  "
-                  alt=""
-                />
+              <div class="menu_icon">
+                <span class="icon icon--mask" :style="menuItemIconStyle(item)"></span>
               </div>
               <template v-if="!uiStore.sidebarCollapsed">
                 <span class="menu_title" :title="item.title">{{
@@ -785,9 +754,7 @@ import {
 } from './sessionFolderState'
 import PanelResizeHandle from './PanelResizeHandle.vue'
 import ThemeToggle from './ThemeToggle.vue'
-import allthinkerLogo from '@/assets/img/allthinker.png'
-import allthinkerLogoDark from '@/assets/img/allthinker-dark.png'
-import { useTheme } from '@/composables/useTheme'
+import thinkerflowMark from '@/assets/img/thinkerflow-mark.png'
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_MIN_WIDTH,
@@ -880,16 +847,6 @@ const PLATFORM_LOGO: Record<string, string> = {
 const platformLogo = (p: string): string => (p ? PLATFORM_LOGO[p] || '' : '')
 
 const { t } = useI18n()
-const { currentTheme } = useTheme()
-// 侧边栏 logo：浅色用深色文字原图，深色用白字版（竖线保持 #507aff），
-// 替代旧的 invert 滤镜方案——文字更纯白、竖线不偏色。
-const logoSrc = computed(() => {
-  if (currentTheme.value === 'light') return allthinkerLogo
-  if (currentTheme.value === 'dark') return allthinkerLogoDark
-  return document.documentElement.getAttribute('theme-mode') === 'dark'
-    ? allthinkerLogoDark
-    : allthinkerLogo
-})
 const usemenuStore = useMenuStore()
 const sessionActivity = useSessionActivityStore()
 const { entries: sessionActivityEntries, unread: sessionUnread } =
@@ -2404,8 +2361,33 @@ const getImgSrc = (url: string) => {
   return new URL(`/src/assets/img/${url}`, import.meta.url).href
 }
 
-const mouseenteMenu = (path: string) => {}
-const mouseleaveMenu = (path: string) => {}
+// 顶部菜单图标改用 mask 着色：img 不继承 color，换成遮罩后图标随
+// .menu_icon 的 currentColor 变化（hover 变深、选中变品牌蓝）。
+const menuItemIconStyle = (item: any) => {
+  const src = getImgSrc(
+    item.icon == 'zhishiku'
+      ? knowledgeIcon.value
+      : item.icon == 'agent'
+        ? agentIcon.value
+        : item.icon == 'artifact'
+          ? artifactIcon.value
+          : item.icon == 'programming'
+            ? programmingIcon.value
+            : item.icon == 'toolbox'
+              ? toolboxIcon.value
+              : item.icon == 'organization'
+                ? organizationIcon.value
+                : item.icon == 'logout'
+                  ? logoutIcon.value
+                  : item.icon == 'setting'
+                    ? settingIcon.value
+                    : prefixIcon.value,
+  );
+  return { '--menu-icon-src': `url("${src}")` };
+};
+
+const mouseenteMenu = (path: string) => { };
+const mouseleaveMenu = (path: string) => { };
 
 let sidebarResizeStartWidth = 0
 const startSidebarResize = () => {
@@ -2526,13 +2508,13 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     flex-shrink: 0;
     cursor: pointer;
     color: var(--td-text-color-secondary);
-    border-radius: var(--app-radius-xs);
-    transition: background-color var(--app-motion-base) ease;
+    border-radius: var(--app-radius-sm);
+    transition: background-color var(--app-motion-fast) ease, color var(--app-motion-fast) ease;
     box-sizing: border-box;
 
     &:hover {
@@ -2542,65 +2524,29 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
   }
 
   .logo_box {
-    .logo { width: 128px; height: auto; }
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    min-width: 0;
-    // 不能裁切：品牌标记带 -12° 旋转，包围盒比布局盒宽/高约 2px，
-    // overflow:hidden 会把它的左缘和上下缘削平。文案改由省略号截断。
-    overflow: visible;
-
-    // 品牌标记沿用「新对话」首页的三道圆角短线，用 currentColor 跟随主题，
-    // 侧栏因此不再依赖位图 logo，也不必再做深色模式的反转滤镜。
-    .brand-mark {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 2.5px;
-      height: 18px;
+    /* 品牌标记：透明底蓝色双条图（左高右矮、右条偏下） */
+    .logo_mark {
+      display: block;
+      width: 24px;
+      height: 24px;
       flex-shrink: 0;
-      // 右移一点：抵消旋转带来的左侧外扩，与下方菜单图标列对齐，
-      // 同时避免标记贴住侧栏左缘显得被“切掉”。
-      margin-left: 2px;
-      color: var(--td-text-color-primary);
-      transform: rotate(-12deg);
-
-      > span {
-        display: block;
-        width: 3.5px;
-        background: currentColor;
-        border-radius: var(--app-radius-pill);
-
-        &:nth-child(1) {
-          height: 12px;
-        }
-
-        &:nth-child(2) {
-          height: 18px;
-        }
-
-        &:last-child {
-          height: 9px;
-          align-self: flex-end;
-        }
-      }
     }
 
-    // 与标记并排的文字字标，模仿 Manus 侧栏的紧凑品牌锁定。
-    .brand-wordmark {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: var(--app-text-lg);
-      font-weight: 600;
-      line-height: 1;
+    .logo_wordmark {
+      font-size: 17px;
+      font-weight: 700;
       letter-spacing: -0.2px;
       color: var(--td-text-color-primary);
       white-space: nowrap;
-      user-select: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: 1;
+    min-width: 0;
+    overflow: visible;
 
     .lite-badge {
       margin-left: 2px;
@@ -2684,18 +2630,18 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
 
   .menu_item_active {
     border-radius: var(--app-radius-xs);
-    background: var(--td-bg-color-secondarycontainer) !important;
+    background: var(--app-nav-active-bg) !important;
 
     .menu_icon,
     .menu_title {
-      color: var(--td-text-color-primary) !important;
+      color: var(--app-nav-active-text) !important;
     }
   }
 
   .menu_item_c_active {
     .menu_icon,
     .menu_title {
-      color: var(--td-text-color-primary);
+      color: var(--app-nav-active-text);
     }
   }
 
@@ -2735,6 +2681,7 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
     height: var(--sidebar-icon-size);
     margin-right: var(--sidebar-icon-gap);
     color: var(--td-text-color-secondary);
+    transition: color var(--app-motion-fast) ease;
 
     .icon {
       width: 18px;
@@ -2742,12 +2689,12 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
       overflow: hidden;
     }
 
-    // 图形几乎占满画布的图标缩小显示，否则会比其他图标大一圈
-    &.menu_icon--zhishiku .icon,
-    &.menu_icon--organization .icon,
-    .icon.icon--toggle {
-      width: 16px;
-      height: 16px;
+    // 仅限 mask 着色的 span，不能命中同层的 img.icon / svg.icon，
+    // 否则 background 会把它们填成实心色块。
+    .icon--mask {
+      background-color: currentColor;
+      -webkit-mask: var(--menu-icon-src) no-repeat center / 100% 100%;
+      mask: var(--menu-icon-src) no-repeat center / 100% 100%;
     }
   }
 
@@ -3221,14 +3168,14 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
     }
 
     &.session-chat-row--active .session-list-row {
-      background: transparent;
+      background: var(--app-nav-active-bg);
 
       :deep(.submenu_item) {
-        color: var(--td-text-color-primary);
+        color: var(--app-nav-active-text);
       }
 
       :deep(.menu-more) {
-        color: var(--td-text-color-primary);
+        color: var(--app-nav-active-text);
       }
     }
 
@@ -3276,6 +3223,10 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
     .menu-more-wrap {
       transition: opacity var(--app-motion-base) ease;
       flex-shrink: 0;
+      /* 侧栏调宽手柄（PanelResizeHandle）的 52px 感应区叠在右缘，
+         垂直居中的会话行会被它盖住点击；抬高按钮层级让 ⋯ 可点。 */
+      position: relative;
+      z-index: 11;
     }
 
     .menu-more {
@@ -3360,17 +3311,12 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
   cursor: pointer;
   border-radius: var(--app-radius-sm);
   color: var(--td-text-color-secondary);
-  transition: background-color var(--app-motion-base) ease;
+  transition: background-color var(--app-motion-fast) ease, color var(--app-motion-fast) ease;
   box-sizing: border-box;
 
   &:hover {
     background: var(--td-bg-color-container-hover);
-  }
-
-  .header-icon-img {
-    width: 18px;
-    height: 18px;
-    display: block;
+    color: var(--td-text-color-primary);
   }
 }
 
@@ -3569,15 +3515,6 @@ html[theme-mode='dark'] .aside_box .menu_top::-webkit-scrollbar-thumb:hover {
   background-color: rgba(255, 255, 255, 0.38);
 }
 
-// Dark mode: invert the top search icon button image to match text color
-html[theme-mode='dark'] .aside_box .header-icon-img {
-  filter: invert(1);
-  opacity: 0.55;
-}
-
-html[theme-mode='dark'] .aside_box .header-icon-btn:hover .header-icon-img {
-  opacity: 0.9;
-}
 
 // 下拉菜单样式已统一至 @/assets/dropdown-menu.less
 

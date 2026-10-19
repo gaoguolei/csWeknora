@@ -25,24 +25,22 @@
       <button
         type="button"
         class="auth-toolbar__btn auth-toolbar__btn--icon"
-        :aria-label="$t('theme.theme')"
         :aria-pressed="isDark"
-        :title="isDark ? $t('theme.light') : $t('theme.dark')"
+        :title="isDark ? $t('theme.dark') : $t('theme.light')"
         @click="toggleTheme"
       >
-        <t-icon :name="isDark ? 'sunny' : 'moon'" size="16px" />
+        <!-- 空心线框版：浅色太阳 / 深色月亮，与侧边栏 ThemeToggle 同款同尺寸。 -->
+        <t-icon :name="isDark ? 'moon' : 'sunny'" size="18px" />
       </button>
     </div>
 
     <!-- 左侧品牌面板 -->
     <aside class="brand-panel">
       <div class="brand-panel__inner">
-        <!-- 与 WorkspaceWelcome 同一套三条杠标志，替掉原先只存在于样式里的字标。 -->
+        <!-- 与侧边栏同款：透明底蓝色双条图 + ThinkerFlow 文字。 -->
         <div class="brand-lockup">
-          <span class="brand-mark" aria-hidden="true">
-            <span></span><span></span><span></span>
-          </span>
-          <span class="brand-lockup__name">WeKnora</span>
+          <img class="brand-lockup__mark" :src="thinkerflowMark" alt="" />
+          <span class="brand-lockup__name">ThinkerFlow</span>
         </div>
 
         <div class="brand-copy">
@@ -76,9 +74,6 @@
 
     <!-- 右侧表单区 -->
     <main class="form-panel">
-      <div class="form-panel__theme">
-        <ThemeToggle />
-      </div>
       <div class="form-panel__inner">
         <!-- 登录 -->
         <div v-if="!isRegisterMode" class="auth-card">
@@ -105,7 +100,7 @@
           </div>
 
           <header class="auth-card__header">
-            <div class="auth-card__eyebrow">ALLTHINKER WORKSPACE</div>
+            <div class="auth-card__eyebrow">THINKERFLOW WORKSPACE</div>
             <h2 class="auth-card__title">{{ $t('auth.login') }}</h2>
             <p class="auth-card__subtitle">{{ $t('auth.subtitle') }}</p>
           </header>
@@ -214,7 +209,7 @@
           </div>
 
           <header class="auth-card__header">
-            <div class="auth-card__eyebrow">ALLTHINKER WORKSPACE</div>
+            <div class="auth-card__eyebrow">THINKERFLOW WORKSPACE</div>
             <h2 class="auth-card__title">{{ $t('auth.createAccount') }}</h2>
             <p class="auth-card__subtitle">{{ $t('auth.subtitle') }}</p>
           </header>
@@ -327,6 +322,7 @@ import {
 } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import thinkerflowMark from '@/assets/img/thinkerflow-mark.png'
 import { useI18n } from 'vue-i18n'
 import {
   SUPPORTED_LOCALES,
@@ -820,43 +816,19 @@ onBeforeUnmount(() => {
   min-height: calc(100dvh - 88px);
 }
 
-/* 品牌标记沿用侧栏与「新对话」首页那套三道圆角短线。 */
+/* 品牌锁定：与侧边栏同款—24px蓝色双条图 + 粗体文字，间距收紧。 */
 .brand-lockup {
   display: flex;
   align-items: center;
-  gap: var(--app-space-3);
+  gap: 5px;
   margin-bottom: var(--app-space-10);
 }
 
-.brand-mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  height: 28px;
+.brand-lockup__mark {
+  display: block;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
-  color: var(--td-text-color-primary);
-  transform: rotate(-12deg);
-
-  > span {
-    display: block;
-    width: 5px;
-    background: currentColor;
-    border-radius: var(--app-radius-pill);
-
-    &:nth-child(1) {
-      height: 18px;
-    }
-
-    &:nth-child(2) {
-      height: 28px;
-    }
-
-    &:last-child {
-      height: 14px;
-      align-self: flex-end;
-    }
-  }
 }
 
 .brand-lockup__name {
@@ -951,12 +923,12 @@ onBeforeUnmount(() => {
 }
 
 /* 表单区右上角的主题切换（浅色/深色/跟随系统） */
-.form-panel__theme {
-  position: absolute;
-  top: 20px;
-  right: 24px;
-  z-index: 2;
-}
+// .form-panel__theme {
+//   position: absolute;
+//   top: 20px;
+//   right: 24px;
+//   z-index: 2;
+// }
 
 .form-panel__inner {
   width: 100%;
