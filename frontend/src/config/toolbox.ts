@@ -45,6 +45,7 @@ export function canAccessToolboxSection(
     currentTenantRole: string | null | undefined
     canAccessAllTenants: boolean
     isOperationsAdmin: boolean
+    isSystemAdmin: boolean
     hasRole: (role: SettingsRoleKey) => boolean
     isSupported: (capability?: DeploymentCapabilityKey) => boolean
   },

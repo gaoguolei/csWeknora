@@ -41,6 +41,11 @@ export function normalizeSettingsSection(section: string, tab?: string | null): 
   if (isBareIntegrationTab(section)) {
     return integrationSectionKey(section)
   }
+  // 知识库配置已从单一 kb-defaults 页提升为主侧栏的多个 kb-* 分区；
+  // 旧书签 / 深链落到第一个分区（模型配置）。
+  if (section === 'kb-defaults') {
+    return 'kb-models'
+  }
   return section
 }
 

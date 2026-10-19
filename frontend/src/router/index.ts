@@ -8,7 +8,6 @@ import type { DeploymentCapabilityKey } from '@/config/deploymentCapabilities'
 import { MessagePlugin } from 'tdesign-vue-next'
 import i18n from '@/i18n'
 import { normalizeSettingsSection } from '@/config/settingsRoute'
-import { isToolboxSection, toolboxLocation } from '@/config/toolbox'
 
 /** Lite /桌面 WebView 硬刷新时可能只打开 `/`，用 session 记住上次页面以便恢复 */
 const LITE_LAST_PATH_KEY = 'weknora_lite_last_path'
@@ -309,12 +308,8 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
-  // Preserve bookmarks for tools that have moved out of Settings.
-  if (to.path === '/platform/settings' && isToolboxSection(to.query.section)) {
-    next({ ...toolboxLocation(to.query.section,
-      typeof to.query.sandboxId === 'string' ? to.query.sandboxId : undefined), replace: true })
-    return
-  }
+  // 设置弹窗与工具箱都能打开 skills / mcp 面板（?section=skills 仍是设置页 URL），
+  // 这里不再把它们改写到 /platform/toolbox。
 
   // Lite：硬刷新后若落在默认首页，恢复本次会话中最后访问的 /platform 子路径
   if (!liteDeepLinkRestoreDone) {

@@ -136,12 +136,6 @@
                 stroke-linecap="round"
               />
             </svg>
-            <BrowserIcon
-              v-else-if="item.key === 'browserconnection'"
-              class="nav-icon"
-              width="17"
-              height="17"
-            />
             <span v-else-if="item.emoji" class="nav-icon nav-icon-emoji">{{
               item.emoji
             }}</span>
@@ -198,6 +192,8 @@
           'model-catalog',
           'members',
           'sandbox',
+          'skills',
+          'mcp',
         ].includes(currentSection),
         'content-wrapper--full':
           SYSTEM_ADMIN_SECTIONS.has(currentSection) ||
@@ -235,6 +231,14 @@
         <!-- 模型配置 -->
         <div v-if="currentSection === 'models'" class="section">
           <ModelSettings />
+        </div>
+
+        <!-- 知识库配置（平台默认，超管/运营管理员）：多个 kb-* 外层导航项共用
+             同一组件实例，切换分区时不卸载，保留未保存的编辑。 -->
+        <div v-if="isKbDefaultsSection(currentSection)" class="section">
+          <KnowledgeBaseDefaultsSettings
+            :active-section="kbDefaultsSectionFromKey(currentSection)"
+          />
         </div>
 
         <!-- 网络搜索配置 -->
@@ -320,10 +324,6 @@
           <UserProfile />
         </div>
 
-        <div v-if="currentSection === 'browserconnection'" class="section">
-          <BrowserConnectionSettings />
-        </div>
-
         <!-- 空间信息 -->
         <div v-if="currentSection === 'tenant'" class="section">
           <TenantInfo />
@@ -340,11 +340,19 @@
             :tab="integrationTabFromSection(currentSection)"
           />
         </div>
-
         <!-- MCP 服务 -->
         <div v-if="currentSection === 'mcp'" class="section">
           <McpSettings />
         </div>
+
+        <!-- 技能 / MCP 面板里的搜索框用 <Teleport to="#toolbox-toolbar"> 挂到页头工具条，
+             工具箱（Toolbox.vue）才有那个容器；设置弹窗里内嵌渲染时这里提供同名兜底
+             目标，否则 Teleport 找不到节点会在卸载时抛错（Cannot read properties of null）。 -->
+        <div
+          v-if="currentSection === 'skills' || currentSection === 'mcp'"
+          id="toolbox-toolbar"
+          class="settings-teleport-toolbar"
+        />
       </template>
     </div>
   </SettingsModalShell>
@@ -365,9 +373,8 @@ import SystemInfo from "./SystemInfo.vue";
 import TenantInfo from "./TenantInfo.vue";
 import UserProfile from "./UserProfile.vue";
 import GeneralSettings from "./GeneralSettings.vue";
-import BrowserConnectionSettings from "./BrowserConnectionSettings.vue";
-import BrowserIcon from "@/components/icons/BrowserIcon.vue";
 import ModelSettings from "./ModelSettings.vue";
+import KnowledgeBaseDefaultsSettings from "./KnowledgeBaseDefaultsSettings.vue";
 import ModelCatalog from "../system/ModelCatalog.vue";
 import OllamaSettings from "./OllamaSettings.vue";
 import McpSettings from "./McpSettings.vue";
@@ -405,7 +412,6 @@ import {
   SETTINGS_SECTION_CAPABILITY,
   skillSettingsSupported,
 } from "@/config/deploymentCapabilities";
-import { isToolboxSection, toolboxLocation } from "@/config/toolbox";
 import { hostSkillsOnly } from "@/utils/skillTarget";
 import { SKILL_ICON } from "@/types/mention";
 import {
@@ -474,6 +480,33 @@ type NavGroup = {
 //   ModelSettings.vue 里另用 hasRole('admin') 自己 gate，所以入口保留
 //   viewer 是合理的（contributor 也能浏览模型列表）。
 const SYSTEM_ADMIN_SECTIONS = SYSTEM_ADMIN_SETTINGS_SECTIONS;
+
+// 知识库配置（平台默认）分区：原先内嵌在「知识库设置」页的二级导航里，现提升到
+// 设置主侧栏，归入「知识库配置」分组（小标题）。这些 kb-* 键共用同一个
+// KnowledgeBaseDefaultsSettings 组件实例（共享 cfg + 单个保存按钮），切换分区
+// 时组件保持挂载不重载。权限见 settingsAccess.ts：kb-vectorStore/kb-parser/
+// kb-storage/kb-datasource 仅运营管理员可见（连超管也不显示），其余仅超管可见。
+const KB_DEFAULTS_SUBSECTIONS: {
+  key: string;
+  icon: string;
+  labelKey: string;
+  section: string;
+}[] = [
+  { key: "kb-models", icon: "control-platform", labelKey: "knowledgeEditor.sidebar.models", section: "models" },
+  { key: "kb-vectorStore", icon: "data-base", labelKey: "knowledgeEditor.sidebar.vectorStore", section: "vectorStore" },
+  { key: "kb-parser", icon: "file-search", labelKey: "settings.parserEngine", section: "parser" },
+  { key: "kb-chunking", icon: "file-copy", labelKey: "knowledgeEditor.sidebar.chunking", section: "chunking" },
+  { key: "kb-image", icon: "image", labelKey: "knowledgeEditor.sidebar.multimodal", section: "image" },
+  { key: "kb-audio", icon: "sound", labelKey: "knowledgeEditor.sidebar.asr", section: "audio" },
+  { key: "kb-graph", icon: "chart-bubble", labelKey: "knowledgeEditor.sidebar.graph", section: "graph" },
+  { key: "kb-advanced", icon: "setting", labelKey: "knowledgeEditor.sidebar.advanced", section: "advanced" },
+  { key: "kb-storage", icon: "cloud", labelKey: "knowledgeEditor.sidebar.storage", section: "storage" },
+  { key: "kb-datasource", icon: "cloud-download", labelKey: "knowledgeEditor.sidebar.datasource", section: "datasource" },
+];
+const KB_DEFAULTS_KEYS = new Set(KB_DEFAULTS_SUBSECTIONS.map((s) => s.key));
+const isKbDefaultsSection = (key: string) => KB_DEFAULTS_KEYS.has(key);
+const kbDefaultsSectionFromKey = (key: string) =>
+  KB_DEFAULTS_SUBSECTIONS.find((s) => s.key === key)?.section || "models";
 
 // 临时屏蔽的设置入口（产品要求暂不展示）：WeKnora Cloud、IM 集成、
 // 网页嵌入、CLI、Claw Skill、版本信息。恢复展示时删除本常量及下方过滤即可。
@@ -574,6 +607,12 @@ const navItems = computed(() => {
       icon: "control-platform",
       label: t("settings.modelManagement"),
     },
+    // 知识库配置（平台默认）分区——从旧的单一 kb-defaults 入口提升为多个外层导航项。
+    ...KB_DEFAULTS_SUBSECTIONS.map((s) => ({
+      key: s.key,
+      icon: s.icon,
+      label: t(s.labelKey),
+    })),
     { key: "websearch", icon: "search", label: t("settings.webSearchConfig") },
     { key: "chathistory", icon: "chat", label: t("chatHistorySettings.title") },
     {
@@ -610,11 +649,6 @@ const navItems = computed(() => {
       label: t("system.globalSettings.audit.tabLabel"),
     },
     { key: "userprofile", icon: "user", label: t("userProfile.title") },
-    {
-      key: "browserconnection",
-      icon: "laptop",
-      label: t("localBrowser.settingsTitle"),
-    },
     { key: "mymemory", icon: "bookmark", label: t("memorySettings.title") },
     { key: "envvars", icon: "key", label: envNavLabel() },
     { key: "tenant", icon: "user-circle", label: t("settings.tenantInfo") },
@@ -650,7 +684,6 @@ const navGroups = computed<NavGroup[]>(() => {
       items: pickItems([
         "general",
         "userprofile",
-        "browserconnection",
         "mymemory",
         "envvars",
       ]),
@@ -664,6 +697,11 @@ const navGroups = computed<NavGroup[]>(() => {
       key: "models_runtime",
       label: t("settings.navGroups.modelsRuntime"),
       items: pickItems(["models", "ollama", "weknoracloud"]),
+    },
+    {
+      key: "kbconfig",
+      label: t("kbDefaults.navGroup"),
+      items: pickItems(KB_DEFAULTS_SUBSECTIONS.map((s) => s.key)),
     },
     {
       key: "integrations",
@@ -1016,6 +1054,7 @@ onUnmounted(() => {
 
 /* 右侧内容区域 */
 .content-wrapper {
+  position: relative;
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -1051,6 +1090,32 @@ onUnmounted(() => {
 
 .section {
   animation: fadeIn 0.3s ease;
+}
+
+/* 技能 / MCP 内嵌渲染时给面板的 <Teleport to="#toolbox-toolbar"> 提供落点：
+   贴在内容区右上角（与页头标题同行），宽度与工具箱工具条里的搜索框一致。
+    teleport 进来的节点不带本组件的 scopeId，所以必须 :deep。 */
+.settings-teleport-toolbar {
+  position: absolute;
+  top: 28px;
+  right: 48px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: auto;
+
+  :deep(.t-input__wrap) {
+    width: 240px;
+  }
+
+  :deep(.t-input) {
+    border-radius: var(--app-radius-sm);
+  }
+
+  @media (max-width: 720px) {
+    right: 16px;
+  }
 }
 
 @keyframes fadeIn {

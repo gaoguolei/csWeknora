@@ -4630,9 +4630,47 @@ export default {
     attachmentParseFailed: "첨부 파일 분석 실패",
     attachmentStillProcessing: "첨부 파일 {name}을(를) 아직 분석 중입니다",
   },
+  kbDefaults: {
+    title: "지식베이스 설정",
+    description:
+      "지식베이스의 플랫폼 기본값을 통합 설정합니다. 일반 사용자는 신규 생성 시 기본 정보만 입력하면 되며, 나머지 설정은 여기서 지정한 기본값이 자동 참조되어 플랫폼 전체의 모든 워크스페이스에 공통으로 적용됩니다.",
+    navGroup: "지식 베이스 구성",
+    readonlyBanner:
+      "최고 관리자만 플랫폼 지식베이스 기본값을 편집할 수 있습니다.",
+    modelDefaultDesc:
+      "신규 지식베이스에서 자동으로 선택되는 모델. 비워 두면 사용자가 직접 선택합니다.",
+    appliesHint:
+      "이 기본값은 앞으로 생성되는 지식베이스에 적용되며 기존 지식베이스에는 영향을 주지 않습니다.",
+    save: "기본값 저장",
+    saving: "저장 중…",
+    autoSaved: "자동 저장됨",
+    saved: "플랫폼 지식베이스 기본값이 저장되었습니다",
+    saveFailed: "플랫폼 지식베이스 기본값 저장에 실패했습니다",
+    sections: {
+      models: "기본 모델",
+      modelsDesc: "지식베이스 생성 시 자동으로 참조되는 요약·임베딩 모델.",
+      chunking: "청크 설정",
+      chunkingDesc: "대부분의 상황에 적합한 문서 분할 기본 매개변수.",
+      image: "이미지 처리",
+      imageDesc: "이미지 등 멀티모달 콘텐츠 이해를 기본으로 활성화할지 여부.",
+      audio: "오디오 처리",
+      audioDesc: "오디오 음성 인식 및 전사를 기본으로 활성화할지 여부.",
+      graph: "지식 그래프",
+      graphDesc: "개체-관계 추출을 통한 지식 그래프 구성을 기본으로 활성화할지 여부.",
+      advanced: "고급 설정",
+      advancedDesc: "질문 생성, 자동 태그 지정, 지식 베이스 설명 등 기본 토글.",
+    },
+    datasource: {
+      targetKb: "대상 지식 베이스",
+      selectKb: "지식 베이스를 선택하세요",
+      hint: "데이터 소스는 외부 콘텐츠를 지정된 지식 베이스로 자동 동기화합니다. 이 공간의 각 지식 베이스 데이터 소스를 여기서 통합 관리하며, 지식 베이스 생성 대화 상에서는 더 이상 설정할 수 없습니다.",
+    },
+  },
   knowledgeEditor: {
     titleCreate: "지식베이스 생성",
     titleEdit: "지식베이스 설정",
+    platformManagedReadonly:
+      "이 설정은 플랫폼 전체에서 통합 관리되며, 여기서는 현재 적용된 값만 읽기 전용으로 표시됩니다. 변경할 수 없습니다.",
     advanced: {
       title: "고급 설정",
       description: "질문 생성, 멀티모달 등 고급 기능 설정",

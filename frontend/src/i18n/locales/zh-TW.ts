@@ -4137,9 +4137,42 @@ export default {
     "attachmentParseFailed": "附件解析失敗",
     "attachmentStillProcessing": "附件 {name} 仍在解析，請稍候"
   },
+  "kbDefaults": {
+    "title": "知識庫設定",
+    "description": "統一配置知識庫的平台預設參數。普通使用者新建知識庫時只需填寫基本資訊，其餘設定自動引用此處設定的預設值，對全平台所有空間通用。",
+    "navGroup": "知識庫配置",
+    "readonlyBanner": "僅超級管理員可編輯平台知識庫預設配置。",
+    "modelDefaultDesc": "新建知識庫時預設選用的模型；留空則由使用者自行選擇。",
+    "appliesHint": "這些預設值將自動應用於此後新建的知識庫，已有知識庫不受影響。",
+    "save": "儲存預設配置",
+    "saving": "儲存中…",
+    "autoSaved": "已自動儲存",
+    "saved": "平台知識庫預設配置已儲存",
+    "saveFailed": "儲存平台知識庫預設配置失敗",
+    "sections": {
+      "models": "預設模型",
+      "modelsDesc": "新建知識庫時自動引用的摘要與嵌入模型。",
+      "chunking": "分塊設定",
+      "chunkingDesc": "文件切分的預設參數，適用於大多數場景。",
+      "image": "影像處理",
+      "imageDesc": "預設是否啟用影像等多模態內容理解。",
+      "audio": "音訊處理",
+      "audioDesc": "預設是否啟用音訊語音辨識與轉錄。",
+      "graph": "知識圖譜",
+      "graphDesc": "預設是否啟用實體-關聯抽取建構知識圖譜。",
+      "advanced": "進階設定",
+      "advancedDesc": "問題生成、自動標籤、知識庫描述等預設開關。"
+    },
+    "datasource": {
+      "targetKb": "目標知識庫",
+      "selectKb": "請選擇知識庫",
+      "hint": "數據源用於將外部內容自動同步到指定知識庫；此處集中管理本空間各知識庫的數據源，新建知識庫彈窗不再提供該配置。"
+    }
+  },
   "knowledgeEditor": {
     "titleCreate": "新建知識庫",
     "titleEdit": "知識庫設定",
+    "platformManagedReadonly": "該設定已由平台統一管控，此處僅顯示目前生效值，不可修改。",
     "advanced": {
       "title": "進階設定",
       "description": "設定問題生成等進階功能",

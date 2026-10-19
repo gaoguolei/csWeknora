@@ -146,11 +146,12 @@ const sandboxId = computed(() =>
 const visibleItems = computed(() =>
   TOOLBOX_ITEMS.filter((item) =>
     canAccessToolboxSection(item.key, {
-  currentTenantRole: authStore.currentTenantRole,
-  canAccessAllTenants: authStore.canAccessAllTenants,
-  isOperationsAdmin: authStore.isOperationsAdmin,
-  hasRole: (role) => authStore.hasRole(role),
-  isSupported: (capability) => capabilities.isSupported(capability),
+      currentTenantRole: authStore.currentTenantRole,
+      canAccessAllTenants: authStore.canAccessAllTenants,
+      isOperationsAdmin: authStore.isOperationsAdmin,
+      isSystemAdmin: authStore.isSystemAdmin,
+      hasRole: (role) => authStore.hasRole(role),
+      isSupported: (capability) => capabilities.isSupported(capability),
     }),
   ),
 )

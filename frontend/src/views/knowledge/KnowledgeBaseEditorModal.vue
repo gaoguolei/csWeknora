@@ -226,8 +226,8 @@
         </div>
       </div>
 
-      <!-- 模型配置 -->
-      <div v-show="currentSection === 'models'" class="section">
+      <!-- 模型配置（仅超管及以上） -->
+      <div v-if="canEditPlatform" v-show="currentSection === 'models'" class="section">
         <KBModelConfig
           ref="modelConfigRef"
           v-if="formData"
@@ -240,8 +240,8 @@
         />
       </div>
 
-      <!-- VectorStore 绑定 -->
-      <div v-show="currentSection === 'vectorStore'" class="section">
+      <!-- VectorStore 绑定（仅运营管理员） -->
+      <div v-if="canEditOps" v-show="currentSection === 'vectorStore'" class="section">
         <KBVectorStoreSettings
           v-if="formData"
           :mode="editorMode"
@@ -290,7 +290,7 @@
       </div>
 
       <!-- 解析引擎 -->
-      <div v-if="!isFAQ && formData && currentSection === 'parser'" class="section">
+      <div v-if="!isFAQ && formData && canEditOps && currentSection === 'parser'" class="section">
         <KBParserSettings
           :parser-engine-rules="formData.chunkingConfig.parserEngineRules"
           @update:parser-engine-rules="handleParserEngineRulesUpdate"
@@ -298,7 +298,7 @@
       </div>
 
       <!-- 存储引擎 -->
-      <div v-if="!isFAQ && formData && currentSection === 'storage'" class="section">
+      <div v-if="!isFAQ && formData && canEditOps && currentSection === 'storage'" class="section">
         <KBStorageSettings
           :storage-backend-id="formData.storageBackendId"
           :storage-provider="formData.storageProvider"
@@ -309,7 +309,7 @@
       </div>
 
       <!-- 分块设置 -->
-      <div v-if="!isFAQ" v-show="currentSection === 'chunking'" class="section">
+      <div v-if="!isFAQ && canEditPlatform" v-show="currentSection === 'chunking'" class="section">
         <KBChunkingSettings
           v-if="formData"
           :config="formData.chunkingConfig"
@@ -318,7 +318,7 @@
       </div>
 
       <!-- 多模态配置 -->
-      <div v-if="!isFAQ" v-show="currentSection === 'multimodal'" class="section">
+      <div v-if="!isFAQ && canEditPlatform" v-show="currentSection === 'multimodal'" class="section">
         <div v-if="formData" class="kb-multimodal-settings">
           <div class="section-header">
             <h2>{{ $t('knowledgeEditor.multimodal.title') }}</h2>
@@ -467,7 +467,7 @@
       </div>
 
       <!-- 音频处理（ASR）设置 -->
-      <div v-if="!isFAQ" v-show="currentSection === 'asr'" class="section">
+      <div v-if="!isFAQ && canEditPlatform" v-show="currentSection === 'asr'" class="section">
         <div v-if="formData" class="kb-multimodal-settings">
           <div class="section-header">
             <h2>{{ $t('knowledgeEditor.asr.title') }}</h2>
@@ -511,7 +511,7 @@
       </div>
 
       <!-- 知识图谱 -->
-      <div v-if="!isFAQ && currentSection === 'graph'" class="section">
+      <div v-if="!isFAQ && canEditPlatform && currentSection === 'graph'" class="section">
         <GraphSettings
           v-if="formData"
           :graph-extract="formData.nodeExtractConfig"
@@ -522,7 +522,7 @@
       </div>
 
       <!-- 高级设置 -->
-      <div v-if="!isFAQ" v-show="currentSection === 'advanced'" class="section">
+      <div v-if="!isFAQ && canEditPlatform" v-show="currentSection === 'advanced'" class="section">
         <KBAdvancedSettings
           ref="advancedSettingsRef"
           v-if="formData"
@@ -537,11 +537,6 @@
                     @update:profile-config="(value) => { if (formData) formData.profileConfig = value }"
           @update:table-metadata-instructions="(value: string) => { if (formData) formData.chunkingConfig.tableMetadataInstructions = value }"
         />
-      </div>
-
-      <!-- 数据源管理（仅编辑模式） -->
-      <div v-if="editorMode === 'edit' && activeKbId && currentSection === 'datasource'" class="section">
-        <DataSourceSettings :kb-id="activeKbId" @count="dsCount = $event" />
       </div>
 
       <!-- 共享设置（仅编辑模式） -->
@@ -641,7 +636,6 @@ import KBAdvancedSettings from './settings/KBAdvancedSettings.vue'
 import ModelSelector from '@/components/ModelSelector.vue'
 import GraphSettings from './settings/GraphSettings.vue'
 import KBShareSettings from './settings/KBShareSettings.vue'
-import DataSourceSettings from './settings/DataSourceSettings.vue'
 import KnowledgeBaseActivitySettings from './settings/KnowledgeBaseActivitySettings.vue'
 import { useI18n } from 'vue-i18n'
 
@@ -737,7 +731,6 @@ const initialStorageProvider = ref<string>('')
 /** Tenant-wide default from Settings → Storage engine (used when creating a KB). */
 const tenantDefaultStorageProvider = ref('local')
 const initialIndexingStrategy = ref<any>(null)
-const dsCount = ref(0)
 // Identifier of the user who created this KB. Empty for older rows
 // that predate per-KB ownership tracking; those KBs have no "owner" and
 // only tenant Admin+ can mutate their share settings.
@@ -766,6 +759,13 @@ const canViewActivity = computed(() => {
   if (Number(kbTenantId.value || 0) !== Number(authStore.currentTenantId || 0)) return false
   return isKbOwner.value || authStore.hasRole('admin')
 })
+
+// 编辑弹窗与平台「知识库设置」一致地按角色分区：
+//  · 超管及以上（isSystemAdmin，运营管理员继承）：模型配置 / 分块 / 图像 / 音频 / 图谱 / 高级；
+//  · 仅运营管理员（isOperationsAdmin，连超管也不显示）：向量存储 / 解析引擎 / 存储引擎；
+//  · 基本信息、FAQ、共享、活动对所有可编辑者保留。
+const canEditPlatform = computed(() => authStore.isSystemAdmin)
+const canEditOps = computed(() => authStore.isOperationsAdmin)
 // 用户是否在分块设置中手动改过任何值。一旦为 true，就不再根据索引策略自动调整默认分块参数。
 const chunkingDirty = ref(false)
 
@@ -787,34 +787,62 @@ const DEFAULT_CHUNKING_PRESET = {
   enableParentChild: true,
 } as const
 
-// 这些分区的操作在点击时即时生效（共享 / 数据源 / 活动记录），不经过底部「保存」，
+// 这些分区的操作在点击时即时生效（共享 / 活动记录），不经过底部「保存」，
 // 因此底部只显示「关闭」并提示，避免用户以为需要再点保存或以为「取消」能撤销。
-const INSTANT_SECTIONS = new Set(['datasource', 'share', 'activity'])
+const INSTANT_SECTIONS = new Set(['share', 'activity'])
 const isInstantSection = computed(() => INSTANT_SECTIONS.has(currentSection.value))
 
+// 表单数据。必须在 navItems 等引用它的 computed 之前声明：computed 虽为惰性求值，
+// 但一旦有 watch(navItems)/watch(navGroups) 之类在 setup 阶段提前触发求值，就会读取
+// 尚未初始化的 formData 命中 TDZ，导致整个 setup 抛错、后续渲染/更新级联失败。
+const formData = ref<any>(null)
+
 const navItems = computed(() => {
+  // 建库模式：模型/向量存储/解析引擎/分块/图像/音频/图谱/高级/存储等配置统一
+  // 在平台「知识库设置」默认页维护，建库时由后端自动引用，因此新建仅展示
+  // 基本信息（问答类型再加 FAQ 设置），不展示其余分区。
+  if (editorMode.value === 'create') {
+    const createItems: { key: string; icon: string; label: string; badge?: number }[] = [
+      { key: 'basic', icon: 'info-circle', label: t('knowledgeEditor.sidebar.basic') },
+    ]
+    if (formData.value?.type === 'faq') {
+      createItems.push({ key: 'faq', icon: 'help-circle', label: t('knowledgeEditor.sidebar.faq') })
+    }
+    return createItems
+  }
   const items: { key: string; icon: string; label: string; badge?: number }[] = [
     { key: 'basic', icon: 'info-circle', label: t('knowledgeEditor.sidebar.basic') },
-    { key: 'models', icon: 'control-platform', label: t('knowledgeEditor.sidebar.models') },
-    // VectorStore binding section — present in both create and edit
-    // modes. Create mode shows a dropdown; edit mode shows the bound
-    // store read-only with an immutability hint.
-    { key: 'vectorStore', icon: 'data-base', label: t('knowledgeEditor.sidebar.vectorStore') }
   ]
+  // 以下分区按超管 / 运营管理员权限隐藏入口（非权限者菜单不展示，内容也不渲染）。
+  if (canEditPlatform.value) {
+    items.push({ key: 'models', icon: 'control-platform', label: t('knowledgeEditor.sidebar.models') })
+  }
+  if (canEditOps.value) {
+    // VectorStore binding section — edit mode shows the bound store read-only
+    // with an immutability hint.
+    items.push({ key: 'vectorStore', icon: 'data-base', label: t('knowledgeEditor.sidebar.vectorStore') })
+  }
   if (formData.value?.type === 'faq') {
     items.push({ key: 'faq', icon: 'help-circle', label: t('knowledgeEditor.sidebar.faq') })
   } else {
-    items.push(
-      { key: 'parser', icon: 'file-search', label: t('settings.parserEngine') },
-      { key: 'multimodal', icon: 'image', label: t('knowledgeEditor.sidebar.multimodal') },
-      { key: 'asr', icon: 'sound', label: t('knowledgeEditor.sidebar.asr') },
-      { key: 'storage', icon: 'cloud', label: t('knowledgeEditor.sidebar.storage') },
-      { key: 'chunking', icon: 'file-copy', label: t('knowledgeEditor.sidebar.chunking') },
-      { key: 'graph', icon: 'chart-bubble', label: t('knowledgeEditor.sidebar.graph') },
-      { key: 'advanced', icon: 'setting', label: t('knowledgeEditor.sidebar.advanced') }
-    )
-    if (editorMode.value === 'edit' && activeKbId.value) {
-      items.push({ key: 'datasource', icon: 'cloud-download', label: t('knowledgeEditor.sidebar.datasource'), badge: dsCount.value || undefined })
+    if (canEditOps.value) {
+      items.push({ key: 'parser', icon: 'file-search', label: t('settings.parserEngine') })
+    }
+    if (canEditPlatform.value) {
+      items.push(
+        { key: 'multimodal', icon: 'image', label: t('knowledgeEditor.sidebar.multimodal') },
+        { key: 'asr', icon: 'sound', label: t('knowledgeEditor.sidebar.asr') }
+      )
+    }
+    if (canEditOps.value) {
+      items.push({ key: 'storage', icon: 'cloud', label: t('knowledgeEditor.sidebar.storage') })
+    }
+    if (canEditPlatform.value) {
+      items.push(
+        { key: 'chunking', icon: 'file-copy', label: t('knowledgeEditor.sidebar.chunking') },
+        { key: 'graph', icon: 'chart-bubble', label: t('knowledgeEditor.sidebar.graph') },
+        { key: 'advanced', icon: 'setting', label: t('knowledgeEditor.sidebar.advanced') }
+      )
     }
   }
   if (editorMode.value === 'edit' && activeKbId.value && !authStore.isLiteMode) {
@@ -845,7 +873,7 @@ const navGroups = computed(() => {
     {
       key: 'data',
       label: t('knowledgeEditor.navGroups.data'),
-      items: pickItems(['storage', 'datasource']),
+      items: pickItems(['storage']),
     },
     {
       key: 'integration',
@@ -860,12 +888,22 @@ const navGroups = computed(() => {
   ].filter((group) => group.items.length > 0)
 })
 
+// 当前分区若因权限（或类型切换）而不在可见菜单里，回退到基本信息，避免停在隐藏分区造成空白。
+// 注意：不能在此处 watch(navItems)——会在 setup 阶段提前求值 navItems，触发对尚未声明的
+// formData 的 TDZ 错误。改由弹窗打开数据加载完成后显式调用（见 watch(props.visible)），
+// 类型切换则由下方已有的 type 监听处理。
+function ensureVisibleSection() {
+  if (!props.visible) return
+  const keys = navItems.value.map((it) => it.key)
+  if (keys.length && !keys.includes(currentSection.value)) {
+    currentSection.value = 'basic'
+  }
+}
+
 // 模型配置引用
 const modelConfigRef = ref<InstanceType<typeof KBModelConfig>>()
 const advancedSettingsRef = ref<InstanceType<typeof KBAdvancedSettings>>()
 
-// 表单数据
-const formData = ref<any>(null)
 // 图片向量只在向量模型能处理图片时生效；模型列表里查不到（未加载、跨租户共享）时
 // 不报警，后端会按实际模型判断。
 const embeddingTakesImages = computed(() => {
@@ -1420,25 +1458,30 @@ const validateForm = (): boolean => {
     }
   }
 
-  // 验证模型配置 - embedding 模型仅在检索索引启用时必须
-  const needsEmbedding = formData.value.indexingStrategy?.vectorEnabled || formData.value.indexingStrategy?.keywordEnabled
-  if (needsEmbedding && !formData.value.modelConfig.embeddingModelId) {
-    MessagePlugin.warning(t('knowledgeEditor.indexing.embeddingRequired'))
-    currentSection.value = 'models'
-    return false
-  }
+  // 验证模型/多模态配置——仅编辑态且当前用户可编辑这些超管分区时才强制。
+  // 建库态、以及无权查看模型分区的普通成员：这些分区已从菜单隐藏，模型等
+  // 由平台「知识库设置」默认值套用，不应强制校验（否则会卡在隐藏分区无法保存）。
+  if (editorMode.value === 'edit' && canEditPlatform.value) {
+    // embedding 模型仅在检索索引启用时必须
+    const needsEmbedding = formData.value.indexingStrategy?.vectorEnabled || formData.value.indexingStrategy?.keywordEnabled
+    if (needsEmbedding && !formData.value.modelConfig.embeddingModelId) {
+      MessagePlugin.warning(t('knowledgeEditor.indexing.embeddingRequired'))
+      currentSection.value = 'models'
+      return false
+    }
 
-  if (!formData.value.modelConfig.llmModelId) {
-    MessagePlugin.warning(t('knowledgeEditor.messages.summaryRequired'))
-    currentSection.value = 'models'
-    return false
-  }
+    if (!formData.value.modelConfig.llmModelId) {
+      MessagePlugin.warning(t('knowledgeEditor.messages.summaryRequired'))
+      currentSection.value = 'models'
+      return false
+    }
 
-  // 验证多模态配置（如果启用）
-  if (formData.value.multimodalConfig.enabled && !formData.value.multimodalConfig.vllmModelId) {
-    MessagePlugin.warning(t('knowledgeEditor.messages.multimodalInvalid'))
-    currentSection.value = 'multimodal'
-    return false
+    // 验证多模态配置（如果启用）
+    if (formData.value.multimodalConfig.enabled && !formData.value.multimodalConfig.vllmModelId) {
+      MessagePlugin.warning(t('knowledgeEditor.messages.multimodalInvalid'))
+      currentSection.value = 'multimodal'
+      return false
+    }
   }
 
   if (formData.value.type === 'faq' && !formData.value.faqConfig?.indexMode) {
@@ -1606,6 +1649,27 @@ const buildSubmitData = () => {
       nodes: formData.value.nodeExtractConfig.nodes || [],
       relations: formData.value.nodeExtractConfig.relations || [],
       custom_instructions: formData.value.nodeExtractConfig.customInstructions || ''
+    }
+  }
+
+  // 建库模式：模型/向量存储/解析引擎/分块/图像/音频/图谱/高级/存储等分区已从
+  // 建库菜单移除，统一由平台「知识库设置」默认页维护。这里不下发这些字段，
+  // 后端 ApplyTo 会套用平台默认值（仅填空字段，API/MCP 显式值优先）。
+  // 保留基本信息：name/description/type、索引策略 indexing_strategy、
+  // Wiki 开关 wiki_config、以及 FAQ 的 faq_config。
+  if (editorMode.value === 'create') {
+    const platformManaged = [
+      'chunking_config',
+      'embedding_model_id', 'summary_model_id',
+      'vector_store_id',
+      'vlm_config', 'image_processing_config',
+      'asr_config',
+      'storage_backend_id', 'storage_provider_config', 'storage_config',
+      'question_generation_config', 'auto_tag_config', 'profile_config',
+      'extract_config',
+    ]
+    for (const key of platformManaged) {
+      delete (data as Record<string, unknown>)[key]
     }
   }
 
@@ -1881,6 +1945,8 @@ watch(() => props.visible, async (newVal) => {
       loading.value = false
       modalShell.markClean()
     }
+    // 数据加载完成后，若初始/深链分区不在当前角色可见菜单里，回退到基本信息。
+    ensureVisibleSection()
   } else {
     // 关闭弹窗时，延迟重置状态（等待动画结束）
     setTimeout(() => {

@@ -103,6 +103,12 @@ export const OPERATIONS_ADMIN_ONLY_SECTIONS = new Set([
   'sandbox',
   'skills',
   'websearch',
+  // 知识库配置（平台默认）中收归运营管理员的四个分区（连超管也不显示），
+  // 与同名基础设施页一致：向量存储 / 解析引擎 / 存储引擎 / 数据源。
+  'kb-vectorStore',
+  'kb-parser',
+  'kb-storage',
+  'kb-datasource',
 ])
 
 /**
@@ -114,5 +120,22 @@ export const OPERATIONS_ADMIN_ONLY_SECTIONS = new Set([
  * 沙箱密钥 moved here: a super admin configures one encrypted global secret
  * store that every workspace's runs read from; members and workspace admins no
  * longer see the page at all.
+ *
+ * kb-defaults: the platform-wide default knowledge-base configuration (models,
+ * chunking, image, audio, graph, advanced) that the KB editor no longer
+ * exposes. Backed by system_settings "knowledge_base.default_config", whose
+ * PUT route is SystemAdmin-gated; operations admins also see it because they
+ * inherit isSystemAdmin.
  */
-export const SUPER_ADMIN_ONLY_SECTIONS = new Set(['envvars'])
+export const SUPER_ADMIN_ONLY_SECTIONS = new Set([
+  'envvars',
+  'kb-defaults',
+  // 知识库配置（平台默认）提升到设置主侧栏后拆成的独立分区键：模型 / 分块 /
+  // 图像 / 音频 / 图谱 / 高级，仅超管（及其继承者运营管理员）可见。
+  'kb-models',
+  'kb-chunking',
+  'kb-image',
+  'kb-audio',
+  'kb-graph',
+  'kb-advanced',
+])

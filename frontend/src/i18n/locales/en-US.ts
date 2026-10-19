@@ -3712,6 +3712,48 @@ export default {
       "Visitor UI language when chat opens; empty follows the browser or host Widget setLocale().",
     defaultLocaleBrowser: "Browser / host default",
   },
+  kbDefaults: {
+    title: "Knowledge Base Settings",
+    description:
+      "Configure platform-wide defaults for knowledge bases. Regular users only fill in basic information when creating a knowledge base; all other settings automatically reference the defaults defined here, shared across every workspace on the platform.",
+    navGroup: "Knowledge Base Configuration",
+    readonlyBanner:
+      "Only super admins can edit the platform knowledge base defaults.",
+    modelDefaultDesc:
+      "Models automatically selected for new knowledge bases; leave empty to let users choose.",
+    appliesHint:
+      "These defaults apply to knowledge bases created from now on and do not affect existing ones.",
+    save: "Save Defaults",
+    saving: "Saving…",
+    autoSaved: "Auto-saved",
+    saved: "Platform knowledge base defaults saved",
+    saveFailed: "Failed to save platform knowledge base defaults",
+    sections: {
+      models: "Default Models",
+      modelsDesc:
+        "Summary and embedding models referenced automatically when creating a knowledge base.",
+      chunking: "Chunking",
+      chunkingDesc:
+        "Default document chunking parameters that suit most scenarios.",
+      image: "Image Processing",
+      imageDesc:
+        "Whether multimodal image understanding is enabled by default.",
+      audio: "Audio Processing",
+      audioDesc:
+        "Whether audio speech recognition and transcription are enabled by default.",
+      graph: "Knowledge Graph",
+      graphDesc:
+        "Whether entity-relationship extraction for the knowledge graph is enabled by default.",
+      advanced: "Advanced Settings",
+      advancedDesc:
+        "Default toggles for question generation, auto tagging and knowledge base descriptions.",
+    },
+    datasource: {
+      targetKb: "Target knowledge base",
+      selectKb: "Select a knowledge base",
+      hint: "Data sources sync external content into a chosen knowledge base. Manage this workspace's data sources here; the create-knowledge-base dialog no longer offers this setting.",
+    },
+  },
   knowledgeEditor: {
     activity: {
       title: "Activity",
@@ -3847,6 +3889,8 @@ export default {
     },
     titleCreate: "Create Knowledge Base",
     titleEdit: "Knowledge Base Settings",
+    platformManagedReadonly:
+      "This configuration is managed platform-wide and is shown read-only here; it cannot be modified.",
     navGroups: {
       basic: "Basics",
       processing: "Indexing & Parsing",
