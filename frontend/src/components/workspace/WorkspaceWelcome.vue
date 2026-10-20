@@ -20,7 +20,6 @@
     <main class="welcome-content">
       <div class="welcome-intro">
         <img class="welcome-symbol" :src="thinkerflowMark" alt="" aria-hidden="true" />
-        <p class="welcome-eyebrow">{{ t("workspace.eyebrow") }}</p>
         <h1>{{ t("workspace.title") }}</h1>
         <p class="welcome-description">{{ t("workspace.description") }}</p>
       </div>
@@ -37,7 +36,7 @@
 
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
-import thinkerflowMark from "@/assets/img/thinkerflow-mark.png";
+import thinkerflowMark from "@/assets/img/thinkerflow-mark.svg";
 import type { WorkspaceIntent } from "@/utils/workspaceEvents";
 import { composerModeFromIntent } from "@/utils/composerMode";
 defineProps<{ mode?: WorkspaceIntent; disabled?: boolean }>();
@@ -119,17 +118,14 @@ const { t } = useI18n();
 }
 
 .welcome-symbol {
-  /* 品牌标记：透明底蓝色双条图（左高右矮、右条偏下），与侧边栏 logo 同图 */
+  /* 品牌标记：与侧边栏同用 thinkerflow-mark.svg（透明底蓝色双条，左高右矮、右条偏下）。
+     SVG 是竖长比例（viewBox 21×55），固定成正方形会被居中留出两侧空白，
+     所以用 height 定尺寸、width 自适应。 */
   display: block;
-  width: 40px;
   height: 40px;
-  margin: 0 auto 20px;
-}
-
-.welcome-eyebrow {
-  font-size: var(--app-text-xs);
-  letter-spacing: 2px;
-  color: var(--td-text-color-placeholder);
+  width: auto;
+  /* 眉标行去掉后补一点间距，保持标记与标题原来的呼吸感 */
+  margin: 0 auto 28px;
 }
 
 .welcome-description {
