@@ -1238,7 +1238,7 @@ onBeforeUnmount(() => {
 
   .form-panel {
     padding: var(--app-space-8) var(--app-space-5);
-  }
+  }  
 
   .auth-card__title {
     font-size: var(--app-text-4xl);
