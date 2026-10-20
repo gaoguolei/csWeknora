@@ -109,10 +109,17 @@ export interface CustomAgentConfig {
   web_search_enabled?: boolean;
   web_search_provider_id?: string;
   web_search_max_results?: number;
+  // 命中搜索结果后是否自动抓取正文，以及抓取篇数。
+  // 后端 types.CustomAgentConfig 一直有这两个字段（web_fetch_enabled /
+  // web_fetch_top_n），编辑器模板也在用，这里补上前端类型声明。
+  web_fetch_enabled?: boolean;
+  web_fetch_top_n?: number;
 
   // ===== 多轮对话设置 =====
   multi_turn_enabled?: boolean;     // 是否启用多轮对话
   history_turns?: number;           // 保留历史轮数
+  // 跨轮保留检索结果（仅 agent 链路读取，internal/agent/observe.go）
+  retain_retrieval_history?: boolean;
 
   // ===== 长期记忆 =====
   // 该智能体是否可以读取用户的长期记忆。
@@ -127,11 +134,22 @@ export interface CustomAgentConfig {
   rerank_top_k?: number;            // 重排TopK
   rerank_threshold?: number;        // 重排阈值
 
+  // ===== FAQ 策略 / 表格数据分析（检索阶段的行为开关）=====
+  // 关联 FAQ 知识库时优先用 FAQ 命中直接作答；阈值与加权控制触发条件。
+  // 这三个字段后端 types.CustomAgentConfig 一直有，此前漏在了前端类型上。
+  faq_priority_enabled?: boolean;
+  faq_direct_answer_threshold?: number;
+  faq_score_boost?: number;
+  // 命中 CSV/Excel 时额外跑一次 LLM 生成 SQL（默认关闭，会增加耗时）
+  data_analysis_enabled?: boolean;
+
   // ===== 高级设置（主要用于普通模式）=====
   enable_query_expansion?: boolean; // 是否启用查询扩展
   enable_rewrite?: boolean;         // 是否启用问题改写
   rewrite_prompt_system?: string;   // 改写系统提示词
   rewrite_prompt_user?: string;     // 改写用户提示词模板
+  // 问题理解（改写 + 意图识别）专用模型；留空复用主对话模型
+  query_understand_model_id?: string;
   fallback_strategy?: 'fixed' | 'model'; // 兜底策略
   fallback_response?: string;       // 固定兜底回复
   fallback_prompt?: string;         // 兜底提示词（模型生成时）

@@ -4666,6 +4666,27 @@ export default {
       hint: "데이터 소스는 외부 콘텐츠를 지정된 지식 베이스로 자동 동기화합니다. 이 공간의 각 지식 베이스 데이터 소스를 여기서 통합 관리하며, 지식 베이스 생성 대화 상에서는 더 이상 설정할 수 없습니다.",
     },
   },
+  agentDefaults: {
+    title: "에이전트 설정",
+    description:
+      "에이전트의 플랫폼 기본값을 한곳에서 설정합니다. 일반 사용자가 에이전트를 만들 때는 기본 정보와 프롬프트만 입력하고, 나머지 설정은 여기에서 지정한 기본값을 모든 워크스페이스가 공통으로 참조합니다.",
+    navGroup: "에이전트 설정",
+    readonlyBanner: "플랫폼 에이전트 기본값은 시스템 관리자만 편집할 수 있습니다.",
+    autoSaved: "플랫폼 에이전트 기본값이 저장되었습니다",
+    saveFailed: "플랫폼 에이전트 기본값 저장에 실패했습니다",
+    goModelSettings: "「설정 → 모델」에서 모델을 추가하세요",
+    sections: {
+      toolsDesc: "새 에이전트에서 기본으로 활성화할 도구입니다.",
+      toolsLabel: "기본 도구",
+      toolsHint: "비워 두면 내장 기본 도구 세트를 사용합니다.",
+      toolsPlaceholder: "기본으로 활성화할 도구 선택",
+      skillsDesc: "새 에이전트가 기본으로 사용할 샌드박스와 스킬입니다.",
+      skillsHint: "스킬 스크립트는 선택한 샌드박스 안에서 실행됩니다.",
+      skillsPickLabel: "기본 스킬",
+      skillsPickHint: "「지정」을 선택하면 구체적인 스킬을 골라야 합니다.",
+      skillsPlaceholder: "기본 스킬 선택",
+    },
+  },
   knowledgeEditor: {
     titleCreate: "지식베이스 생성",
     titleEdit: "지식베이스 설정",

@@ -3754,6 +3754,27 @@ export default {
       hint: "Data sources sync external content into a chosen knowledge base. Manage this workspace's data sources here; the create-knowledge-base dialog no longer offers this setting.",
     },
   },
+  agentDefaults: {
+    title: "Agent defaults",
+    description:
+      "Platform-wide default agent configuration. When ordinary members create an agent they only fill in the basic info and prompt; everything else is inherited from the defaults set here, shared by every workspace.",
+    navGroup: "Agent Configuration",
+    readonlyBanner: "Only a super administrator can edit the platform agent defaults.",
+    autoSaved: "Platform agent defaults saved",
+    saveFailed: "Failed to save platform agent defaults",
+    goModelSettings: "Add models under Settings → Models",
+    sections: {
+      toolsDesc: "Tools enabled by default on a newly created agent.",
+      toolsLabel: "Default tools",
+      toolsHint: "Leave empty to use the built-in default tool set.",
+      toolsPlaceholder: "Pick the default tools",
+      skillsDesc: "Sandbox and skills a newly created agent uses by default.",
+      skillsHint: "Skill scripts run inside the selected sandbox.",
+      skillsPickLabel: "Default skills",
+      skillsPickHint: "Choosing “selected” requires picking the specific skills.",
+      skillsPlaceholder: "Pick the default skills",
+    },
+  },
   knowledgeEditor: {
     activity: {
       title: "Activity",

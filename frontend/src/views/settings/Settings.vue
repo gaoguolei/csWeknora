@@ -241,6 +241,13 @@
           />
         </div>
 
+        <!-- 智能体配置（平台默认，超管）：同上，9 个 agent-* 键共用一个实例。 -->
+        <div v-if="isAgentDefaultsSection(currentSection)" class="section">
+          <AgentDefaultsSettings
+            :active-section="agentDefaultsSectionFromKey(currentSection)"
+          />
+        </div>
+
         <!-- 网络搜索配置 -->
         <div v-if="currentSection === 'websearch'" class="section">
           <WebSearchSettings />
@@ -375,6 +382,7 @@ import UserProfile from "./UserProfile.vue";
 import GeneralSettings from "./GeneralSettings.vue";
 import ModelSettings from "./ModelSettings.vue";
 import KnowledgeBaseDefaultsSettings from "./KnowledgeBaseDefaultsSettings.vue";
+import AgentDefaultsSettings from "./AgentDefaultsSettings.vue";
 import ModelCatalog from "../system/ModelCatalog.vue";
 import OllamaSettings from "./OllamaSettings.vue";
 import McpSettings from "./McpSettings.vue";
@@ -508,6 +516,31 @@ const isKbDefaultsSection = (key: string) => KB_DEFAULTS_KEYS.has(key);
 const kbDefaultsSectionFromKey = (key: string) =>
   KB_DEFAULTS_SUBSECTIONS.find((s) => s.key === key)?.section || "models";
 
+// 智能体配置（平台默认）分区：与知识库同样的做法 —— 编辑器里这些分区收归超管，
+// 管理员在这里统一维护，新建智能体时由后端套用。9 个 agent-* 键共用同一个
+// AgentDefaultsSettings 组件实例，切换分区时不卸载。权限见 settingsAccess.ts：
+// 全部归超级管理员（需求没给运营管理员的项），「知识库检索」留给用户，不在此列。
+const AGENT_DEFAULTS_SUBSECTIONS: {
+  key: string;
+  icon: string;
+  labelKey: string;
+  section: string;
+}[] = [
+  { key: "agent-model", icon: "control-platform", labelKey: "agent.editor.modelConfig", section: "model" },
+  { key: "agent-conversation", icon: "chat", labelKey: "agent.editor.conversationSettings", section: "conversation" },
+  { key: "agent-suggestions", icon: "help-circle", labelKey: "agentEditor.questionSuggestions.navLabel", section: "suggestions" },
+  { key: "agent-retrieval", icon: "search", labelKey: "agent.editor.retrievalStrategy", section: "retrieval" },
+  { key: "agent-websearch", icon: "internet", labelKey: "agent.editor.webSearchConfig", section: "websearch" },
+  { key: "agent-multimodal", icon: "attach", labelKey: "agentEditor.imageUpload.navLabel", section: "multimodal" },
+  { key: "agent-tools", icon: "tools", labelKey: "agent.editor.toolsConfig", section: "tools" },
+  { key: "agent-mcp", icon: "server", labelKey: "agentEditor.mcp.label", section: "mcp" },
+  { key: "agent-skills", icon: SKILL_ICON, labelKey: "agent.editor.skillsConfig", section: "skills" },
+];
+const AGENT_DEFAULTS_KEYS = new Set(AGENT_DEFAULTS_SUBSECTIONS.map((s) => s.key));
+const isAgentDefaultsSection = (key: string) => AGENT_DEFAULTS_KEYS.has(key);
+const agentDefaultsSectionFromKey = (key: string) =>
+  AGENT_DEFAULTS_SUBSECTIONS.find((s) => s.key === key)?.section || "model";
+
 // 临时屏蔽的设置入口（产品要求暂不展示）：WeKnora Cloud、IM 集成、
 // 网页嵌入、CLI、Claw Skill、版本信息。恢复展示时删除本常量及下方过滤即可。
 const HIDDEN_SETTINGS_SECTIONS = new Set<string>([
@@ -613,6 +646,12 @@ const navItems = computed(() => {
       icon: s.icon,
       label: t(s.labelKey),
     })),
+    // 智能体配置（平台默认）分区——同上，由编辑器的配置分区提升而来。
+    ...AGENT_DEFAULTS_SUBSECTIONS.map((s) => ({
+      key: s.key,
+      icon: s.icon,
+      label: t(s.labelKey),
+    })),
     { key: "websearch", icon: "search", label: t("settings.webSearchConfig") },
     { key: "chathistory", icon: "chat", label: t("chatHistorySettings.title") },
     {
@@ -702,6 +741,11 @@ const navGroups = computed<NavGroup[]>(() => {
       key: "kbconfig",
       label: t("kbDefaults.navGroup"),
       items: pickItems(KB_DEFAULTS_SUBSECTIONS.map((s) => s.key)),
+    },
+    {
+      key: "agentconfig",
+      label: t("agentDefaults.navGroup"),
+      items: pickItems(AGENT_DEFAULTS_SUBSECTIONS.map((s) => s.key)),
     },
     {
       key: "integrations",

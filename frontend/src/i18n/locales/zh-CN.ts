@@ -4477,6 +4477,27 @@ export default {
       hint: "数据源用于将外部内容自动同步到指定知识库；此处集中管理本空间各知识库的数据源，新建知识库弹窗不再提供该配置。",
     },
   },
+  agentDefaults: {
+    title: "智能体配置",
+    description:
+      "统一配置智能体的平台默认参数。普通用户新建智能体时只需填写基本信息和提示词，其余配置自动引用此处设定的默认值，对全平台所有空间通用。",
+    navGroup: "智能体配置",
+    readonlyBanner: "仅超级管理员可编辑平台智能体默认配置。",
+    autoSaved: "平台智能体默认配置已保存",
+    saveFailed: "保存平台智能体默认配置失败",
+    goModelSettings: "请前往「设置 → 模型」添加模型",
+    sections: {
+      toolsDesc: "新建智能体默认启用的工具集合。",
+      toolsLabel: "默认工具",
+      toolsHint: "留空表示沿用系统内置的默认工具集。",
+      toolsPlaceholder: "选择默认启用的工具",
+      skillsDesc: "新建智能体默认使用的沙箱与技能。",
+      skillsHint: "技能脚本运行在所选沙箱内。",
+      skillsPickLabel: "默认技能",
+      skillsPickHint: "选择「指定」时需要挑选具体技能。",
+      skillsPlaceholder: "选择默认技能",
+    },
+  },
   knowledgeEditor: {
     titleCreate: "新建知识库",
     titleEdit: "知识库设置",
