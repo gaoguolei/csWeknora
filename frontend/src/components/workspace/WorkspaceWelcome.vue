@@ -15,6 +15,10 @@
           :disabled="disabled" @click="$emit('select', 'code')">
           <t-icon name="code" size="16px" />{{ t('workspace.modeCoding') }}
         </button>
+        <button type="button" :aria-pressed="composerModeFromIntent(mode || 'chat') === 'testing'"
+          :disabled="disabled" @click="$emit('select', 'test')">
+          <t-icon name="check-circle" size="16px" />{{ t('workspace.modeTesting') }}
+        </button>
       </div>
     </div>
     <main class="welcome-content">
@@ -161,8 +165,8 @@ const { t } = useI18n();
     align-items: center;
     justify-content: center;
     gap: 7px;
-    min-width: 96px;
-    padding: 9px 18px;
+    min-width: 84px;
+    padding: 9px 16px;
     border: 0;
     border-radius: var(--app-radius-pill);
     background: transparent;

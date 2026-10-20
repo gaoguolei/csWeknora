@@ -32,6 +32,8 @@ const (
 	BuiltinSkillInstallerID = "builtin-skill-installer"
 	// BuiltinCodingAssistantID is the ID for the built-in coding assistant agent
 	BuiltinCodingAssistantID = "builtin-coding-assistant"
+	// BuiltinTestingAssistantID is the ID for the built-in software testing agent.
+	BuiltinTestingAssistantID = "builtin-testing-assistant"
 )
 
 // AgentMode constants for agent running mode
@@ -664,6 +666,7 @@ var builtinAgentIDsOrdered = []string{
 	BuiltinKnowledgeGraphExpertID,
 	BuiltinDocumentAssistantID,
 	BuiltinCodingAssistantID,
+	BuiltinTestingAssistantID,
 }
 
 // GetBuiltinAgentIDs returns all built-in agent IDs in fixed order

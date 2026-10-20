@@ -25,7 +25,7 @@ import {
   resolvePreviewKind,
   shouldPrettyPrintJson,
   sniffPreview,
-  isValidUTF8,
+  decodeDelimitedText,
   type FilePreviewKind,
 } from '@/utils/filePreview';
 import {
@@ -267,17 +267,6 @@ async function renderDocx(blob: Blob) {
   }
 }
 
-function decodeCSVBlob(arrayBuffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(arrayBuffer);
-  if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
-    return new TextDecoder('utf-8').decode(bytes);
-  }
-  if (isValidUTF8(bytes)) {
-    return new TextDecoder('utf-8').decode(bytes);
-  }
-  return new TextDecoder('gbk').decode(bytes);
-}
-
 async function renderExcel(blob: Blob, fileType?: string) {
   const XLSX = await import('xlsx');
   const arrayBuffer = await blob.arrayBuffer();
@@ -285,10 +274,10 @@ async function renderExcel(blob: Blob, fileType?: string) {
   let workbook;
   const lowerType = fileType?.toLowerCase();
   if (lowerType === 'csv') {
-    const csvText = decodeCSVBlob(arrayBuffer);
+    const csvText = decodeDelimitedText(arrayBuffer);
     workbook = XLSX.read(csvText, { type: 'string' });
   } else if (lowerType === 'tsv' || lowerType === 'tab') {
-    const tsvText = decodeCSVBlob(arrayBuffer);
+    const tsvText = decodeDelimitedText(arrayBuffer);
     workbook = XLSX.read(tsvText, { type: 'string', FS: '\t' });
   } else {
     workbook = XLSX.read(arrayBuffer, { type: 'array' });

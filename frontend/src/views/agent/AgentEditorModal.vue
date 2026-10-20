@@ -2498,6 +2498,7 @@ const toolTexts = computed<Record<string, ToolText>>(() => ({
   search_knowledge: { label: t('agentEditor.tools.searchKnowledge'), description: t('agentEditor.tools.searchKnowledgeDesc') },
   read_document: { label: t('agentEditor.tools.readDocument'), description: t('agentEditor.tools.readDocumentDesc') },
   list_documents: { label: t('agentEditor.tools.listDocuments'), description: t('agentEditor.tools.listDocumentsDesc') },
+  edit_knowledge_file: { label: t('agentEditor.tools.editKnowledgeFile'), description: t('agentEditor.tools.editKnowledgeFileDesc') },
   query_knowledge_graph: { label: t('agentEditor.tools.queryGraph'), description: t('agentEditor.tools.queryGraphDesc') },
   database_query: { label: t('agentEditor.tools.dbQuery'), description: t('agentEditor.tools.dbQueryDesc') },
   wiki_search: { label: t('agentEditor.tools.wikiSearch'), description: t('agentEditor.tools.wikiSearchDesc') },

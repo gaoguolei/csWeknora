@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { computed, effectScope, nextTick, reactive, ref, watch } from 'vue'
+import { testingArtifactKind } from '../../utils/sessionArtifacts.ts'
 
 const panel = readFileSync(new URL('./SandboxSidePanel.vue', import.meta.url), 'utf8')
 
@@ -27,12 +28,12 @@ const setup = panel.split('<script setup lang="ts">')[1].split('</script>')[0]
   .replace(/^import[\s\S]*?from ["'][^"']+["'];?\s*$/gm, '')
 const compiled = ts.transpile(setup, { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None })
 function mount(options = {}) {
-  const props = reactive({ sessionId: 'a', workspaceRevision: 0, ...options })
-  const ui = { mode: ref(options.mode || 'coding'), visible: ref(true), activeTab: ref(options.mode === 'chat' ? 'artifacts' : 'preview'), width: ref(560), clearArtifactFocus() {} }
+  const props = reactive({ sessionId: 'a', workspaceRevision: 0, artifacts: [], ...options })
+  const ui = { mode: ref(options.mode || 'coding'), visible: ref(true), activeTab: ref(options.mode === 'chat' ? 'artifacts' : options.mode === 'testing' ? 'cases' : 'preview'), width: ref(560), clearArtifactFocus() {} }
   const scope = effectScope()
-  const state = scope.run(() => vm.runInNewContext(`${compiled}; ({ isWorkspaceTab, previewMounted, terminalMounted, tabs, moreTools })`, {
+  const state = scope.run(() => vm.runInNewContext(`${compiled}; ({ isWorkspaceTab, workspaceMounted, displayedArtifacts, artifactEmptyText, artifactCount, openTab, previewMounted, terminalMounted, tabs, moreTools, isCaseTab })`, {
     computed, nextTick, ref, watch, defineAsyncComponent: () => ({}), defineProps: () => props, withDefaults: value => value, defineEmits: () => () => {},
-    useI18n: () => ({ t: key => key }), useChatSandboxPanel: () => ui,
+    useI18n: () => ({ t: key => key }), useChatSandboxPanel: () => ui, testingArtifactKind,
   }))
   return { props, ui, state, stop: () => scope.stop() }
 }
@@ -95,4 +96,37 @@ test('panel slide-in is clipped to the viewport so it cannot create a document s
   assert.match(panel, /sandbox-panel-enter-from \.chat-sandbox-panel/)
   assert.match(panel, /translateX\(100%\)/)
   assert.match(panel, /:duration/)
+})
+
+test('testing exposes case documents, reports, artifacts and terminal without code test discovery', async () => {
+  const view = mount({ mode: 'testing', workspaceGateway: {} })
+  await flush()
+  assert.deepEqual(Array.from(view.state.tabs.value, tab => tab.id), ['cases', 'reports', 'artifacts', 'terminal'])
+  assert.deepEqual(Array.from(view.state.tabs.value, tab => tab.label), ['workspace.casesTab', 'workspace.reportsTab', 'chat.sandbox.tabArtifacts', 'chat.sandbox.tabTerminal'])
+  assert.equal(view.state.moreTools.value.length, 0)
+  assert.equal(view.state.workspaceMounted.value, false)
+  assert.equal(view.state.isWorkspaceTab.value, false)
+  assert.equal(view.state.previewMounted.value, false)
+  assert.doesNotMatch(panel, /WorkspaceTestResults|WorkspaceTestTree|cases-only/)
+  assert.match(panel, /<TestCasePanel/)
+  assert.match(panel, /v-show="isCaseTab"/)
+  assert.match(panel, /v-show="isArtifactTab && !isCaseTab"/)
+  const cases = { messageId: 'a', index: 3, file_name: '登录测试用例.xlsx' }
+  const report = { messageId: 'b', index: 7, file_name: 'test-report.html' }
+  const other = { messageId: 'a', index: 9, file_name: 'screenshot.png' }
+  view.props.artifacts = [cases, report, other]
+  assert.equal(view.state.displayedArtifacts.value[0].index, 3)
+  assert.equal(view.state.displayedArtifacts.value.length, 1)
+  assert.equal(view.state.artifactCount('cases'), 1)
+  assert.equal(view.state.artifactEmptyText.value, 'workspace.caseFilesEmpty')
+  assert.equal(view.state.isCaseTab.value, true)
+  view.ui.activeTab.value = 'reports'; await flush()
+  assert.equal(view.state.displayedArtifacts.value[0].messageId, 'b')
+  assert.equal(view.state.displayedArtifacts.value[0].index, 7)
+  assert.equal(view.state.artifactCount('reports'), 1)
+  view.ui.activeTab.value = 'artifacts'; await flush()
+  assert.equal(view.state.displayedArtifacts.value.length, 3)
+  view.ui.activeTab.value = 'terminal'; await flush()
+  assert.equal(view.state.terminalMounted.value, true)
+  view.stop()
 })

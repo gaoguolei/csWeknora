@@ -1670,6 +1670,8 @@ export default {
       searchKnowledge: "检索知识库",
       searchKnowledgeDesc: "语义、关键词或混合检索知识库分块",
       readDocument: "阅读文档",
+      editKnowledgeFile: "编辑知识库文件",
+      editKnowledgeFileDesc: "通过对话修改 Excel 单元格或文本，或把沙箱文件写回原文档；保存后更新索引",
       readDocumentDesc: "读取文档元数据与分块内容，支持分页和文内查找",
       listDocuments: "浏览文档列表",
       listDocumentsDesc: "分页列出知识库中的文档",

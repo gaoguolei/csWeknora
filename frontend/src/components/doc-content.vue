@@ -25,7 +25,7 @@ import { useAuthStore } from '@/stores/auth';
 import DocumentPreview from '@/components/document-preview.vue';
 import DocumentFileIcon from '@/views/knowledge/components/DocumentFileIcon.vue';
 import KnowledgeProcessingTimeline from '@/components/knowledge-processing-timeline.vue';
-import { resolveKnowledgeDownloadFileName } from '@/views/knowledge/knowledgeDownloadFileName';
+import { resolveKnowledgeDownloadFileName, resolveKnowledgeSpreadsheetFileName } from '@/views/knowledge/knowledgeDownloadFileName';
 import { isKnownPreviewableExt, resolveFilePreviewExt } from '@/utils/filePreview';
 
 const { t } = useI18n();
@@ -240,7 +240,11 @@ mermaid.initialize({
   }
 });
 const props = defineProps(["visible", "details", "knowledgeType", "sourceInfo", "canEditKB", "canDownloadKB", "parse_status", "kbId"]);
-const emit = defineEmits(["closeDoc", "getDoc", "questionDeleted", "summaryStateChange"]);
+const emit = defineEmits(["closeDoc", "getDoc", "questionDeleted", "summaryStateChange", "editDocument"]);
+const canEditDocument = computed(() => props.canEditKB === true && !!props.details?.id && (
+  props.details.type === 'manual'
+  || (props.canDownloadKB === true && !!resolveKnowledgeSpreadsheetFileName(props.details))
+));
 
 const applySummaryState = (summaryStatus?: string, description?: string) => {
   if (typeof summaryStatus === 'string' && summaryStatus) {
@@ -1590,6 +1594,11 @@ const handleChunkPageChange = (pageInfo: { current: number }) => {
             <div class="doc-drawer-header-title">{{ getDisplayTitle() }}</div>
           </div>
           <div class="header-actions">
+            <t-button v-if="canEditDocument" class="document-edit-entry" size="small"
+              variant="outline" :title="$t('knowledgeBase.editDocument')" @click="emit('editDocument', details)">
+              <template #icon><t-icon name="edit" size="16px" /></template>
+              {{ $t('knowledgeBase.editDocument') }}
+            </t-button>
             <t-button v-if="canDownloadKB && (details.type === 'file' || details.type === 'manual')" class="header-action-btn" size="small"
               variant="text" shape="square" theme="default" :title="$t('common.download') || 'Download'"
               @click="downloadFile()">

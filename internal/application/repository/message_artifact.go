@@ -29,13 +29,13 @@ const artifactLoadBatch = 500
 // through MessageArtifact.DeletedAt), but it may be holding a slice it read
 // before the delete — this is a full replace, so that snapshot would resurrect
 // the row while its bytes are already being reclaimed, leaving a live-looking
-// entry whose download 404s. Deletion is the one property of a row that a stale
-// writer must not be able to undo.
+// entry whose download 404s. Knowledge bindings on the same stored artifact
+// are preserved as well, so streaming updates cannot undo a user's saved link.
 func writeMessageArtifacts(tx *gorm.DB, message *types.Message) error {
 	if message == nil || message.Artifacts == nil || message.ID == "" {
 		return nil
 	}
-	deleted, err := deletedArtifactPositions(tx, message.ID)
+	states, err := storedArtifactStates(tx, message.ID)
 	if err != nil {
 		return err
 	}
@@ -48,30 +48,48 @@ func writeMessageArtifacts(tx *gorm.DB, message *types.Message) error {
 		return nil
 	}
 	for i := range rows {
-		if at, ok := deleted[rows[i].Position]; ok && rows[i].DeletedAt == nil {
-			rows[i].DeletedAt = at
+		if previous, ok := states[rows[i].Position]; ok {
+			if rows[i].DeletedAt == nil {
+				rows[i].DeletedAt = previous.DeletedAt
+			}
+			if previous.URL == rows[i].URL && previous.KnowledgeID != "" {
+				rows[i].KnowledgeID, rows[i].KnowledgeBaseID = previous.KnowledgeID, previous.KnowledgeBaseID
+			}
 		}
 	}
 	return tx.CreateInBatches(rows, 100).Error
 }
 
-// deletedArtifactPositions returns the stored deletion times of a message's
-// tombstoned artifacts, keyed by position.
-func deletedArtifactPositions(tx *gorm.DB, messageID string) (map[int]*time.Time, error) {
+// Preserve user-authored state when a collector rewrites an older artifact snapshot.
+func storedArtifactStates(tx *gorm.DB, messageID string) (map[int]types.MessageArtifactRecord, error) {
 	var rows []types.MessageArtifactRecord
-	if err := tx.Select("position", "deleted_at").
-		Where("message_id = ? AND deleted_at IS NOT NULL", messageID).
+	if err := tx.Select("position", "url", "deleted_at", "knowledge_id", "knowledge_base_id").
+		Where("message_id = ? AND (deleted_at IS NOT NULL OR knowledge_id <> '')", messageID).
 		Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	if len(rows) == 0 {
 		return nil, nil
 	}
-	out := make(map[int]*time.Time, len(rows))
+	out := make(map[int]types.MessageArtifactRecord, len(rows))
 	for _, row := range rows {
-		out[row.Position] = row.DeletedAt
+		out[row.Position] = row
 	}
 	return out, nil
+}
+
+func (r *messageRepository) LinkArtifactKnowledge(ctx context.Context, sessionID, messageID string, index int, knowledgeID, kbID string) error {
+	result := r.db.WithContext(ctx).Model(&types.MessageArtifactRecord{}).
+		Where("session_id = ? AND message_id = ? AND position = ? AND deleted_at IS NULL", sessionID, messageID, index).
+		Where("message_id IN (?)", r.db.Model(&types.Message{}).Select("id").Where("id = ? AND session_id = ?", messageID, sessionID)).
+		Updates(map[string]interface{}{"knowledge_id": knowledgeID, "knowledge_base_id": kbID})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
 
 // insertMessageArtifacts writes the artifacts of freshly created messages.

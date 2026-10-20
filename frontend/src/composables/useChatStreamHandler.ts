@@ -1,4 +1,5 @@
 import { applyFinalArtifactContent } from '@/utils/finalArtifactContent'
+import { notifyKnowledgeFileUpdated } from '@/utils/knowledgeFileUpdates'
 import { markRaw, nextTick, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ensureRagPipelineHistoryStream } from '@/utils/rag-pipeline-history'
@@ -838,6 +839,11 @@ export function useChatStreamHandler(options: UseChatStreamHandlerOptions) {
           const toolCallId = dataPayload.tool_call_id as string | undefined
           const toolName = dataPayload.tool_name as string | undefined
           const success = responseType !== 'error' && dataPayload.success !== false
+          const resultData = dataPayload.data as ChatMessage | undefined
+          if (success && toolName === 'edit_knowledge_file' && resultData?.changed === true
+            && typeof resultData.knowledge_id === 'string') {
+            notifyKnowledgeFileUpdated(resultData.knowledge_id)
+          }
           log('[Tool Result]', {
             tool_call_id: toolCallId,
             tool_name: toolName,

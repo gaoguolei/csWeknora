@@ -6,6 +6,18 @@ export type SessionArtifactItem = ArtifactMeta & {
   messageId: string
 }
 
+/** Agent exports use these folders; recognize named document exports from older turns too. */
+export function testingArtifactKind(item: SessionArtifactItem): 'cases' | 'reports' | null {
+  const name = item.file_name || ''
+  if (!/\.(xlsx?|xlsm|ods|csv|tsv|docx?|pdf|md|html?|json|txt)$/i.test(name)) return null
+  const path = (item.source_path || '').replace(/\\/g, '/').toLowerCase()
+  if (/(^|\/)test-reports\//.test(path)) return 'reports'
+  if (/(^|\/)test-cases\//.test(path)) return 'cases'
+  if (/(测试报告|測試報告|执行报告|執行報告|测试结果|測試結果|test[-_\s]*(?:reports?|results?))/i.test(name)) return 'reports'
+  if (/(测试用例|測試用例|测试案例|測試案例|用例|test[-_\s]*cases?)/i.test(name)) return 'cases'
+  return null
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   return value as Record<string, unknown>

@@ -1,7 +1,7 @@
 <template>
     <WorkspaceWelcome :mode="currentIntent" :disabled="creatingSession" @select="selectIntent" @knowledge="router.push('/platform/knowledge-bases')">
             <div class="create-chat-composer">
-                <div v-if="hostSandboxEnabled && composerMode === 'coding'" class="project-dir-bar">
+                <div v-if="hostSandboxEnabled && composerMode !== 'chat'" class="project-dir-bar">
                     <button type="button" class="project-dir-bar__btn"
                         :class="{ 'is-bound': !!selectedProjectDir, 'is-picking': pickingProjectDir }"
                         :disabled="pickingProjectDir" :title="selectedProjectDir || $t('createChat.openProject')"
@@ -302,7 +302,7 @@ async function createNewSession(value: string, modelId: string, mentionedItems: 
             allowed_tools: settingsStore.agentConfig.allowedTools
         };
 
-        const res = await createSessions(withOptionalProjectDir(sessionData, composerMode.value === 'coding' ? selectedProjectDir.value : ''));
+        const res = await createSessions(withOptionalProjectDir(sessionData, composerMode.value !== 'chat' ? selectedProjectDir.value : ''));
         if (res.data && res.data.id) {
             await navigateToSession(res.data.id, value, modelId, mentionedItems, imageFiles, attachmentFiles, options);
         } else {

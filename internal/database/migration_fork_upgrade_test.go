@@ -47,7 +47,7 @@ func TestSQLiteMigrationsUpgradeForkV33PreservesCodingData(t *testing.T) {
 	// A second startup must be a no-op, not replay a historical custom migration.
 	require.NoError(t, RunMigrationsWithOptions("sqlite3://unused", opts))
 	version, dirty = sqliteMigrationState(t, db)
-	require.Equal(t, 40, version)
+	require.Equal(t, expectedSQLiteMigrationVersion, version)
 	require.False(t, dirty)
 	for _, table := range []string{"model_catalog_configs", "chunk_images", "mcp_metadata"} {
 		require.True(t, sqliteTableExists(t, db, table), table)

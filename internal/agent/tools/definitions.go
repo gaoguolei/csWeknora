@@ -18,6 +18,7 @@ const (
 	ToolSearchKnowledge     = "search_knowledge"
 	ToolReadDocument        = "read_document"
 	ToolListDocuments       = "list_documents"
+	ToolEditKnowledgeFile   = "edit_knowledge_file"
 	ToolQueryKnowledgeGraph = "query_knowledge_graph"
 	ToolSearchConversations = "search_conversations"
 	ToolSearchMemory        = "search_memory"
@@ -115,6 +116,7 @@ func AvailableToolDefinitions() []AvailableTool {
 		{Name: ToolSearchKnowledge, Label: "检索知识库", Description: "语义、关键词或混合检索知识库分块", Group: ToolGroupRAG},
 		{Name: ToolReadDocument, Label: "阅读文档", Description: "读取文档元数据与分块内容，支持分页和文内查找", Group: ToolGroupRAG},
 		{Name: ToolListDocuments, Label: "浏览文档列表", Description: "分页列出知识库中的文档", Group: ToolGroupRAG},
+		{Name: ToolEditKnowledgeFile, Label: "编辑知识库文件", Description: "通过对话修改 Excel 单元格或文本，也可将沙箱文件写回原文档；保留知识 ID 并更新索引", Group: ToolGroupRAG, Danger: true},
 		{Name: ToolQueryKnowledgeGraph, Label: "查询知识图谱", Description: "从知识图谱中查询关系", Group: ToolGroupRAG},
 		{Name: ToolDatabaseQuery, Label: "查询数据库", Description: "查询数据库中的信息", Group: ToolGroupRAG},
 		{Name: ToolWikiSearch, Label: "搜索Wiki", Description: "在Wiki中搜索页面", Group: ToolGroupWikiRead},

@@ -56,6 +56,7 @@ func TestGetAgentToolsServesTheToolCatalog(t *testing.T) {
 	}
 	for _, name := range []string{
 		tools.ToolSearchConversations, tools.ToolSearchKnowledge, tools.ToolWikiDeletePage, tools.ToolWikiSearch,
+		tools.ToolEditKnowledgeFile,
 	} {
 		require.Contains(t, byName, name)
 	}
@@ -63,6 +64,10 @@ func TestGetAgentToolsServesTheToolCatalog(t *testing.T) {
 	require.Equal(t, tools.ToolGroupRAG, search.Group)
 	require.ElementsMatch(t, []string{"vector", "keyword"}, search.Requirement.AnyOf)
 	require.True(t, body.Data.Tools[byName[tools.ToolWikiDeletePage]].Danger)
+	fileEditor := body.Data.Tools[byName[tools.ToolEditKnowledgeFile]]
+	require.True(t, fileEditor.Danger)
+	require.Equal(t, tools.ToolGroupRAG, fileEditor.Group)
+	require.NotContains(t, body.Data.DefaultTools, tools.ToolEditKnowledgeFile)
 	require.Equal(t, []string{"wiki"}, body.Data.Tools[byName[tools.ToolWikiSearch]].Requirement.AllOf)
 	require.Equal(t, tools.DefaultAllowedTools(), body.Data.DefaultTools)
 	require.Equal(t, tools.SwitchManagedTools(), body.Data.SwitchManagedTools)

@@ -34,6 +34,37 @@ func toolSurfaceConfig(allowed ...string) *types.AgentConfig {
 	}
 }
 
+func TestRegisterToolsKnowledgeFileEditRequiresExplicitSelectionAndWriteScope(t *testing.T) {
+	kb := &types.KnowledgeBase{ID: "kb"}
+	kb.IndexingStrategy.KeywordEnabled = true
+	for _, mode := range []string{"enabled", "not selected", "read only", "shared agent", "no authorizer", "no scope"} {
+		t.Run(mode, func(t *testing.T) {
+			cfg := toolSurfaceConfig(tools.ToolEditKnowledgeFile)
+			cfg.WritableKBIDs = []string{"kb"}
+			cfg.KnowledgeFileWriteContext = func(ctx context.Context, _ *types.Knowledge) (context.Context, error) { return ctx, nil }
+			switch mode {
+			case "not selected":
+				cfg.AllowedTools = []string{tools.ToolThinking}
+			case "read only":
+				cfg.WritableKBIDs = nil
+			case "shared agent":
+				cfg.SharedAgentReadOnly = true
+			case "no authorizer":
+				cfg.KnowledgeFileWriteContext = nil
+			case "no scope":
+				cfg.SearchTargets, cfg.KnowledgeBases = nil, nil
+			}
+			registry := tools.NewToolRegistry()
+			require.NoError(t, newToolSurfaceService(kb).registerTools(t.Context(), registry, cfg, nil, nil, "s"))
+			if mode == "enabled" {
+				require.Contains(t, registry.ListTools(), tools.ToolEditKnowledgeFile)
+			} else {
+				require.NotContains(t, registry.ListTools(), tools.ToolEditKnowledgeFile)
+			}
+		})
+	}
+}
+
 // A stored allowlist that still names the retired retrieval tools registers
 // their successors, so agents saved before the consolidation keep working
 // without a data migration.

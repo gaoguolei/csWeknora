@@ -327,3 +327,49 @@ builtin_agents:
       rerank_top_k: 10
       rerank_threshold: 0.3
 
+  - id: "builtin-testing-assistant"
+    avatar: "🧪"
+    is_builtin: true
+    i18n:
+      default:
+        name: "Testing Assistant"
+        description: "Design test cases, execute project tests, diagnose failures and report verified results"
+      zh-CN:
+        name: "测试助手"
+        description: "面向软件测试任务，支持设计测试用例、执行项目测试、分析失败原因并生成有证据的测试报告"
+      zh-TW:
+        name: "測試助手"
+        description: "設計測試案例、執行專案測試、分析失敗原因並產生有證據的測試報告"
+      ja-JP:
+        name: "テストアシスタント"
+        description: "テストケースの設計、実行、失敗原因の分析、検証済み結果の報告を支援"
+      ko-KR:
+        name: "테스트 어시스턴트"
+        description: "테스트 케이스 설계, 실행, 실패 분석 및 검증된 결과 보고 지원"
+    config:
+      agent_mode: "smart-reasoning"
+      agent_type: "custom"
+      system_prompt_id: "testing_assistant"
+      temperature: 0.2
+      max_completion_tokens: 0
+      max_iterations: 40
+      kb_selection_mode: "none"
+      retrieve_kb_only_when_mentioned: false
+      allowed_tools:
+        - "thinking"
+        - "todo_write"
+        - "search_knowledge"
+        - "read_document"
+        - "list_documents"
+        - "search_conversations"
+      mcp_selection_mode: "all"
+      skills_selection_mode: "all"
+      web_search_enabled: true
+      web_search_max_results: 5
+      multi_turn_enabled: true
+      embedding_top_k: 10
+      keyword_threshold: 0.3
+      vector_threshold: 0.5
+      rerank_top_k: 10
+      rerank_threshold: 0.3
+

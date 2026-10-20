@@ -1,7 +1,7 @@
 import { inject, provide, ref, watch, type InjectionKey, type Ref } from 'vue'
 import type { ComposerMode } from '@/utils/composerMode'
 
-export type SandboxPanelTab = 'artifacts' | 'terminal' | 'preview' | 'source' | 'tests'
+export type SandboxPanelTab = 'artifacts' | 'terminal' | 'preview' | 'source' | 'tests' | 'cases' | 'reports'
 
 export type ArtifactPanelFocus = {
   messageId: string
@@ -51,12 +51,16 @@ const CHAT_SANDBOX_PANEL_KEY: InjectionKey<ChatSandboxPanelContext> = Symbol(
 )
 
 export function provideChatSandboxPanel(mode: Readonly<Ref<ComposerMode>> = ref<ComposerMode>('coding')): ChatSandboxPanelContext {
-  const allowedTab = (tab: SandboxPanelTab): SandboxPanelTab =>
-    mode.value === 'coding' || tab === 'artifacts' || tab === 'terminal' ? tab : 'artifacts'
+  const allowedTab = (tab: SandboxPanelTab): SandboxPanelTab => {
+    if (tab === 'artifacts' || tab === 'terminal') return tab
+    if (mode.value === 'chat') return 'artifacts'
+    if (mode.value === 'testing') return tab === 'reports' ? tab : 'cases'
+    return tab === 'cases' || tab === 'reports' ? 'tests' : tab
+  }
   const visible = ref(false)
   const activeTab = ref<SandboxPanelTab>(allowedTab('preview'))
   // Guard direct assignments as well as open(): stream/history callbacks and
-  // session changes must never bring a coding-only view into chat mode.
+  // session changes must respect the available views for each mode.
   watch([mode, activeTab], () => {
     const next = allowedTab(activeTab.value)
     if (next !== activeTab.value) activeTab.value = next
@@ -73,7 +77,7 @@ export function provideChatSandboxPanel(mode: Readonly<Ref<ComposerMode>> = ref<
 
   const open = (tab?: SandboxPanelTab, focus?: ArtifactPanelFocus) => {
     autoOpenAllowed.value = true
-    // Reopening keeps the selected tab; a new panel starts with preview.
+    // Reopening keeps the selected tab within the current mode.
     activeTab.value = allowedTab(tab || activeTab.value)
     if (focus) {
       artifactFocus.value = { ...focus, nonce: ++focusNonce }

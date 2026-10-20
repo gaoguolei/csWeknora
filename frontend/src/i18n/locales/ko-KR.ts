@@ -1760,6 +1760,8 @@ export default {
       searchKnowledgeDesc:
         "의미, 키워드 또는 하이브리드 방식으로 지식베이스 청크 검색",
       readDocument: "문서 읽기",
+      editKnowledgeFile: "지식 파일 편집",
+      editKnowledgeFileDesc: "대화로 Excel 셀이나 텍스트를 수정하거나 샌드박스 파일을 원본 문서에 저장하고 인덱스를 갱신합니다",
       readDocumentDesc:
         "문서 메타데이터와 청크 내용을 읽으며 페이징과 문서 내 검색 지원",
       listDocuments: "문서 목록 보기",

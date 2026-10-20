@@ -56,7 +56,7 @@ export function getAgentToolIconName(
   if (toolName === 'read_file' || toolName === 'read_sandbox_file' || toolName === 'read_skill') {
     return 'file'
   }
-  if (toolName === 'write_sandbox_file' || toolName === 'edit_sandbox_file') {
+  if (toolName === 'write_sandbox_file' || toolName === 'edit_sandbox_file' || toolName === 'edit_knowledge_file') {
     return 'edit'
   }
   if (toolName === 'execute_skill_script') {

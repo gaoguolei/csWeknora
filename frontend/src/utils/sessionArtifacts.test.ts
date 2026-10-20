@@ -7,7 +7,22 @@ import {
   formatArtifactDateTime,
   formatArtifactSize,
   markSessionArtifactDeleted,
+  testingArtifactKind,
 } from './sessionArtifacts.ts'
+
+test('testing views classify exported documents without treating source tests or unrelated spreadsheets as cases', () => {
+  const classify = (file_name: string, source_path = '') => testingArtifactKind({ file_name, source_path } as Parameters<typeof testingArtifactKind>[0])
+  assert.equal(classify('登录.xlsx', '/workspace/output/test-cases/登录.xlsx'), 'cases')
+  assert.equal(classify('登录测试用例.csv'), 'cases')
+  assert.equal(classify('test_cases.xlsx'), 'cases')
+  assert.equal(classify('summary.html', '/workspace/output/test-reports/run-1/summary.html'), 'reports')
+  assert.equal(classify('test-results-run-1.json'), 'reports')
+  assert.equal(classify('测试用例执行报告.xlsx'), 'reports', 'execution report takes priority over case naming')
+  assert.equal(classify('test-cases.spec.ts'), null)
+  assert.equal(classify('test-cases.py', '/workspace/output/test-cases/test-cases.py'), null)
+  assert.equal(classify('sales.xlsx'), null)
+  assert.equal(classify('screenshot.png'), null)
+})
 
 test('collectSessionArtifacts keeps per-message download indexes', () => {
   const items = collectSessionArtifacts([

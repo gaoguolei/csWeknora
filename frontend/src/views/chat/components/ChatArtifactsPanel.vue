@@ -16,6 +16,9 @@
       </t-button>
       <ArtifactFileIcon class="artifact-panel-header-icon" :file-name="previewItem.file_name" />
       <div class="artifact-panel-header-title" :title="previewItem.file_name">{{ previewItem.file_name }}</div>
+      <ArtifactSaveToKnowledge v-if="allowSaveToKnowledge" :session-id="sessionId"
+        :message-id="previewItem.messageId" :artifact-index="previewItem.index" :file-name="previewItem.file_name"
+        :knowledge-id="previewItem.knowledge_id" :knowledge-base-id="previewItem.knowledge_base_id" />
       <t-button
         class="artifact-download"
         variant="text"
@@ -49,6 +52,7 @@
 
     <div v-if="previewItem" class="artifact-preview-body">
       <DocumentPreview
+        :knowledge-id="previewItem.knowledge_id"
         :toolbar-target="previewActions"
         :session-id="sessionId"
         :message-id="previewItem.messageId"
@@ -66,7 +70,7 @@
     </div>
     <div v-else-if="!items.length" class="artifact-panel-empty">
       <t-icon name="folder-open" size="32px" />
-      <span>{{ $t('chat.sandbox.artifactsEmpty') }}</span>
+      <span>{{ emptyText || $t('chat.sandbox.artifactsEmpty') }}</span>
     </div>
     <template v-else>
       <div class="artifact-filters">
@@ -123,6 +127,9 @@
               </span>
             </span>
           </button>
+          <ArtifactSaveToKnowledge v-if="allowSaveToKnowledge" :session-id="sessionId"
+            :message-id="item.messageId" :artifact-index="item.index" :file-name="item.file_name"
+            :knowledge-id="item.knowledge_id" :knowledge-base-id="item.knowledge_base_id" />
           <t-button
             class="artifact-download"
             variant="text"
@@ -162,6 +169,7 @@ import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { deleteMessageArtifact, downloadArtifact } from '@/api/chat'
+import { downKnowledgeDetails } from '@/api/knowledge-base'
 import { resolveFilePreviewExt } from '@/utils/filePreview'
 import {
   formatArtifactDateTime,
@@ -172,6 +180,7 @@ import { useChatSandboxPanel, type ArtifactPanelFocusState } from '@/composables
 import { useConfirmDelete } from '@/components/settings/useConfirmDelete'
 import DocumentPreview from '@/components/document-preview.vue'
 import ArtifactFileIcon from './ArtifactFileIcon.vue'
+import ArtifactSaveToKnowledge from '@/components/ArtifactSaveToKnowledge.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -179,6 +188,8 @@ const props = withDefaults(
     items: SessionArtifactItem[]
     collecting?: boolean
     active?: boolean
+    emptyText?: string
+    allowSaveToKnowledge?: boolean
   }>(),
   {
     collecting: false,
@@ -354,7 +365,9 @@ async function handleDownload(item: SessionArtifactItem) {
   const key = downloadKey(item)
   downloading[key] = true
   try {
-    const blob = await downloadArtifact(props.sessionId, item.messageId, item.index)
+    const blob = item.knowledge_id
+      ? await downKnowledgeDetails(item.knowledge_id)
+      : await downloadArtifact(props.sessionId, item.messageId, item.index)
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

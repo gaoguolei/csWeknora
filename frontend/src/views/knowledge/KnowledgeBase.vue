@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, watch, reactive, computed, nextTick } from "vue";
 import { MessagePlugin } from "tdesign-vue-next";
 import DocContent from "@/components/doc-content.vue";
+import TestCaseKnowledgeEditor from '@/components/TestCaseKnowledgeEditor.vue';
 import useKnowledgeBase from '@/hooks/useKnowledgeBase';
 import { useRoute, useRouter } from 'vue-router';
 import EmptyKnowledge from '@/components/empty-knowledge.vue';
@@ -63,7 +64,7 @@ import {
 } from './wikiStatusRefresh';
 import { stalledMinutes, STALLED_POLL_INTERVAL_MS } from '@/utils/knowledgeProcessingStall';
 import { listMoveTargets, moveKnowledge, getKnowledgeMoveProgress } from '@/api/knowledge-base';
-import { resolveKnowledgeDownloadFileName } from './knowledgeDownloadFileName';
+import { resolveKnowledgeDownloadFileName, resolveKnowledgeSpreadsheetFileName } from './knowledgeDownloadFileName';
 import {
   buildUploadFileName,
   canMoveFolderTo,
@@ -1814,10 +1815,21 @@ const handleKnowledgeDropdownSelect = (data: { value: string }) => {
   router.push(`/platform/knowledge-bases/${data.value}`);
 };
 
+const caseEditorVisible = ref(false);
+const caseEditorDocument = ref({ id: '', fileName: '' });
 const handleManualEdit = (index: number, item: KnowledgeCard) => {
   if (isFAQ.value) return;
+  if (!canEdit.value) return;
   if (cardList.value[index]) {
     cardList.value[index].isMore = false;
+  }
+  const spreadsheetFileName = resolveKnowledgeSpreadsheetFileName(item);
+  if (spreadsheetFileName) {
+    if (!canDownloadKnowledge.value) return;
+    caseEditorDocument.value = { id: item.id, fileName: spreadsheetFileName };
+    isCardDetails.value = false;
+    caseEditorVisible.value = true;
+    return;
   }
   uiStore.openManualEditor({
     mode: 'edit',
@@ -2050,6 +2062,7 @@ const openKnowledgeItem = (item: KnowledgeCard) => {
 // Stop observing a previous KB when navigating, including away and back.
 let deleteGeneration = 0;
 watch(kbId, () => {
+  caseEditorVisible.value = false;
   deleteGeneration++;
   batchDeleting.value = false;
 });
@@ -2259,7 +2272,10 @@ const handleKBEditorSuccess = (kbIdValue: string) => {
 </script>
 
 <template>
-  <template v-if="!isFAQ">
+  <TestCaseKnowledgeEditor v-if="caseEditorVisible" :knowledge-id="caseEditorDocument.id"
+    :file-name="caseEditorDocument.fileName" @close="caseEditorVisible = false"
+    @saved="manualEditorSuccess({ kbId, knowledgeId: caseEditorDocument.id, status: 'publish' })" />
+  <template v-else-if="!isFAQ">
     <div class="knowledge-layout">
       <div class="document-header">
         <div class="document-header-title">
@@ -2611,6 +2627,7 @@ const handleKBEditorSuccess = (kbIdValue: string) => {
       <!-- DocContent drawer (shared by documents tab and wiki source refs) -->
       <DocContent ref="docContentRef" :visible="isCardDetails" :details="details" :canEditKB="canEdit"
         :canDownloadKB="canDownloadKnowledge" :kbId="kbId"
+        @edit-document="handleManualEdit(-1, $event)"
         @closeDoc="closeDoc" @getDoc="getDoc" @summaryStateChange="syncDocumentSummaryState">
       </DocContent>
     </div>

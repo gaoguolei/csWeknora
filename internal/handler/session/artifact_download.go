@@ -80,14 +80,16 @@ func (h *Handler) ListSessionArtifacts(c *gin.Context) {
 			continue
 		}
 		items = append(items, artifactListItem{
-			Index:      i,
-			Handle:     artifactHandle(a),
-			FileName:   a.FileName,
-			FileType:   a.FileType,
-			FileSize:   a.FileSize,
-			SourcePath: a.SourcePath,
-			ModTime:    a.ModTime,
-			CreatedAt:  a.CreatedAt,
+			KnowledgeID:     a.KnowledgeID,
+			KnowledgeBaseID: a.KnowledgeBaseID,
+			Index:           i,
+			Handle:          artifactHandle(a),
+			FileName:        a.FileName,
+			FileType:        a.FileType,
+			FileSize:        a.FileSize,
+			SourcePath:      a.SourcePath,
+			ModTime:         a.ModTime,
+			CreatedAt:       a.CreatedAt,
 		})
 	}
 
@@ -135,14 +137,16 @@ func (h *Handler) ListMessageArtifacts(c *gin.Context) {
 			continue
 		}
 		items = append(items, artifactListItem{
-			Index:      i,
-			Handle:     artifactHandle(a),
-			FileName:   a.FileName,
-			FileType:   a.FileType,
-			FileSize:   a.FileSize,
-			SourcePath: a.SourcePath,
-			ModTime:    a.ModTime,
-			CreatedAt:  a.CreatedAt,
+			KnowledgeID:     a.KnowledgeID,
+			KnowledgeBaseID: a.KnowledgeBaseID,
+			Index:           i,
+			Handle:          artifactHandle(a),
+			FileName:        a.FileName,
+			FileType:        a.FileType,
+			FileSize:        a.FileSize,
+			SourcePath:      a.SourcePath,
+			ModTime:         a.ModTime,
+			CreatedAt:       a.CreatedAt,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -251,7 +255,9 @@ func (h *Handler) DownloadMessageArtifact(c *gin.Context) {
 // body references and what an authorizing proxy resolves — while the physical
 // bucket/key stays server side.
 type artifactListItem struct {
-	Index int `json:"index"`
+	KnowledgeID     string `json:"knowledge_id,omitempty"`
+	KnowledgeBaseID string `json:"knowledge_base_id,omitempty"`
+	Index           int    `json:"index"`
 	// Handle is the artifact's `resource://<handle>` reference, matching the
 	// destinations in the message body. Empty when the deployment runs without
 	// a resource catalog, in which case the body references files by name.

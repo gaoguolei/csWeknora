@@ -496,7 +496,12 @@ start_app() {
         fi
     else
         export DB_HOST=127.0.0.1
-        export DOCREADER_ADDR=127.0.0.1:50051
+        # Preserve an explicitly configured remote DocReader. Only translate
+        # the Compose default service address for the host-run backend.
+        if [ -z "${DOCREADER_ADDR:-}" ] || [ "$DOCREADER_ADDR" = "docreader:50051" ]; then
+            DOCREADER_ADDR="127.0.0.1:${DOCREADER_PORT:-50051}"
+        fi
+        export DOCREADER_ADDR
         export MINIO_ENDPOINT=127.0.0.1:9000
         export REDIS_ADDR=127.0.0.1:6379
         export MILVUS_ADDRESS=127.0.0.1:19530

@@ -37,7 +37,7 @@ test('chat panels start on artifacts and reject coding-only navigation', () => {
   const panel = createPanel(ref('chat'))
   panel.open()
   assert.equal(panel.activeTab.value, 'artifacts')
-  for (const tab of ['preview', 'source', 'tests']) {
+  for (const tab of ['preview', 'source', 'tests', 'cases', 'reports']) {
     panel.open(tab)
     assert.equal(panel.activeTab.value, 'artifacts')
     panel.activeTab.value = tab
@@ -45,6 +45,35 @@ test('chat panels start on artifacts and reject coding-only navigation', () => {
   }
   panel.open('terminal')
   assert.equal(panel.activeTab.value, 'terminal')
+})
+
+test('testing sessions default to cases and normalize hidden coding tabs', () => {
+  const panel = createPanel(ref('testing'))
+  panel.open()
+  assert.equal(panel.activeTab.value, 'cases')
+  for (const tab of ['source', 'preview', 'tests']) {
+    panel.open(tab)
+    assert.equal(panel.activeTab.value, 'cases')
+    panel.activeTab.value = tab
+    assert.equal(panel.activeTab.value, 'cases', 'stream/history writes cannot open hidden views')
+  }
+  for (const tab of ['reports', 'artifacts', 'terminal']) {
+    panel.open(tab)
+    assert.equal(panel.activeTab.value, tab)
+  }
+})
+
+test('switching between coding and testing always leaves a visible tab selected', () => {
+  const mode = ref('coding')
+  const panel = createPanel(mode)
+  panel.open('source')
+  mode.value = 'testing'
+  assert.equal(panel.activeTab.value, 'cases')
+  mode.value = 'coding'
+  assert.equal(panel.activeTab.value, 'tests')
+  panel.open('artifacts')
+  mode.value = 'testing'
+  assert.equal(panel.activeTab.value, 'artifacts')
 })
 
 test('switching to chat normalizes a hidden tab without reopening the panel', () => {

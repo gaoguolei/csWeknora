@@ -10,16 +10,18 @@ import (
 // plus the message it belongs to and its position in that message's list.
 // Position is the index the download endpoint addresses the file by.
 type MessageArtifactRecord struct {
-	ID          string `gorm:"type:varchar(36);primaryKey"`
-	SessionID   string `gorm:"column:session_id"`
-	MessageID   string `gorm:"column:message_id"`
-	Position    int    `gorm:"column:position"`
-	URL         string `gorm:"column:url"`
-	FileName    string `gorm:"column:file_name"`
-	FileType    string `gorm:"column:file_type"`
-	FileSize    int64  `gorm:"column:file_size"`
-	ContentHash string `gorm:"column:content_hash"`
-	SourcePath  string `gorm:"column:source_path"`
+	KnowledgeID     string `gorm:"column:knowledge_id;not null;default:''"`
+	KnowledgeBaseID string `gorm:"column:knowledge_base_id;not null;default:''"`
+	ID              string `gorm:"type:varchar(36);primaryKey"`
+	SessionID       string `gorm:"column:session_id"`
+	MessageID       string `gorm:"column:message_id"`
+	Position        int    `gorm:"column:position"`
+	URL             string `gorm:"column:url"`
+	FileName        string `gorm:"column:file_name"`
+	FileType        string `gorm:"column:file_type"`
+	FileSize        int64  `gorm:"column:file_size"`
+	ContentHash     string `gorm:"column:content_hash"`
+	SourcePath      string `gorm:"column:source_path"`
 	// ModTime is RFC 3339 text rather than a timestamp column: the collector
 	// matches files on (source path, mtime) at nanosecond precision, which
 	// PostgreSQL timestamps would truncate to microseconds. Empty means zero.
@@ -54,19 +56,21 @@ func NewMessageArtifactRecords(sessionID, messageID string, list MessageArtifact
 			created = now
 		}
 		rows = append(rows, MessageArtifactRecord{
-			ID:          uuid.New().String(),
-			SessionID:   sessionID,
-			MessageID:   messageID,
-			Position:    i,
-			URL:         a.URL,
-			FileName:    a.FileName,
-			FileType:    a.FileType,
-			FileSize:    a.FileSize,
-			ContentHash: a.ContentHash,
-			SourcePath:  a.SourcePath,
-			ModTime:     FormatArtifactModTime(a.ModTime),
-			CreatedAt:   created,
-			DeletedAt:   a.DeletedAt,
+			KnowledgeID:     a.KnowledgeID,
+			KnowledgeBaseID: a.KnowledgeBaseID,
+			ID:              uuid.New().String(),
+			SessionID:       sessionID,
+			MessageID:       messageID,
+			Position:        i,
+			URL:             a.URL,
+			FileName:        a.FileName,
+			FileType:        a.FileType,
+			FileSize:        a.FileSize,
+			ContentHash:     a.ContentHash,
+			SourcePath:      a.SourcePath,
+			ModTime:         FormatArtifactModTime(a.ModTime),
+			CreatedAt:       created,
+			DeletedAt:       a.DeletedAt,
 		})
 	}
 	return rows
@@ -96,15 +100,17 @@ func ParseArtifactModTime(s string) time.Time {
 // Artifact converts the row back to the value carried on Message.Artifacts.
 func (r MessageArtifactRecord) Artifact() MessageArtifact {
 	return MessageArtifact{
-		URL:         r.URL,
-		FileName:    r.FileName,
-		FileType:    r.FileType,
-		FileSize:    r.FileSize,
-		ContentHash: r.ContentHash,
-		SourcePath:  r.SourcePath,
-		ModTime:     ParseArtifactModTime(r.ModTime),
-		CreatedAt:   r.CreatedAt,
-		DeletedAt:   r.DeletedAt,
+		KnowledgeID:     r.KnowledgeID,
+		KnowledgeBaseID: r.KnowledgeBaseID,
+		URL:             r.URL,
+		FileName:        r.FileName,
+		FileType:        r.FileType,
+		FileSize:        r.FileSize,
+		ContentHash:     r.ContentHash,
+		SourcePath:      r.SourcePath,
+		ModTime:         ParseArtifactModTime(r.ModTime),
+		CreatedAt:       r.CreatedAt,
+		DeletedAt:       r.DeletedAt,
 	}
 }
 

@@ -7468,6 +7468,8 @@ export default {
       searchKnowledgeDesc:
         "Semantic, keyword or hybrid search over knowledge-base chunks",
       readDocument: "Read document",
+      editKnowledgeFile: "Edit knowledge files",
+      editKnowledgeFileDesc: "Edit Excel cells or text in chat, or save a sandbox file back to its original document and rebuild its index",
       readDocumentDesc:
         "Read a document's metadata and chunks, with paging and in-document search",
       listDocuments: "List documents",

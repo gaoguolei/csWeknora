@@ -104,6 +104,8 @@ export async function clearSessionMessages(session_id: string) {
 // ---------------------------------------------------------------------------
 
 export interface ArtifactMeta {
+	knowledge_id?: string;
+	knowledge_base_id?: string;
   index: number;
   /**
    * `resource://<handle>` — the artifact's stable identity, and the destination

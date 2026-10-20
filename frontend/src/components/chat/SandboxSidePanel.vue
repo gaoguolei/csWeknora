@@ -33,15 +33,15 @@
               :class="{ 'is-active': panel?.activeTab.value === tab.id }"
               role="tab"
               :aria-selected="panel?.activeTab.value === tab.id"
-              @click="panel?.open(tab.id)"
+              @click="openTab(tab.id)"
             >
               <t-icon :name="tab.icon" size="16px" />
               <span>{{ tab.label }}</span>
               <span
-                v-if="tab.id === 'artifacts' && artifacts.length"
+                v-if="artifactCount(tab.id)"
                 class="chat-sandbox-panel__tab-count"
                 aria-hidden="true"
-                >{{ artifacts.length }}</span
+                >{{ artifactCount(tab.id) }}</span
               >
             </button>
           </div>
@@ -80,7 +80,7 @@
         <div
           class="chat-sandbox-panel__body"
           :class="{
-            'is-flush': ['artifacts', 'preview', 'source', 'tests'].includes(
+            'is-flush': ['artifacts', 'preview', 'source', 'tests', 'cases', 'reports'].includes(
               panel?.activeTab.value || '',
             ),
           }"
@@ -101,15 +101,28 @@
             @report-created="emit('refreshArtifacts', $event)"
             @view-change="emit('workspaceViewChange', $event)"
           />
-          <ChatArtifactsPanel
-            v-show="panel?.activeTab.value === 'artifacts'"
+          <!-- 用例：可解析的表格直接铺开，解析不了的退回文件列表。 -->
+          <TestCasePanel
+            v-show="isCaseTab"
             class="chat-sandbox-panel__artifacts"
             :session-id="sessionId"
-            :items="artifacts"
+            :items="caseArtifacts"
+            :empty-text="artifactEmptyText"
+            :collecting="artifactsCollecting"
+            :active="Boolean(panel?.visible.value && isCaseTab)"
+            @deleted="emit('artifactDeleted', $event)"
+          />
+          <ChatArtifactsPanel
+            v-show="isArtifactTab && !isCaseTab"
+            :key="artifactTab"
+            class="chat-sandbox-panel__artifacts"
+            :session-id="sessionId"
+            :items="displayedArtifacts"
+            :empty-text="artifactEmptyText"
             :collecting="artifactsCollecting"
             :active="
               Boolean(
-                panel?.visible.value && panel?.activeTab.value === 'artifacts',
+                panel?.visible.value && isArtifactTab,
               )
             "
             @deleted="emit('artifactDeleted', $event)"
@@ -181,8 +194,10 @@ import {
 import SandboxTerminal from "@/views/chat/components/SandboxTerminal.vue";
 import WorkspaceBrowserPreview from "@/components/workspace/WorkspaceBrowserPreview.vue";
 import ChatArtifactsPanel from "@/views/chat/components/ChatArtifactsPanel.vue";
+import TestCasePanel from "@/views/chat/components/TestCasePanel.vue";
 import PanelResizeHandle from "@/components/PanelResizeHandle.vue";
 import type { SessionArtifactItem } from "@/utils/sessionArtifacts";
+import { testingArtifactKind } from "@/utils/sessionArtifacts";
 
 const props = withDefaults(
   defineProps<{
@@ -220,14 +235,33 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const panel = useChatSandboxPanel();
-const codingMode = computed(() => panel?.mode?.value !== 'chat');
+const codingMode = computed(() => !panel?.mode || panel.mode.value === 'coding');
+const testingMode = computed(() => panel?.mode?.value === 'testing');
+const isCaseTab = computed(() => testingMode.value && panel?.activeTab.value === 'cases');
+const isArtifactTab = computed(() => panel?.activeTab.value === 'artifacts' ||
+  (testingMode.value && ['cases', 'reports'].includes(panel?.activeTab.value || '')));
+const artifactTab = computed(() => isArtifactTab.value ? panel!.activeTab.value : 'artifacts');
+const caseArtifacts = computed(() => props.artifacts.filter(item => testingArtifactKind(item) === 'cases'));
+const reportArtifacts = computed(() => props.artifacts.filter(item => testingArtifactKind(item) === 'reports'));
+const displayedArtifacts = computed(() => artifactTab.value === 'cases' ? caseArtifacts.value :
+  artifactTab.value === 'reports' ? reportArtifacts.value : props.artifacts);
+const artifactEmptyText = computed(() => artifactTab.value === 'cases' ? t('workspace.caseFilesEmpty') :
+  artifactTab.value === 'reports' ? t('workspace.reportFilesEmpty') : undefined);
+function artifactCount(tab: SandboxPanelTab): number {
+  return tab === 'cases' ? caseArtifacts.value.length : tab === 'reports' ? reportArtifacts.value.length :
+    tab === 'artifacts' ? props.artifacts.length : 0;
+}
+function openTab(tab: SandboxPanelTab) {
+  panel?.clearArtifactFocus();
+  panel?.open(tab);
+}
 watch(
   () => [props.sessionId, panel?.visible.value, panel?.activeTab.value],
   () => {
     if (
       props.sessionId &&
       panel?.visible.value &&
-      panel.activeTab.value === "artifacts"
+      isArtifactTab.value
     )
       emit("refreshArtifacts");
   },
@@ -250,6 +284,12 @@ watch(
 );
 
 const tabs = computed<Array<{ id: SandboxPanelTab; icon: string; label: string }>>(() => {
+  if (testingMode.value) return [
+    { id: 'cases', icon: 'task', label: t('workspace.casesTab') },
+    { id: 'reports', icon: 'file', label: t('workspace.reportsTab') },
+    { id: 'artifacts', icon: 'folder', label: t('chat.sandbox.tabArtifacts') },
+    { id: 'terminal', icon: 'terminal', label: t('chat.sandbox.tabTerminal') },
+  ];
   if (!codingMode.value) return [
     { id: 'artifacts', icon: 'folder', label: t('chat.sandbox.tabArtifacts') },
     { id: 'terminal', icon: 'terminal', label: t('workspace.sandboxTab') },

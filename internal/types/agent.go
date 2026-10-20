@@ -181,6 +181,9 @@ type AgentConfig struct {
 	// access, so tools that write (wiki pages and issues) are limited to this
 	// set; empty means read-only. Runtime only, derived per turn.
 	WritableKBIDs []string `json:"-"`
+	// KnowledgeFileWriteContext rechecks live permissions and supplies the exact
+	// Editor grant for a file mutation. Bound by the session entry point only.
+	KnowledgeFileWriteContext func(context.Context, *Knowledge) (context.Context, error) `json:"-"`
 	// LLM call timeout in seconds (default: 120). Controls the maximum time for a single LLM call.
 	LLMCallTimeout int `json:"llm_call_timeout,omitempty"`
 

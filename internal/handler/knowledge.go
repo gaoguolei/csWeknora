@@ -32,6 +32,7 @@ import (
 type KnowledgeHandler struct {
 	cfg               *config.Config
 	kgService         interfaces.KnowledgeService
+	messageService    interfaces.MessageService
 	kbService         interfaces.KnowledgeBaseService
 	kbShareService    interfaces.KBShareService
 	agentShareService interfaces.AgentShareService
@@ -87,6 +88,7 @@ func (h *KnowledgeHandler) stallVerdicts(ctx context.Context, ids []string) map[
 // NewKnowledgeHandler creates a new knowledge handler instance
 func NewKnowledgeHandler(
 	cfg *config.Config,
+	messageService interfaces.MessageService,
 	kgService interfaces.KnowledgeService,
 	kbService interfaces.KnowledgeBaseService,
 	kbShareService interfaces.KBShareService,
@@ -103,6 +105,7 @@ func NewKnowledgeHandler(
 		backlog = housekeeping
 	}
 	return &KnowledgeHandler{
+		messageService:    messageService,
 		backlog:           backlog,
 		cfg:               cfg,
 		kgService:         kgService,

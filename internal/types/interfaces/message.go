@@ -9,6 +9,8 @@ import (
 
 // MessageService defines the message service interface
 type MessageService interface {
+	// LinkArtifactKnowledge binds a source artifact to a writable knowledge file in an owned session.
+	LinkArtifactKnowledge(ctx context.Context, sessionID, messageID string, index int, knowledgeID string) error
 	// CreateMessage creates a message
 	CreateMessage(ctx context.Context, message *types.Message) (*types.Message, error)
 
@@ -80,6 +82,7 @@ type MessageService interface {
 
 // MessageRepository defines the message repository interface
 type MessageRepository interface {
+	LinkArtifactKnowledge(ctx context.Context, sessionID, messageID string, index int, knowledgeID, kbID string) error
 	// CreateMessage creates a message
 	CreateMessage(ctx context.Context, message *types.Message) (*types.Message, error)
 	// GetMessage gets a message

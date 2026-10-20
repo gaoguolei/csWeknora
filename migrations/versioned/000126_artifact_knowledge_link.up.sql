@@ -1,0 +1,2 @@
+ALTER TABLE message_artifacts ADD COLUMN IF NOT EXISTS knowledge_id VARCHAR(36) NOT NULL DEFAULT '';
+ALTER TABLE message_artifacts ADD COLUMN IF NOT EXISTS knowledge_base_id VARCHAR(36) NOT NULL DEFAULT '';

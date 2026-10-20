@@ -62,6 +62,7 @@ export const TOOL_CAPABILITY_REQUIREMENTS: Record<string, ToolRequirement> = {
   // Document readers work on stored chunks, which wiki-only KBs have too.
   read_document:         { anyOf: ['vector', 'keyword', 'wiki'], consumesFiles: true, auxiliary: true },
   list_documents:        { anyOf: ['vector', 'keyword', 'wiki'], consumesFiles: true, auxiliary: true },
+  edit_knowledge_file:   { anyOf: ['vector', 'keyword', 'wiki'], consumesFiles: true, auxiliary: true },
   database_query:        { anyOf: ['vector', 'keyword'], consumesFiles: true },
   // Retired names kept so stale agent configs / stored history still resolve.
   // The editor normalizes them to the new names on load (see

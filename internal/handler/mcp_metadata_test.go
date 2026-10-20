@@ -3,14 +3,73 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/Tencent/WeKnora/internal/mcp"
 	"github.com/Tencent/WeKnora/internal/types"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
+	"github.com/mark3labs/mcp-go/client/transport"
 	"github.com/stretchr/testify/require"
 )
+
+func TestMCPMetadataAppErrorExplainsAuthenticationFailures(t *testing.T) {
+	tests := []struct {
+		name    string
+		err     error
+		status  int
+		message string
+	}{
+		{
+			name: "bare upstream 401",
+			err: &transport.AuthorizationRequiredError{
+				ResourceMetadataURL: "https://secret.internal/metadata",
+			},
+			status:  http.StatusBadRequest,
+			message: "Check the auth method, API key or token",
+		},
+		{
+			name:    "upstream authorization sentinel",
+			err:     transport.ErrAuthorizationRequired,
+			status:  http.StatusBadRequest,
+			message: "Check the auth method, API key or token",
+		},
+		{
+			name: "OAuth advertised by the server",
+			err: &mcp.OAuthRequiredError{
+				MetadataURL: "https://secret.internal/metadata",
+				Err:         &transport.AuthorizationRequiredError{},
+			},
+			status:  http.StatusBadRequest,
+			message: "Switch the auth method to OAuth 2.0",
+		},
+		{
+			name:    "OAuth token missing or expired",
+			err:     &mcp.OAuthReauthorizationRequiredError{Reason: "secret.internal"},
+			status:  http.StatusBadRequest,
+			message: "authorize again before syncing tools",
+		},
+		{
+			name: "temporary OAuth refresh failure",
+			err: &mcp.OAuthRefreshTemporaryError{
+				Err: fmt.Errorf("secret.internal: %w", transport.ErrAuthorizationRequired),
+			},
+			status:  http.StatusServiceUnavailable,
+			message: "Try syncing tools again later",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Refresh wraps errors from connect, initialize and tools/list.
+			wrapped := fmt.Errorf("could not refresh MCP directory: failed to initialize: %w", tt.err)
+			appErr := mcpMetadataAppError(wrapped, true)
+			require.Equal(t, tt.status, appErr.HTTPCode)
+			require.Contains(t, appErr.Message, tt.message)
+			require.NotContains(t, appErr.Error(), "secret.internal")
+		})
+	}
+}
 
 func TestMCPMetadataAppErrorDoesNotLeakUpstreamDetails(t *testing.T) {
 	notFound := mcpMetadataAppError(types.ErrMCPServiceNotFound, false)

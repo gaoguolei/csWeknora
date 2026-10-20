@@ -83,6 +83,10 @@ var toolHandlePolicies = map[string]toolHandlePolicy{
 		sourceIDKeys: map[string]struct{}{"knowledge_base_id": {}},
 		sourceOutput: true,
 	},
+	"edit_knowledge_file": {
+		sourceIDKeys: map[string]struct{}{"knowledge_id": {}},
+		sourceOutput: true,
+	},
 	// Retired retrieval tools keep their policies so stored histories that
 	// still carry their calls decode and compact exactly as they did.
 	"knowledge_search": {

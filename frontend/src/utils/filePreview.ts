@@ -314,6 +314,21 @@ export function isValidUTF8(bytes: Uint8Array, allowTruncatedEnd = false): boole
   return true
 }
 
+/**
+ * Decode delimited text (CSV/TSV) honoring a UTF-8 BOM, falling back to GBK
+ * for exports written by older Chinese spreadsheet tools.
+ */
+export function decodeDelimitedText(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+    return new TextDecoder('utf-8').decode(bytes)
+  }
+  if (isValidUTF8(bytes)) {
+    return new TextDecoder('utf-8').decode(bytes)
+  }
+  return new TextDecoder('gbk').decode(bytes)
+}
+
 function asciiTag(bytes: Uint8Array, offset: number, length: number): string {
   if (offset + length > bytes.length) return ''
   let out = ''

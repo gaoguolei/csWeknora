@@ -65,6 +65,7 @@ var ToolCapabilityRequirements = map[string]ToolRequirement{
 	"search_knowledge":      {AnyOf: []KBCapability{CapVector, CapKeyword}, ConsumesFiles: true},
 	"read_document":         documentReaderRequirement,
 	"list_documents":        documentReaderRequirement,
+	"edit_knowledge_file":   documentReaderRequirement,
 	"query_knowledge_graph": {AllOf: []KBCapability{CapGraph}, ConsumesFiles: true},
 	"database_query":        {AnyOf: []KBCapability{CapVector, CapKeyword}, ConsumesFiles: true},
 	// Retired names keep their requirement so a stored allowlist that has not

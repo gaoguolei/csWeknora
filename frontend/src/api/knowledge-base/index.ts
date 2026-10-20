@@ -568,6 +568,16 @@ export function downKnowledgeDetails(id: string) {
   return getDown(`/api/v1/knowledge/${id}/download`);
 }
 
+export function replaceKnowledgeFile(id: string, file: File) {
+  const data = new FormData();
+  data.append('file', file);
+  return postUpload(`/api/v1/knowledge/${id}/file`, data);
+}
+
+export function linkKnowledgeArtifact(id: string, source: { session_id: string; message_id: string; index: number }) {
+  return post(`/api/v1/knowledge/${id}/artifact-link`, source);
+}
+
 // 使用已有登录和租户请求头下载 ZIP，不将凭据放入下载链接。
 export function batchDownloadKnowledge(kbId: string, ids: string[], signal?: AbortSignal): Promise<Blob> {
   return post<Blob>(`/api/v1/knowledge-bases/${encodeURIComponent(kbId)}/knowledge/batch-download`, { ids }, {

@@ -47,7 +47,7 @@ VALUES ('kept-report', 1, 'kept-user', 'session', 'completed', '{"passed":true}'
 			require.NoError(t, RunMigrationsWithOptions("sqlite3://unused", opts))
 			require.NoError(t, RunMigrationsWithOptions("sqlite3://unused", opts))
 			current, dirty := sqliteMigrationState(t, db)
-			require.Equal(t, 40, current)
+			require.Equal(t, expectedSQLiteMigrationVersion, current)
 			require.False(t, dirty)
 			var role bool
 			require.NoError(t, db.QueryRow("SELECT is_operations_admin FROM users WHERE id = 'kept-user'").Scan(&role))

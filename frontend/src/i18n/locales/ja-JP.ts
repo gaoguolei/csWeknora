@@ -7521,6 +7521,8 @@ export default {
       searchKnowledgeDesc:
         "セマンティック・キーワード・ハイブリッド検索でナレッジベースのチャンクを検索します",
       readDocument: "ドキュメントを読む",
+      editKnowledgeFile: "ナレッジファイルを編集",
+      editKnowledgeFileDesc: "チャットで Excel セルやテキストを編集し、サンドボックスのファイルを元の文書に保存して索引を更新",
       readDocumentDesc:
         "ドキュメントのメタデータとチャンク内容を読み取ります。ページングと文書内検索に対応",
       listDocuments: "ドキュメント一覧",

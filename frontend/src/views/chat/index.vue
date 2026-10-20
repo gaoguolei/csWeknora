@@ -356,6 +356,7 @@
             :sessionId="session_id"
             :assistantMessageId="currentAssistantMessageId"
             :embeddedMode="embeddedMode"
+            :agent-audience="embeddedMode ? undefined : composerMode"
             :queuedSteers="
               steerQueue.filter((item) => item.delivery === 'after')
             "
@@ -682,7 +683,7 @@ function recordWorkspaceFileChange(change, live) {
  * follows A → B as the turn proceeds instead of staying on a stale file.
  */
 function showLiveWorkspaceDiff(path) {
-  if (props.embeddedMode || composerMode.value !== 'coding' || !path) return;
+  if (props.embeddedMode || composerMode.value === 'chat' || !path) return;
   if (path !== workspacePath.value) {
     workspacePath.value = path;
     workspaceRevision.value++;
@@ -706,7 +707,7 @@ function openCompletedWorkspacePanel() {
   workspaceTurnIntent = "chat";
   if (
     !decision ||
-    composerMode.value !== 'coding' ||
+    composerMode.value === 'chat' ||
     props.embeddedMode ||
     !sandboxPanel.visible.value ||
     !sandboxPanel.autoOpenAllowed.value
@@ -748,7 +749,7 @@ watch(
   () => session_id.value,
   () => {
     sandboxPanel.close();
-    sandboxPanel.activeTab.value = "preview";
+    sandboxPanel.activeTab.value = composerMode.value === 'testing' ? 'cases' : 'preview';
     workspacePath.value = "";
     workspaceFileView.value = "source";
     workspaceRevision.value = 0;

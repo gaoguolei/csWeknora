@@ -12,6 +12,7 @@ import (
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/mark3labs/mcp-go/client/transport"
 )
 
 // GetMCPMetadata godoc
@@ -107,6 +108,9 @@ func mayWriteSharedMCPMetadata(ctx context.Context) bool {
 }
 
 func mcpMetadataAppError(err error, refresh bool) *errors.AppError {
+	var oauthRequired *mcp.OAuthRequiredError
+	var reauthorizationRequired *mcp.OAuthReauthorizationRequiredError
+	var temporaryRefresh *mcp.OAuthRefreshTemporaryError
 	switch {
 	case stderrors.Is(err, types.ErrMCPServiceNotFound):
 		return errors.NewNotFoundError("MCP service not found")
@@ -118,6 +122,24 @@ func mcpMetadataAppError(err error, refresh bool) *errors.AppError {
 		return errors.NewConflictError("MCP connection changed during refresh; save the configuration and sync again")
 	case stderrors.Is(err, types.ErrMCPMetadataTooLarge), stderrors.Is(err, types.ErrMCPMetadataInvalidTools):
 		return errors.NewBadRequestError("MCP directory is invalid or too large")
+	case stderrors.As(err, &oauthRequired):
+		return errors.NewBadRequestError(
+			"This MCP server requires OAuth authorization. Switch the auth method to OAuth 2.0, " +
+				"save the connection, and authorize before syncing tools.")
+	case stderrors.As(err, &reauthorizationRequired):
+		return errors.NewBadRequestError(
+			"MCP OAuth authorization is missing or expired. Return to the connection settings " +
+				"and authorize again before syncing tools.")
+	case stderrors.As(err, &temporaryRefresh):
+		return errors.NewServiceUnavailableError("MCP OAuth token refresh temporarily failed. Try syncing tools again later.")
+	case stderrors.Is(err, transport.ErrAuthorizationRequired):
+		// Upstream authentication failures are configuration errors, not an
+		// expired WeKnora login: HTTP 401 triggers the UI's login refresh flow.
+		return errors.NewBadRequestError(
+			"The MCP server rejected authentication (401). Check the auth method, API key or token, " +
+				"and credential header in the connection settings, then save and sync again. " +
+				"For Bearer tokens, use header Authorization with value \"Bearer <token>\". " +
+				"If the server uses OAuth 2.0, complete authorization first.")
 	case stderrors.Is(err, secutils.ErrSSRFHostNotWhitelisted):
 		// Whitelist-only mode refuses the host before any DNS query. Say so
 		// explicitly: the generic refresh text below reads as "the server is

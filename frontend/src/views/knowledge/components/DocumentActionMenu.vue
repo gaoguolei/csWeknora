@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { resolveKnowledgeSpreadsheetFileName } from '../knowledgeDownloadFileName';
 
 interface KnowledgeItem {
   id: string;
   file_name?: string;
+  original_file_name?: string;
+  file_type?: string;
   title?: string;
   type?: string;
   parse_status?: string;
@@ -38,6 +41,7 @@ const isParseInFlight = computed(() =>
 );
 
 const fileName = computed(() => props.item.file_name || props.item.title || props.item.id);
+const canEditSpreadsheet = computed(() => props.canDownload && !!resolveKnowledgeSpreadsheetFileName(props.item));
 </script>
 
 <template>
@@ -52,7 +56,7 @@ const fileName = computed(() => props.item.file_name || props.item.title || prop
   </div>
 
   <!-- 编辑文档 -->
-  <div v-if="item.type === 'manual'" class="doc-action-menu-item" @click.stop="emit('edit')">
+  <div v-if="item.type === 'manual' || canEditSpreadsheet" class="doc-action-menu-item" @click.stop="emit('edit')">
     <t-icon class="icon" name="edit" />
     <span>{{ $t('knowledgeBase.editDocument') }}</span>
   </div>

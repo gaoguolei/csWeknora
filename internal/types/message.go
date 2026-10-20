@@ -342,14 +342,16 @@ func (m *MessageAttachments) Scan(value interface{}) error {
 // When mtime moves, ArtifactCollector compares content hashes so a git
 // checkout cannot duplicate a blob and a same-size rewrite still attaches.
 type MessageArtifact struct {
-	URL         string    `json:"url"`                    // Storage URL (provider://path); persisted, not sent to client
-	FileName    string    `json:"file_name"`              // Original filename inside the sandbox
-	FileType    string    `json:"file_type"`              // File extension (e.g., ".pptx", ".pdf")
-	FileSize    int64     `json:"file_size"`              // File size in bytes
-	ContentHash string    `json:"content_hash,omitempty"` // SHA-256 of the persisted bytes
-	SourcePath  string    `json:"source_path"`            // Absolute path inside the sandbox (used for diff)
-	ModTime     time.Time `json:"mod_time"`               // Sandbox-side modification time (used for diff)
-	CreatedAt   time.Time `json:"created_at"`             // When WeKnora persisted the blob
+	KnowledgeID     string    `json:"knowledge_id,omitempty"`
+	KnowledgeBaseID string    `json:"knowledge_base_id,omitempty"`
+	URL             string    `json:"url"`                    // Storage URL (provider://path); persisted, not sent to client
+	FileName        string    `json:"file_name"`              // Original filename inside the sandbox
+	FileType        string    `json:"file_type"`              // File extension (e.g., ".pptx", ".pdf")
+	FileSize        int64     `json:"file_size"`              // File size in bytes
+	ContentHash     string    `json:"content_hash,omitempty"` // SHA-256 of the persisted bytes
+	SourcePath      string    `json:"source_path"`            // Absolute path inside the sandbox (used for diff)
+	ModTime         time.Time `json:"mod_time"`               // Sandbox-side modification time (used for diff)
+	CreatedAt       time.Time `json:"created_at"`             // When WeKnora persisted the blob
 	// DeletedAt marks a file the user deleted. The entry stays in the list
 	// rather than being removed because its position IS the download address
 	// (msg.Artifacts[index]); dropping it would shift every later file's index

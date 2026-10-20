@@ -468,6 +468,11 @@ func (s *agentService) registerSandboxFileTools(
 		return
 	}
 	if store := sessionSandboxFileStore(sandboxMgr); store != nil {
+		if tool, err := toolRegistry.GetTool(tools.ToolEditKnowledgeFile); err == nil {
+			if editor, ok := tool.(*tools.EditKnowledgeFileTool); ok {
+				editor.WithSandbox(store, sessionID)
+			}
+		}
 		if _, err := toolRegistry.GetTool(tools.ToolShellExec); err != nil {
 			toolRegistry.RegisterTool(tools.NewListSandboxFilesTool(store))
 		}
@@ -1078,6 +1083,9 @@ func (s *agentService) registerTools(
 	if config.SharedAgentReadOnly {
 		allowedTools = withoutWikiWriteTools(allowedTools)
 	}
+	if config.SharedAgentReadOnly || len(config.WritableKBIDs) == 0 || config.KnowledgeFileWriteContext == nil {
+		allowedTools = withoutString(allowedTools, tools.ToolEditKnowledgeFile)
+	}
 
 	// ---- Capability detection from SearchTargets ----
 	var hasVectorKB bool
@@ -1129,6 +1137,7 @@ func (s *agentService) registerTools(
 			tools.ToolSearchKnowledge:     true,
 			tools.ToolReadDocument:        true,
 			tools.ToolListDocuments:       true,
+			tools.ToolEditKnowledgeFile:   true,
 			tools.ToolQueryKnowledgeGraph: true,
 			tools.ToolDatabaseQuery:       true,
 			tools.ToolDataAnalysis:        true,
@@ -1286,6 +1295,10 @@ func (s *agentService) registerTools(
 			toolToRegister = tools.NewReadDocumentTool(s.knowledgeService, s.chunkService, config.SearchTargets)
 		case tools.ToolListDocuments:
 			toolToRegister = tools.NewListDocumentsTool(s.knowledgeService, config.SearchTargets)
+		case tools.ToolEditKnowledgeFile:
+			toolToRegister = tools.NewEditKnowledgeFileTool(
+				s.knowledgeService, config.SearchTargets, config.WritableKBIDs, config.KnowledgeFileWriteContext,
+			)
 		case tools.ToolQueryKnowledgeGraph:
 			var chunkRepo interfaces.ChunkRepository
 			if s.chunkService != nil {

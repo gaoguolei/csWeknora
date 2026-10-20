@@ -100,6 +100,26 @@ func TestDefaultAllowedToolsUseTheConsolidatedSurface(t *testing.T) {
 	}
 }
 
+func TestKnowledgeFileEditIsSelectableButNeverEnabledByDefault(t *testing.T) {
+	var found bool
+	for _, definition := range AvailableToolDefinitions() {
+		if definition.Name == ToolEditKnowledgeFile {
+			found = true
+			if !definition.Danger || definition.Group != ToolGroupRAG {
+				t.Fatal("file mutations must be visibly marked as writes in agent settings")
+			}
+		}
+	}
+	if !found {
+		t.Fatal("knowledge file editing must appear in the agent tool catalog")
+	}
+	for _, name := range DefaultAllowedTools() {
+		if name == ToolEditKnowledgeFile {
+			t.Fatal("file writing must require an explicit agent setting")
+		}
+	}
+}
+
 func TestDocumentReadersAcceptWikiOnlyKnowledgeBases(t *testing.T) {
 	wikiOnly := types.KBCapabilities{Wiki: true}
 	for _, name := range []string{ToolReadDocument, ToolListDocuments, LegacyToolWikiReadSourceDoc} {

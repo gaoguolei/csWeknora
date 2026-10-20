@@ -4,10 +4,66 @@ import test from 'node:test'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { computed, reactive, ref } from 'vue'
+import { parse } from '@vue/compiler-sfc'
 import { chatSubmitShortcut } from '../utils/chatSubmitShortcut.ts'
+import { agentMatchesComposerMode, conversationComposerMode } from '../utils/composerMode.ts'
 
 const inputField = readFileSync(new URL('./Input-field.vue', import.meta.url), 'utf8')
 const settingsStore = readFileSync(new URL('../stores/settings.ts', import.meta.url), 'utf8')
+
+function audienceBinding(source, tag, argument = 'agent-audience') {
+  const ast = parse(source).descriptor.template.ast
+  const find = node => node.tag === tag ? node
+    : (node.children || []).map(find).find(Boolean)
+  return find(ast)?.props.find(prop => prop.name === 'bind' && prop.arg?.content === argument)?.exp?.content
+}
+
+test('sending the first message carries mode filtering into the conversation composer', () => {
+  const home = readFileSync(new URL('../views/creatChat/creatChat.vue', import.meta.url), 'utf8')
+  const chat = readFileSync(new URL('../views/chat/index.vue', import.meta.url), 'utf8')
+  const homeBinding = audienceBinding(home, 'InputField')
+  const chatBinding = audienceBinding(chat, 'InputField')
+  const selectorBinding = audienceBinding(inputField, 'AgentSelector', 'audience')
+  assert.ok(homeBinding, 'home composer must receive its audience')
+  assert.ok(chatBinding, 'conversation composer must retain the audience after sending')
+  assert.ok(selectorBinding, 'input field must pass its audience to the agent picker')
+  for (const composerMode of ['chat', 'coding', 'testing']) {
+    assert.equal(vm.runInNewContext(homeBinding, { composerMode }), composerMode)
+    assert.equal(vm.runInNewContext(chatBinding, { composerMode, embeddedMode: false }), composerMode)
+    assert.equal(vm.runInNewContext(selectorBinding, { agentAudience: composerMode }), composerMode)
+  }
+  assert.equal(vm.runInNewContext(chatBinding, { composerMode: 'chat', embeddedMode: true }), undefined)
+})
+
+test('conversation selector keeps filtering owned and shared agents after send and reload', () => {
+  const selector = readFileSync(new URL('./AgentSelector.vue', import.meta.url), 'utf8')
+  const start = selector.indexOf('const agentsList = computed')
+  const end = selector.indexOf('const currentAgentSourceTenantId', start)
+  const code = ts.transpile(selector.slice(start, end))
+  const quick = { id: 'builtin-quick-answer', is_builtin: true, config: {} }
+  const coding = { id: 'builtin-coding-assistant', is_builtin: true, config: {} }
+  const custom = { id: 'custom-coder', config: { system_prompt_id: 'coding_assistant' } }
+  const testing = { id: 'builtin-testing-assistant', is_builtin: true, config: { system_prompt_id: 'testing_assistant' } }
+  const customTesting = { id: 'custom-tester', config: { system_prompt_id: 'testing_assistant' } }
+  for (const intent of ['chat', 'code', 'test', undefined]) {
+    const audience = conversationComposerMode(intent, coding)
+    const props = reactive({ audience, agents: [quick, coding, custom, testing, customTesting] })
+    const state = vm.runInNewContext(`${code}; ({ builtinAgents, customAgents, sharedAgentsList })`, {
+      computed, props, agentMatchesComposerMode, t: key => key,
+      BUILTIN_QUICK_ANSWER_ID: quick.id, BUILTIN_SMART_REASONING_ID: 'builtin-smart-reasoning',
+      chatResources: {}, orgStore: { sharedAgents: [
+        { agent: { ...quick, id: 'shared-chat' }, source_tenant_id: 2 },
+        { agent: { ...custom, id: 'shared-coder' }, source_tenant_id: 2 },
+        { agent: { ...customTesting, id: 'shared-tester' }, source_tenant_id: 2 },
+      ] },
+    })
+    assert.deepEqual(Array.from(state.builtinAgents.value, agent => agent.id), [{ chat: quick.id, coding: coding.id, testing: testing.id }[audience]])
+    assert.deepEqual(Array.from(state.customAgents.value, agent => agent.id), audience === 'chat' ? [] : [audience === 'coding' ? custom.id : customTesting.id])
+    assert.deepEqual(Array.from(state.sharedAgentsList.value, item => item.agent.id), [{ chat: 'shared-chat', coding: 'shared-coder', testing: 'shared-tester' }[audience]])
+    props.audience = 'chat'
+    assert.deepEqual(Array.from(state.builtinAgents.value, agent => agent.id), [quick.id])
+  }
+})
 
 test('composer shortcuts queue Enter, inject drafts, and promote the first queued message when empty', () => {
   const code = inputField.slice(inputField.indexOf('const steerShortcutLabel ='), inputField.indexOf('const onPaste ='))
@@ -91,7 +147,7 @@ test('mid-run send is limited to agent sessions', () => {
   assert.match(chatView, /:canSteer="isAgentStreamSession\(\)"/)
 
   const fnStart = inputField.indexOf('const createSession = async')
-  const fn = inputField.slice(fnStart, fnStart + 1600)
+  const fn = inputField.slice(fnStart, inputField.indexOf('const updateAgentModeDropdownPosition', fnStart))
   assert.notEqual(fnStart, -1)
   assert.match(fn, /if \(!props\.canSteer\)/)
   // The guard must come before anything queues the message.

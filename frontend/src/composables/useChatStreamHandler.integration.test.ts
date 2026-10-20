@@ -8,6 +8,7 @@ import * as finalContent from '../utils/finalArtifactContent.ts'
 import * as history from '../utils/rag-pipeline-history.ts'
 import * as timestamps from '../utils/messageTimestamp.ts'
 import * as steering from '../utils/steerStreamFork.ts'
+import * as knowledgeUpdates from '../utils/knowledgeFileUpdates.ts'
 import { useProtectedImageRecovery } from './useProtectedImageRecovery.ts'
 import { clearProtectedFileFailureCache, hydrateProtectedFileImages } from '../utils/security.ts'
 import { setDefaultProtectedFileAccess } from '../utils/protectedFileAccess.ts'
@@ -25,6 +26,7 @@ const modules: Record<string, unknown> = {
   '@/utils/rag-pipeline-history': history,
   '@/utils/messageTimestamp': timestamps,
   '@/utils/steerStreamFork': steering,
+  '@/utils/knowledgeFileUpdates': knowledgeUpdates,
 }
 const exports: { useChatStreamHandler?: typeof StreamHandler } = {}
 vm.runInNewContext(compiled, {
@@ -190,4 +192,19 @@ test('completion retries preserve the embed authentication plane', async t => {
   assert.ok(h.requests.every(request => request.url.startsWith('/api/v1/embed/channel/files?')))
   assert.deepEqual(h.requests[1].headers, { Authorization: 'Embed embed-token' })
   assert.match(h.img.src, /^blob:/)
+})
+
+test('successful knowledge file edits refresh linked files, while reads and failures do not', t => {
+  const h = setup(t, 'agent')
+  const notifications: string[] = []
+  ;(globalThis as any).window.dispatchEvent = (event: CustomEvent) => {
+    if (event.type === knowledgeUpdates.KNOWLEDGE_FILE_UPDATED_EVENT) notifications.push(event.detail.knowledgeId)
+    return true
+  }
+  for (const [index, success, changed] of [[0, true, false], [1, false, true], [2, true, true]] as const) {
+    h.send('tool_call', '', false, { tool_call_id: `edit-${index}`, tool_name: 'edit_knowledge_file', arguments: {} })
+    h.send('tool_result', '', false, { tool_call_id: `edit-${index}`, tool_name: 'edit_knowledge_file', success,
+      data: { knowledge_id: 'knowledge-one', changed } })
+  }
+  assert.deepEqual(notifications, ['knowledge-one'])
 })
