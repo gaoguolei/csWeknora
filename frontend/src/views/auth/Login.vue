@@ -113,10 +113,6 @@
             <p class="auth-card__subtitle">{{ $t('auth.subtitle') }}</p>
           </header>
 
-          <p v-if="registrationEnabled" class="auth-card__hint">
-            {{ $t('auth.loginHint') }}
-          </p>
-
           <t-form
             ref="formRef"
             :data="formData"
@@ -981,17 +977,6 @@ onBeforeUnmount(() => {
   font-size: var(--app-text-lg);
   color: var(--td-text-color-secondary);
   margin: 0;
-  line-height: 1.5;
-}
-
-.auth-card__hint {
-  margin: 0 0 24px 0;
-  padding: 10px 14px;
-  border-radius: var(--app-radius-xl);
-  background: var(--td-bg-color-secondarycontainer);
-  border: 1px solid var(--td-component-stroke);
-  color: var(--td-text-color-secondary);
-  font-size: var(--app-text-md);
   line-height: 1.5;
 }
 
