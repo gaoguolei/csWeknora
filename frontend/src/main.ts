@@ -5,6 +5,9 @@ import router from "./router";
 import TDesign from "tdesign-vue-next";
 // 引入组件库的少量全局样式变量
 import "tdesign-vue-next/dist/tdesign.css";
+// 自带苹方 webfont 的 @font-face，必须在引用 --app-font-family-display
+// 的样式之前注册，否则首屏大标题会先落到系统字体。
+import "@/assets/theme/fonts.css";
 import "@/assets/theme/theme.css";
 import "@/assets/theme/tdesign-overrides.less";
 import "@/assets/theme/workspace-theme.css";

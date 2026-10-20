@@ -3139,7 +3139,7 @@ export default {
     registerSuccess: "Registration successful. Please sign in",
     registerFailed: "Registration failed",
     subtitle:
-      "RAG Q&A, ReAct Agent and Wiki — an LLM-powered enterprise knowledge framework",
+      "An intelligent R&D operating system for AI-native software engineering",
     registerSubtitle: "Create your account and start using WeKnora",
     emailPlaceholder: "Enter email address",
     passwordPlaceholder: "Enter password",
@@ -6052,9 +6052,14 @@ export default {
     },
   },
   platform: {
-    subtitle: "LLM-Powered Enterprise Knowledge Framework",
+    subtitle: "Enterprise Multi-Agent R&D Collaboration Platform",
     description:
-      "RAG retrieval, agentic reasoning and Wiki knowledge bases — so your documents are truly understood and put to work",
+      "Turn enterprise knowledge into intelligent assets, make Agents real R&D productivity, and let people focus on innovation and decisions",
+    valueCognition: "Cognition-driven",
+    valueOrchestration: "Intelligent orchestration",
+    valueCollaboration: "Collaborative execution",
+    valueOpenness: "Open integration",
+    valueTrust: "Secure and trustworthy",
     rag: "RAG Enhanced Generation",
     agent: "ReAct Agent",
     wiki: "Wiki Knowledge Base",

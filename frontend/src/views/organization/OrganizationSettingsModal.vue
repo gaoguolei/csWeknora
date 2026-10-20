@@ -8,12 +8,10 @@
     :z-index="2000"
     @close="modalShell.requestClose"
   >
-    <template #nav-icon="{ item, active }">
-      <img
+    <template #nav-icon="{ item }">
+      <span
         v-if="item.key === 'sharedAgents'"
-        :src="active ? agentIconActiveSrc : agentIconSrc"
-        class="nav-icon nav-icon-img"
-        alt=""
+        class="nav-icon nav-icon-agent-mask"
         aria-hidden="true"
       />
       <t-icon v-else :name="item.icon" class="nav-icon" />
@@ -1351,8 +1349,6 @@ import {
 import { useOrganizationStore } from "@/stores/organization";
 import { useAuthStore } from "@/stores/auth";
 import SpaceAvatar from "@/components/SpaceAvatar.vue";
-import agentIconSrc from "@/assets/img/agent.svg";
-import agentIconActiveSrc from "@/assets/img/agent-green.svg";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -2655,6 +2651,23 @@ watch(addMemberPopupVisible, (visible) => {
 @primary-light: var(--td-brand-color-light);
 @primary-lighter: var(--td-component-stroke);
 @primary-hover: var(--td-brand-color-active);
+
+// agent-green.svg 的火箭是硬编码绿色，img 也不会继承文字色；改用 mask +
+// currentColor 着色，让「共享智能体」菜单图标与其它项一致（默认跟随文字色、
+// 选中/悬停跟随品牌蓝）。
+.nav-icon-agent-mask {
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+  -webkit-mask-image: url("@/assets/img/agent.svg");
+  mask-image: url("@/assets/img/agent.svg");
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
 
 .content-wrapper {
   flex: 1;

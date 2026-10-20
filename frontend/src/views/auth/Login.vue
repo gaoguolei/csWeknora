@@ -48,18 +48,27 @@
           <p class="brand-copy__desc">{{ $t('platform.description') }}</p>
         </div>
 
+        <!-- 价值主张：与旧版特性列表同款—蓝色对勾 + 文字，竖向排列。 -->
         <ul class="brand-features">
           <li class="brand-features__item">
             <t-icon name="check" class="brand-features__check" size="18px" />
-            <span>{{ $t('platform.multimodalParsing') }}</span>
+            <span>{{ $t('platform.valueCognition') }}</span>
           </li>
           <li class="brand-features__item">
             <t-icon name="check" class="brand-features__check" size="18px" />
-            <span>{{ $t('platform.hybridSearchEngine') }}</span>
+            <span>{{ $t('platform.valueOrchestration') }}</span>
           </li>
           <li class="brand-features__item">
             <t-icon name="check" class="brand-features__check" size="18px" />
-            <span>{{ $t('platform.ragQandA') }}</span>
+            <span>{{ $t('platform.valueCollaboration') }}</span>
+          </li>
+          <li class="brand-features__item">
+            <t-icon name="check" class="brand-features__check" size="18px" />
+            <span>{{ $t('platform.valueOpenness') }}</span>
+          </li>
+          <li class="brand-features__item">
+            <t-icon name="check" class="brand-features__check" size="18px" />
+            <span>{{ $t('platform.valueTrust') }}</span>
           </li>
         </ul>
 
@@ -100,14 +109,9 @@
           </div>
 
           <header class="auth-card__header">
-            <div class="auth-card__eyebrow">THINKERFLOW WORKSPACE</div>
             <h2 class="auth-card__title">{{ $t('auth.login') }}</h2>
             <p class="auth-card__subtitle">{{ $t('auth.subtitle') }}</p>
           </header>
-
-          <p v-if="registrationEnabled" class="auth-card__hint">
-            {{ $t('auth.loginHint') }}
-          </p>
 
           <t-form
             ref="formRef"
@@ -209,7 +213,6 @@
           </div>
 
           <header class="auth-card__header">
-            <div class="auth-card__eyebrow">THINKERFLOW WORKSPACE</div>
             <h2 class="auth-card__title">{{ $t('auth.createAccount') }}</h2>
             <p class="auth-card__subtitle">{{ $t('auth.subtitle') }}</p>
           </header>
@@ -322,7 +325,7 @@ import {
 } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 import ThemeToggle from '@/components/ThemeToggle.vue'
-import thinkerflowMark from '@/assets/img/thinkerflow-mark.png'
+import thinkerflowMark from '@/assets/img/thinkerflow-mark.svg'
 import { useI18n } from 'vue-i18n'
 import {
   SUPPORTED_LOCALES,
@@ -801,7 +804,9 @@ onBeforeUnmount(() => {
   color: var(--td-text-color-primary);
   border-right: 1px solid var(--td-component-stroke);
   display: flex;
-  align-items: center;
+  /* safe center + 可滚动：内容高于面板时从顶部开始排列，不会因居中而把上下两端裁掉。 */
+  align-items: safe center;
+  overflow-y: auto;
   padding: 44px clamp(32px, 5vw, 76px);
   box-sizing: border-box;
 }
@@ -810,40 +815,37 @@ onBeforeUnmount(() => {
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 460px;
+  /* 放宽到能容下 13 个汉字一行的大标题 */
+  max-width: 640px;
   display: flex;
   flex-direction: column;
   min-height: calc(100dvh - 88px);
 }
 
-/* 品牌锁定：与侧边栏同款—24px蓝色双条图 + 粗体文字，间距收紧。 */
+/* 品牌锁定：与侧边栏同款—蓝色双条 SVG 图 + 粗体文字。 */
 .brand-lockup {
   display: flex;
   align-items: center;
-  gap: 5px;
+  /* 图标与 ThinkerFlow 之间留出明确间距 */
+  gap: 14px;
+  /* 整体下移，给顶部留出呼吸空间；上限制约避免矮屏把内容挤出可视区 */
+  margin-top: clamp(40px, 10vh, 120px);
   margin-bottom: var(--app-space-10);
 }
 
 .brand-lockup__mark {
   display: block;
-  width: 32px;
-  height: 32px;
+  /* SVG 为竖长双条（viewBox 21×55），用高度控制缩放、宽度自适应，避免两侧留白 */
+  height: 46px;
+  width: auto;
   flex-shrink: 0;
 }
 
 .brand-lockup__name {
-  font-size: var(--app-text-3xl);
+  font-size: clamp(34px, 3.4vw, 42px);
   font-weight: 700;
   letter-spacing: -0.3px;
   color: var(--td-text-color-primary);
-}
-
-/* 卡片眉标（品牌字标），登录与注册共用。 */
-.auth-card__eyebrow {
-  font-size: var(--app-text-xs);
-  line-height: 1;
-  letter-spacing: 0.16em;
-  font-weight: 700;
 }
 
 .brand-copy {
@@ -851,14 +853,17 @@ onBeforeUnmount(() => {
 }
 
 .brand-copy__title {
-  font-size: clamp(34px, 4vw, 48px);
+  /* 字体走全站大标题共用的苹方黑体令牌（见 workspace-theme.css）；
+     单行展示，字号跟随视口，保证 13 个汉字不换行 */
   font-family: var(--app-font-family-display);
+  font-size: clamp(26px, 2.8vw, 46px);
   line-height: 1.3;
-  font-weight: 500;
-  letter-spacing: -1.5px;
+  /* 显式 700 命中 Bold 字面，不让 600 在两个 face 之间猜 */
+  font-weight: 700;
+  letter-spacing: -1px;
   margin: 0 0 18px 0;
+  white-space: nowrap;
   color: var(--td-text-color-primary);
-  text-wrap: balance;
 }
 
 .brand-copy__desc {
@@ -866,16 +871,17 @@ onBeforeUnmount(() => {
   line-height: 1.7;
   color: var(--td-text-color-secondary);
   margin: 0;
-  max-width: 390px;
 }
 
+/* 价值主张：竖向列表，每行一个蓝色对勾 + 文字，与旧版特性列表同款。 */
 .brand-features {
   list-style: none;
   padding: 0;
   margin: 0 0 40px 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  /* 5 行比原 3 行高，行间距收紧一点 */
+  gap: 14px;
 }
 
 .brand-features__item {
@@ -957,15 +963,10 @@ onBeforeUnmount(() => {
   margin-bottom: 26px;
 }
 
-.auth-card__eyebrow {
-  color: var(--td-brand-color);
-  margin-bottom: 18px;
-}
-
 .auth-card__title {
   font-family: var(--app-font-family-display);
-  font-size: clamp(24px, 2.2vw, 30px);
-  font-weight: 500;
+  font-size: clamp(26px, 2.4vw, 32px);
+  font-weight: 700;
   letter-spacing: -1px;
   color: var(--td-text-color-primary);
   margin: 0 0 8px 0;
@@ -976,17 +977,6 @@ onBeforeUnmount(() => {
   font-size: var(--app-text-lg);
   color: var(--td-text-color-secondary);
   margin: 0;
-  line-height: 1.5;
-}
-
-.auth-card__hint {
-  margin: 0 0 24px 0;
-  padding: 10px 14px;
-  border-radius: var(--app-radius-xl);
-  background: var(--td-bg-color-secondarycontainer);
-  border: 1px solid var(--td-component-stroke);
-  color: var(--td-text-color-secondary);
-  font-size: var(--app-text-md);
   line-height: 1.5;
 }
 
@@ -1168,6 +1158,8 @@ onBeforeUnmount(() => {
   }
 
   .brand-lockup {
+    /* 单列布局下顶部已有工具栏占位，去掉下移留白 */
+    margin-top: 0;
     margin-bottom: var(--app-space-6);
   }
 
@@ -1216,7 +1208,9 @@ onBeforeUnmount(() => {
   }
 
   .brand-copy__title {
+    /* 窄屏不再强求单行，允许换行以免横向溢出 */
     font-size: var(--app-text-4xl);
+    white-space: normal;
   }
 
   .brand-copy__desc {
@@ -1225,7 +1219,7 @@ onBeforeUnmount(() => {
 
   .form-panel {
     padding: var(--app-space-8) var(--app-space-5);
-  }
+  }  
 
   .auth-card__title {
     font-size: var(--app-text-4xl);
