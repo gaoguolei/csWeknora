@@ -749,10 +749,6 @@ onBeforeUnmount(() => {
   background: var(--td-bg-color-page);
   font-family: var(--app-font-family);
   overflow: hidden;
-  /* 标题专用黑体：首选仓库自带的苹方 webfont（各平台一致），
-     没加载到再退本地苹方 / 雅黑，都是无衬线。 */
-  --login-font-hei: 'PingFang SC Web', 'PingFang SC', 'Hiragino Sans GB',
-    'Source Han Sans SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
 }
 
 /* ---------- 右上角：语言 / 主题（登录前也可用）---------- */
@@ -861,8 +857,9 @@ onBeforeUnmount(() => {
 }
 
 .brand-copy__title {
-  /* 苹方（黑体）+ 单行展示：字号跟随视口，保证 13 个汉字不换行 */
-  font-family: var(--login-font-hei);
+  /* 字体走全站大标题共用的苹方黑体令牌（见 workspace-theme.css）；
+     单行展示，字号跟随视口，保证 13 个汉字不换行 */
+  font-family: var(--app-font-family-display);
   font-size: clamp(26px, 2.8vw, 46px);
   line-height: 1.3;
   /* 显式 700 命中 Bold 字面，不让 600 在两个 face 之间猜 */
@@ -971,8 +968,7 @@ onBeforeUnmount(() => {
 }
 
 .auth-card__title {
-  /* 「登录」用苹方（黑体） */
-  font-family: var(--login-font-hei);
+  font-family: var(--app-font-family-display);
   font-size: clamp(26px, 2.4vw, 32px);
   font-weight: 700;
   letter-spacing: -1px;
@@ -1267,26 +1263,5 @@ onBeforeUnmount(() => {
 <style lang="less">
 :root:root[theme-mode='dark'] .auth-page .auth-card {
   --login-card-surface: var(--td-bg-color-sidebar);
-}
-
-/* 苹方 webfont：仓库自带的两个全量 TTF，只给登录页标题用。
-   family 取名 'PingFang SC Web'，不跟 macOS 本地的 PingFang SC 抢——
-   两边同时存在时谁优先取决于实现，换个名字可以确定拿到我们要的字面。
-   字体文件只在真有元素引用这个 family 时才下载，所以放在本页样式里
-   不会波及其他路由；font-display: swap 让慢链路上先用系统黑体占位、加载完再替换。 */
-@font-face {
-  font-family: 'PingFang SC Web';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('../../assets/fonts/pingfangZhong.ttf') format('truetype');
-}
-
-@font-face {
-  font-family: 'PingFang SC Web';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('../../assets/fonts/PingFangSC_0.ttf') format('truetype');
 }
 </style>

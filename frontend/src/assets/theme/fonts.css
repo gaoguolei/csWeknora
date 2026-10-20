@@ -1,0 +1,28 @@
+/* 仓库自带的苹方 webfont，全局注册一次即可。@font-face 是懒加载的：
+   字体文件只有在页面上真有元素命中这个 family 时才会下载，所以放在
+   全局样式里不会影响不显示大标题的路由。
+
+   - pingfangZhong.ttf 实测是 PingFang SC Medium（Typo Subfamily = Medium，
+     OS/2 usWeightClass 标的是 400），约 11.0 MB
+   - PingFangSC_0.ttf  实测是 PingFang SC Bold（usWeightClass = 700），约 9.0 MB
+
+   family 取名 'PingFang SC Web'，故意不叫 'PingFang SC'：在 macOS 上两者会
+   同时存在，谁优先取决于实现，换个名字可以确定拿到我们要的字面。
+
+   版权提示：苹方是 Apple 系统字体，授权只覆盖 macOS/iOS，随网页分发并不合规。
+   对外发布前应换成可商用的开源黑体（思源黑体 / Noto Sans SC）并做子集化。 */
+@font-face {
+  font-family: 'PingFang SC Web';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/pingfangZhong.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'PingFang SC Web';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/PingFangSC_0.ttf') format('truetype');
+}

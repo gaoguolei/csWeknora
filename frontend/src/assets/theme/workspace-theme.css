@@ -95,7 +95,14 @@
 /* Match the specificity of both base theme modes, including teleported UI. */
 :root:root,
 :root:root[theme-mode] {
-  --app-font-family-display: Georgia, 'Songti SC', 'Noto Serif SC', serif;
+  /* 标题专用字体。原本是 Georgia / 宋体这类衬线体，现在全站大标题
+     （欢迎页 h1、各页 workspace-page-title、设置抽屉、集成页、引导页、
+     空状态，以及登录页标题）统一改成黑体：首选仓库自带的
+     'PingFang SC Web'（见 assets/theme/fonts.css），其次退到本地苹方，
+     再退到各平台的无衬线中文。改这一个令牌即可全局生效。 */
+  --app-font-family-display:
+    'PingFang SC Web', 'PingFang SC', 'Hiragino Sans GB', 'Source Han Sans SC',
+    'Noto Sans SC', 'Microsoft YaHei', sans-serif;
   --app-page-width: 1280px;
   --app-page-gutter: clamp(16px, 3vw, 40px);
   --app-page-title-size: clamp(24px, 2.3vw, 30px);
