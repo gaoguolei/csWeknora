@@ -838,7 +838,7 @@ onUnmounted(() => {
     }
 
     &.saved {
-      color: var(--td-success-color);
+      color: var(--td-brand-color);
     }
   }
 }

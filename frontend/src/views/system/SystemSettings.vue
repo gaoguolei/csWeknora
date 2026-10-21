@@ -100,7 +100,7 @@
                 <t-tag v-if="isHighImpactKey(item.key)" theme="danger" variant="light" size="small"
                   class="setting-badge">{{
                     t('system.globalSettings.badgeHighRisk') }}</t-tag>
-                <t-tag v-if="hasOverride(item)" theme="success" variant="light" size="small" class="setting-badge"
+                <t-tag v-if="hasOverride(item)" theme="primary" variant="light" size="small" class="setting-badge"
                   :title="t('system.globalSettings.badgeOverrideTooltip')">{{ t('system.globalSettings.badgeOverride')
                   }}</t-tag>
               </div>

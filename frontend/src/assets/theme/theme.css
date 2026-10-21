@@ -506,7 +506,9 @@
   opacity: 0.9;
 }
 
-/* 全局 t-radio-button outline 选中态：填充品牌色（蓝底白字） */
+/* 全局 t-radio-button outline 选中态：填充品牌色（蓝底白字）。
+   文字固定 #fff：实心蓝底上两种主题都需白字，而 --td-text-color-anti
+   在深色主题被 workspace-theme.css 重定义为 #0d0f13，不能依赖。 */
 .t-radio-group .t-radio-button {
   border-color: var(--td-component-stroke);
   transition: all 0.2s ease;
@@ -522,7 +524,7 @@
 .t-radio-group .t-radio-button.t-is-checked > span {
   background: var(--td-brand-color);
   border-color: var(--td-brand-color);
-  color: var(--td-text-color-anti);
+  color: #fff;
 }
 
 .t-radio-group .t-radio-button.t-is-checked:hover:not(.t-is-disabled),
@@ -532,7 +534,7 @@
 .t-radio-group .t-radio-button.t-is-checked:hover:not(.t-is-disabled) > span {
   background: var(--td-brand-color-active);
   border-color: var(--td-brand-color-active);
-  color: var(--td-text-color-anti);
+  color: #fff;
 }
 
 .t-radio-group .t-radio-button.t-is-disabled {
@@ -555,7 +557,7 @@
 .t-radio-group .t-radio-button.t-is-disabled.t-is-checked > span {
   background: var(--td-brand-color-disabled) !important;
   border-color: var(--td-brand-color-disabled) !important;
-  color: var(--td-text-color-anti) !important;
+  color: #fff !important;
 }
 
 /* 全局文档/外链样式：品牌色文字 + link 图标，hover 加下划线 */

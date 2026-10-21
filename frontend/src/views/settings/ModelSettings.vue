@@ -1583,6 +1583,11 @@ onMounted(() => {
   flex-shrink: 0;
   border-radius: 3px;
   object-fit: contain;
+
+  /* 深色模式：黑色厂商 logo 在深底不可见，invert+hue-rotate 提亮并保留彩色色相 */
+  html[theme-mode='dark'] & {
+    filter: invert(1) hue-rotate(180deg);
+  }
 }
 
 .model-card__sep {

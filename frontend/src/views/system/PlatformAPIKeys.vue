@@ -503,7 +503,7 @@ onMounted(reload)
 }
 
 .api-key-capability-chip--more {
-  border: 1px dashed color-mix(in srgb, var(--td-success-color) 35%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--td-brand-color) 35%, transparent);
   background: transparent;
   cursor: pointer;
 }
@@ -568,8 +568,8 @@ onMounted(reload)
   height: 22px;
   padding: 0 8px;
   border-radius: var(--app-radius-sm);
-  background: color-mix(in srgb, var(--td-success-color) 10%, var(--td-bg-color-container));
-  color: var(--td-success-color);
+  background: color-mix(in srgb, var(--td-brand-color) 10%, var(--td-bg-color-container));
+  color: var(--td-brand-color);
   font-size: var(--app-text-sm);
   font-weight: 500;
   line-height: 20px;

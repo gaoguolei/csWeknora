@@ -2791,6 +2791,12 @@ const handleCancel = () => {
   }
 }
 
+/* 深色模式：厂商 logo 多为黑色（OpenRouter/Requesty 等），蓝底上会糊、
+   深底上直接看不见。invert+hue-rotate 提亮同时保持彩色色相。 */
+:root[theme-mode='dark'] .provider-icon:not(.provider-icon--placeholder) {
+  filter: invert(1) hue-rotate(180deg);
+}
+
 // 目录内 / 推理 / 视觉 等弱化徽标（与卡片上的 chip 同调）
 .catalog-badge {
   display: inline-flex;
@@ -3127,6 +3133,11 @@ const handleCancel = () => {
       flex-shrink: 0;
       border-radius: 4px;
       object-fit: contain;
+
+      /* 深色模式提亮：浮层 teleport 到 body，scoped 里那条够不到，这里补一条 */
+      html[theme-mode='dark'] & {
+        filter: invert(1) hue-rotate(180deg);
+      }
 
       &--placeholder {
         display: inline-flex;
