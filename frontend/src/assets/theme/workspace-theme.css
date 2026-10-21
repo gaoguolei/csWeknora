@@ -192,9 +192,9 @@
   .t-textarea__inner:not(:where(.answers-input *)):not(.t-is-error):not(
     .t-is-warning
   ):not(.t-is-success):focus {
-  border-color: var(--app-focus-border);
+  border-color: var(--td-brand-color);
   box-shadow: 0 0 0 3px
-    color-mix(in srgb, var(--app-focus-border) 10%, transparent);
+    color-mix(in srgb, var(--td-brand-color) 16%, transparent);
 }
 :root .t-input.t-is-disabled,
 :root .t-textarea__inner:not(:where(.answers-input *)):disabled {

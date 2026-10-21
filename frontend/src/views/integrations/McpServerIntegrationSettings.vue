@@ -781,7 +781,7 @@ onMounted(() => {
 
 .im-step.active .im-step-num {
   background: var(--td-brand-color);
-  color: var(--td-text-color-anti);
+  color: #fff;
   border-color: var(--td-brand-color);
 }
 

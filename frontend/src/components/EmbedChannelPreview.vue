@@ -237,7 +237,7 @@ watch(() => props.visible, async (open) => {
   height: 48px;
   border: none;
   border-radius: 50%;
-  color: var(--td-text-color-anti);
+  color: #fff;
   font-size: var(--app-text-3xl);
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);

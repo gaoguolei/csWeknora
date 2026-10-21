@@ -360,7 +360,7 @@ defineExpose({
     width: 18px;
     height: 18px;
     background: rgba(0, 0, 0, 0.18);
-    color: var(--td-text-color-anti);
+    color: #fff;
     border-radius: 50%;
     display: flex;
     align-items: center;

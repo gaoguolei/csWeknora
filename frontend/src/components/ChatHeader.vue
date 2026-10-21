@@ -451,7 +451,7 @@ async function submitDeleteSession(): Promise<void> {
 
   &.is-danger {
     border-color: transparent;
-    color: var(--td-text-color-anti);
+    color: #fff;
     background: var(--td-error-color-6);
 
     &:hover:not(:disabled) {
