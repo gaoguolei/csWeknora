@@ -72,12 +72,14 @@
           </li>
         </ul>
 
+        <!-- 暂时屏蔽品牌标签行
         <div class="brand-tags">
           <span class="brand-tag">{{ $t('platform.rag') }}</span>
           <span class="brand-tag">{{ $t('platform.agent') }}</span>
           <span class="brand-tag">{{ $t('platform.wiki') }}</span>
           <span class="brand-tag">{{ $t('platform.hybridSearch') }}</span>
         </div>
+        -->
       </div>
     </aside>
 
