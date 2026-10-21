@@ -37,10 +37,9 @@
     <!-- 左侧品牌面板 -->
     <aside class="brand-panel">
       <div class="brand-panel__inner">
-        <!-- 与侧边栏同款：透明底蓝色双条图 + ThinkerFlow 文字。 -->
+        <!-- 品牌整图：ThinkerFlow.svg 自带蓝色双条 + 文字，深色模式用滤镜反白（见文末非 scoped 样式）。 -->
         <div class="brand-lockup">
-          <img class="brand-lockup__mark" :src="thinkerflowMark" alt="" />
-          <span class="brand-lockup__name">ThinkerFlow</span>
+          <img class="brand-lockup__mark" :src="thinkerflowWordmark" alt="ThinkerFlow" />
         </div>
 
         <div class="brand-copy">
@@ -327,7 +326,7 @@ import {
 } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 import ThemeToggle from '@/components/ThemeToggle.vue'
-import thinkerflowMark from '@/assets/img/thinkerflow-mark.svg'
+import thinkerflowWordmark from '@/assets/img/ThinkerFlow.svg'
 import { useI18n } from 'vue-i18n'
 import {
   SUPPORTED_LOCALES,
@@ -824,12 +823,10 @@ onBeforeUnmount(() => {
   min-height: calc(100dvh - 88px);
 }
 
-/* 品牌锁定：与侧边栏同款—蓝色双条 SVG 图 + 粗体文字。 */
+/* 品牌锁定：ThinkerFlow.svg 整幅字标（蓝条 + 文字）。 */
 .brand-lockup {
   display: flex;
   align-items: center;
-  /* 图标与 ThinkerFlow 之间留出明确间距 */
-  gap: 14px;
   /* 整体下移，给顶部留出呼吸空间；上限制约避免矮屏把内容挤出可视区 */
   margin-top: clamp(40px, 10vh, 120px);
   margin-bottom: var(--app-space-10);
@@ -837,17 +834,10 @@ onBeforeUnmount(() => {
 
 .brand-lockup__mark {
   display: block;
-  /* SVG 为竖长双条（viewBox 21×55），用高度控制缩放、宽度自适应，避免两侧留白 */
+  /* 横向字标（viewBox 970×141），用高度控制缩放、宽度自适应 */
   height: 46px;
   width: auto;
   flex-shrink: 0;
-}
-
-.brand-lockup__name {
-  font-size: clamp(34px, 3.4vw, 42px);
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  color: var(--td-text-color-primary);
 }
 
 .brand-copy {
@@ -1250,5 +1240,10 @@ onBeforeUnmount(() => {
 <style lang="less">
 :root:root[theme-mode='dark'] .auth-page .auth-card {
   --login-card-surface: var(--td-bg-color-sidebar);
+}
+
+/* 字标黑色文字在深色底不可见：与侧边栏旧版 logo 同款滤镜反白，蓝色双条近似保留 */
+:root:root[theme-mode='dark'] .auth-page .brand-lockup__mark {
+  filter: invert(1) hue-rotate(180deg);
 }
 </style>

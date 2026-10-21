@@ -13,8 +13,7 @@
         @click="router.push('/platform/creatChat')"
         style="cursor: pointer"
       >
-        <img class="logo_mark" :src="thinkerflowMark" alt="" />
-        <span class="logo_wordmark">ThinkerFlow</span>
+        <img class="logo_mark" :src="thinkerflowWordmark" alt="ThinkerFlow" />
         <sup v-if="isLiteEdition" class="lite-badge">Lite</sup>
       </div>
       <div class="logo_actions">
@@ -754,7 +753,7 @@ import {
 } from './sessionFolderState'
 import PanelResizeHandle from './PanelResizeHandle.vue'
 import ThemeToggle from './ThemeToggle.vue'
-import thinkerflowMark from '@/assets/img/thinkerflow-mark.svg'
+import thinkerflowWordmark from '@/assets/img/ThinkerFlow.svg'
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_MIN_WIDTH,
@@ -2525,25 +2524,17 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
   }
 
   .logo_box {
-    /* 品牌标记：thinkerflow-mark.svg 是竖长双条（viewBox 21×55），
-       用 height 定尺寸、width 自适应；写成正方形会在字形两侧多出约 7px
-       看不见的空白，所以 gap 补回原来的实际视觉间距。 */
+    /* 品牌整图：ThinkerFlow.svg 是横向字标（viewBox 970×141，蓝条 + 文字），
+       用 height 定尺寸、width 自适应；深色模式文字靠滤镜反白（见下方规则）。 */
     .logo_mark {
       display: block;
-      height: 24px;
+      height: 18px;
       width: auto;
       flex-shrink: 0;
     }
 
-    .logo_wordmark {
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: -0.2px;
-      color: var(--td-text-color-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    /* 深色模式反白规则见文末非 scoped 样式块（scoped 无法表达 html 祖先前置条件） */
+
     display: flex;
     align-items: center;
     gap: 12px;
@@ -3509,6 +3500,11 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
 
 html[theme-mode='dark'] .aside_box .menu_top:hover {
   scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+
+/* 侧栏字标 ThinkerFlow.svg 黑色文字在深色底不可见：invert+hue-rotate 反白，蓝色双条近似保留 */
+html[theme-mode='dark'] .aside_box .logo_mark {
+  filter: invert(1) hue-rotate(180deg);
 }
 
 html[theme-mode='dark'] .aside_box .menu_top:hover::-webkit-scrollbar-thumb {
