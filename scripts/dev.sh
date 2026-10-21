@@ -542,7 +542,8 @@ start_app() {
 
     # 检查是否安装了 Air（热重载工具）
     add_go_bin_to_path
-    if command -v air &> /dev/null; then
+    # if command -v air &> /dev/null; then
+    if false; then
         log_success "检测到 Air，使用热重载模式启动..."
         log_info "修改 Go 代码后将自动重新编译和重启"
         air

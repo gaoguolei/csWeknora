@@ -48,3 +48,12 @@ test('a sheet with no case rows is rejected so the panel can show the file inste
 test('non-spreadsheet case documents are rejected without parsing', async () => {
   await assert.rejects(() => parseTestCaseSheets(new Blob(['# 用例']), 'cases.md'))
 })
+
+test('parses the actual field headers below workbook titles and preserves CSV identifiers', async () => {
+  const blob = workbookBlob([['用户管理系统测试用例', '', ''], ['', '', ''], ['用例编号', '用例名称', '优先级'], ['TC-1', '登录', 'P0']])
+  const sheets = await parseTestCaseSheets(blob, 'cases.xlsx')
+  assert.deepEqual(sheets[0].header, ['用例编号', '用例名称', '优先级'])
+  assert.equal(sheets[0].rows.length, 1)
+  const csv = await parseTestCaseSheets(new Blob(['ID,Steps\n001,Login\n']), 'cases.csv')
+  assert.equal(csv[0].rows[0][0], '001')
+})

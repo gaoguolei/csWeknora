@@ -101,7 +101,7 @@
             @report-created="emit('refreshArtifacts', $event)"
             @view-change="emit('workspaceViewChange', $event)"
           />
-          <!-- 用例：可解析的表格直接铺开，解析不了的退回文件列表。 -->
+          <!-- 用例工作台：用例列表、说明、执行结果与来源文件独立展示。 -->
           <TestCasePanel
             v-show="isCaseTab"
             class="chat-sandbox-panel__artifacts"

@@ -1,4 +1,5 @@
 import { decodeDelimitedText } from './filePreview'
+import { findTestCaseHeaderRow } from './testCaseWorkbench'
 
 /** One worksheet flattened to a header row plus its case rows. */
 export interface TestCaseSheet {
@@ -37,6 +38,7 @@ export async function parseTestCaseSheets(blob: Blob, fileName: string): Promise
     ext === 'csv' || ext === 'tsv'
       ? XLSX.read(decodeDelimitedText(buffer), {
           type: 'string',
+          raw: true,
           FS: ext === 'tsv' ? '\t' : ',',
         })
       : XLSX.read(buffer, { type: 'array' })
@@ -55,10 +57,12 @@ export async function parseTestCaseSheets(blob: Blob, fileName: string): Promise
     while (rows.length && isBlankRow(rows[rows.length - 1])) rows.pop()
     // 只有表头（或空表）没有可展示的用例，交给文件视图。
     if (rows.length < 2) continue
+    const header = findTestCaseHeaderRow(rows)
+    if (header >= rows.length - 1) continue
     sheets.push({
       name,
-      header: rows[0],
-      rows: rows.slice(1).filter((row) => !isBlankRow(row)),
+      header: rows[header],
+      rows: rows.slice(header + 1).filter((row) => !isBlankRow(row)),
     })
   }
   if (!sheets.length) throw new Error('no test case rows')
