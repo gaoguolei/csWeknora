@@ -61,6 +61,9 @@
 
     <div class="sandbox-tabs-row">
       <t-tabs v-model="activeType" class="sandbox-type-tabs">
+        <!--
+          部署定制：只保留 Cube 页签。「全部」与 E2B / Docker 页签先注释掉，
+          后续需要多后端展示时取消注释即可恢复（过滤与计数逻辑均未改动）。
         <t-tab-panel value="all">
           <template #label>
             <span class="sandbox-tab-label"><t-icon name="view-list" size="16px" />
@@ -68,6 +71,7 @@
             </span>
           </template>
         </t-tab-panel>
+        -->
         <t-tab-panel v-for="type in backendTypes" :key="type" :value="type">
           <template #label>
             <span class="sandbox-tab-label"><SandboxBackendBadge :type="type" size="xs" />
@@ -237,7 +241,9 @@ import {
   getSandboxConfigInventory,
   isNamedSandboxBackend,
   listSandboxConfigs,
-  NAMED_SANDBOX_BACKEND_TYPES,
+  // 页签定制为仅 Cube 后不再引用；恢复多后端页签时连同上面 backendTypes
+  // 的注释一并放回。
+  // NAMED_SANDBOX_BACKEND_TYPES,
   parseSandboxConflict,
   setSandboxWorkspacePolicy,
   type SandboxConfigRecord,
@@ -254,7 +260,10 @@ const dockerBackendEnabled = computed(() =>
 
 const sandboxGuideUrl = docsUrl('sandboxDeployment')
 
-const backendTypes = [...NAMED_SANDBOX_BACKEND_TYPES]
+// 部署定制：页签只展示 Cube；需要恢复多后端时把 e2b、docker 放回列表，
+// 或改回 const backendTypes = [...NAMED_SANDBOX_BACKEND_TYPES]
+const backendTypes = ['cube']
+// const backendTypes = [...NAMED_SANDBOX_BACKEND_TYPES]
 
 const dockerTabDisabled = computed(() =>
   activeType.value === 'docker' && !dockerBackendEnabled.value,
@@ -272,7 +281,9 @@ const loading = ref(false)
 const policySaving = ref(false)
 const workspaceScriptsDisabled = ref(false)
 const records = ref<SandboxConfigRecord[]>([])
-const activeType = ref<string>('all')
+// 「全部」页签下线的定制：默认停在 Cube 页签（原默认值为 'all'）。
+const activeType = ref<string>('cube')
+// const activeType = ref<string>('all')
 const searchQuery = ref('')
 
 const showEditor = ref(false)

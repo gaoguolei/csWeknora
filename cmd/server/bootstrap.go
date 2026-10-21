@@ -14,6 +14,7 @@ import (
 
 	"go.uber.org/dig"
 
+	"github.com/Tencent/WeKnora/internal/application/service"
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/types/interfaces"
@@ -80,6 +81,18 @@ func runStartupBootstrap(c *dig.Container) {
 		backfillMemoryGlobalConfig(ctx, settingSvc, tenantSvc)
 	}); err != nil {
 		logger.Warnf(ctx, "[bootstrap] failed to resolve services for memory global config backfill: %v", err)
+	}
+
+	// Env-declared sandbox cards: WEKNORA_SANDBOX_SEEDS is upserted into
+	// workspace sandbox configs (all tenants by default, scope via
+	// WEKNORA_SANDBOX_SEED_TENANTS) so a freshly deployed sandbox cluster
+	// shows up in "Settings -> sandbox configs" after a restart with no
+	// wizard clicking. Idempotent on (tenant, name) and best-effort; see
+	// ApplySandboxSeedFromEnv.
+	if err := c.Invoke(func(svc *service.TenantSandboxConfigService, tenantSvc interfaces.TenantService) {
+		service.ApplySandboxSeedFromEnv(ctx, svc, tenantSvc)
+	}); err != nil {
+		logger.Warnf(ctx, "[bootstrap] failed to resolve services for sandbox seeding: %v", err)
 	}
 
 	email := strings.TrimSpace(os.Getenv(bootstrapEnvVar))
