@@ -7,6 +7,7 @@ import {
   SYSTEM_ADMIN_SETTINGS_SECTIONS,
   GLOBAL_MODEL_ADMIN_SECTIONS,
   OPERATIONS_ADMIN_ONLY_SECTIONS,
+  SUPER_ADMIN_ONLY_SECTIONS,
 } from './settingsAccess'
 
 test('management shortcuts are stricter than read-only settings pages', () => {
@@ -52,4 +53,32 @@ test('model config is reclaimed to the platform super admin; Ollama to the opera
   assert.ok(GLOBAL_MODEL_ADMIN_SECTIONS.has('models'))
   assert.equal(GLOBAL_MODEL_ADMIN_SECTIONS.has('ollama'), false)
   assert.ok(OPERATIONS_ADMIN_ONLY_SECTIONS.has('ollama'))
+})
+
+test('platform knowledge base defaults are super-admin-only', () => {
+  // `kb-defaults` is the platform-wide default KB configuration page backed by
+  // system_settings "knowledge_base.default_config" (PUT is SystemAdmin-gated).
+  // It is gated strictly on isSystemAdmin, so it is absent from the per-tenant
+  // role ladder and lives only in SUPER_ADMIN_ONLY_SECTIONS — operations admins
+  // still see it because they inherit isSystemAdmin.
+  assert.equal(SETTINGS_SECTION_MIN_ROLE['kb-defaults'], undefined)
+  assert.ok(SUPER_ADMIN_ONLY_SECTIONS.has('kb-defaults'))
+  assert.equal(OPERATIONS_ADMIN_ONLY_SECTIONS.has('kb-defaults'), false)
+  assert.equal(GLOBAL_MODEL_ADMIN_SECTIONS.has('kb-defaults'), false)
+})
+
+test('promoted kb-config sub-sections keep the same role split as the inner nav', () => {
+  // 6 super-admin sections (models / chunking / image / audio / graph / advanced)
+  // stay isSystemAdmin; the 4 ops-only ones (vectorStore / parser / storage /
+  // datasource) are isOperationsAdmin-only, exactly as the old inner nav gated.
+  for (const key of ['kb-models', 'kb-chunking', 'kb-image', 'kb-audio', 'kb-graph', 'kb-advanced']) {
+    assert.equal(SETTINGS_SECTION_MIN_ROLE[key], undefined)
+    assert.ok(SUPER_ADMIN_ONLY_SECTIONS.has(key))
+    assert.equal(OPERATIONS_ADMIN_ONLY_SECTIONS.has(key), false)
+  }
+  for (const key of ['kb-vectorStore', 'kb-parser', 'kb-storage', 'kb-datasource']) {
+    assert.equal(SETTINGS_SECTION_MIN_ROLE[key], undefined)
+    assert.ok(OPERATIONS_ADMIN_ONLY_SECTIONS.has(key))
+    assert.equal(SUPER_ADMIN_ONLY_SECTIONS.has(key), false)
+  }
 })

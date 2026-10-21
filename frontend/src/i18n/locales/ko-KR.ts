@@ -3285,9 +3285,14 @@ export default {
     pinned: "고정됨",
   },
   platform: {
-    subtitle: "대규모 언어 모델 기반 엔터프라이즈 지식 프레임워크",
+    subtitle: "엔터프라이즈 멀티 에이전트 R&D 협업 플랫폼",
     description:
-      "RAG 검색, 에이전트 추론, Wiki 지식베이스로 문서를 진정으로 이해하고 활용합니다",
+      "기업 지식을 지능형 자산으로, Agent를 R&D 생산성으로 바꾸고, 사람은 혁신과 의사결정에 집중합니다",
+    valueCognition: "인지 기반",
+    valueOrchestration: "지능형 오케스트레이션",
+    valueCollaboration: "협업 실행",
+    valueOpenness: "오픈 연결",
+    valueTrust: "안전과 신뢰",
     rag: "RAG 강화 생성",
     agent: "ReAct 에이전트",
     wiki: "Wiki 지식베이스",
@@ -4632,9 +4637,68 @@ export default {
     attachmentParseFailed: "첨부 파일 분석 실패",
     attachmentStillProcessing: "첨부 파일 {name}을(를) 아직 분석 중입니다",
   },
+  kbDefaults: {
+    title: "지식베이스 설정",
+    description:
+      "지식베이스의 플랫폼 기본값을 통합 설정합니다. 일반 사용자는 신규 생성 시 기본 정보만 입력하면 되며, 나머지 설정은 여기서 지정한 기본값이 자동 참조되어 플랫폼 전체의 모든 워크스페이스에 공통으로 적용됩니다.",
+    navGroup: "지식 베이스 구성",
+    readonlyBanner:
+      "최고 관리자만 플랫폼 지식베이스 기본값을 편집할 수 있습니다.",
+    modelDefaultDesc:
+      "신규 지식베이스에서 자동으로 선택되는 모델. 비워 두면 사용자가 직접 선택합니다.",
+    appliesHint:
+      "이 기본값은 앞으로 생성되는 지식베이스에 적용되며 기존 지식베이스에는 영향을 주지 않습니다.",
+    save: "기본값 저장",
+    saving: "저장 중…",
+    autoSaved: "자동 저장됨",
+    saved: "플랫폼 지식베이스 기본값이 저장되었습니다",
+    saveFailed: "플랫폼 지식베이스 기본값 저장에 실패했습니다",
+    sections: {
+      models: "기본 모델",
+      modelsDesc: "지식베이스 생성 시 자동으로 참조되는 요약·임베딩 모델.",
+      chunking: "청크 설정",
+      chunkingDesc: "대부분의 상황에 적합한 문서 분할 기본 매개변수.",
+      image: "이미지 처리",
+      imageDesc: "이미지 등 멀티모달 콘텐츠 이해를 기본으로 활성화할지 여부.",
+      audio: "오디오 처리",
+      audioDesc: "오디오 음성 인식 및 전사를 기본으로 활성화할지 여부.",
+      graph: "지식 그래프",
+      graphDesc: "개체-관계 추출을 통한 지식 그래프 구성을 기본으로 활성화할지 여부.",
+      advanced: "고급 설정",
+      advancedDesc: "질문 생성, 자동 태그 지정, 지식 베이스 설명 등 기본 토글.",
+    },
+    datasource: {
+      targetKb: "대상 지식 베이스",
+      selectKb: "지식 베이스를 선택하세요",
+      hint: "데이터 소스는 외부 콘텐츠를 지정된 지식 베이스로 자동 동기화합니다. 이 공간의 각 지식 베이스 데이터 소스를 여기서 통합 관리하며, 지식 베이스 생성 대화 상에서는 더 이상 설정할 수 없습니다.",
+    },
+  },
+  agentDefaults: {
+    title: "에이전트 설정",
+    description:
+      "에이전트의 플랫폼 기본값을 한곳에서 설정합니다. 일반 사용자가 에이전트를 만들 때는 기본 정보와 프롬프트만 입력하고, 나머지 설정은 여기에서 지정한 기본값을 모든 워크스페이스가 공통으로 참조합니다.",
+    navGroup: "에이전트 설정",
+    readonlyBanner: "플랫폼 에이전트 기본값은 시스템 관리자만 편집할 수 있습니다.",
+    autoSaved: "플랫폼 에이전트 기본값이 저장되었습니다",
+    saveFailed: "플랫폼 에이전트 기본값 저장에 실패했습니다",
+    goModelSettings: "「설정 → 모델」에서 모델을 추가하세요",
+    sections: {
+      toolsDesc: "새 에이전트에서 기본으로 활성화할 도구입니다.",
+      toolsLabel: "기본 도구",
+      toolsHint: "비워 두면 내장 기본 도구 세트를 사용합니다.",
+      toolsPlaceholder: "기본으로 활성화할 도구 선택",
+      skillsDesc: "새 에이전트가 기본으로 사용할 샌드박스와 스킬입니다.",
+      skillsHint: "스킬 스크립트는 선택한 샌드박스 안에서 실행됩니다.",
+      skillsPickLabel: "기본 스킬",
+      skillsPickHint: "「지정」을 선택하면 구체적인 스킬을 골라야 합니다.",
+      skillsPlaceholder: "기본 스킬 선택",
+    },
+  },
   knowledgeEditor: {
     titleCreate: "지식베이스 생성",
     titleEdit: "지식베이스 설정",
+    platformManagedReadonly:
+      "이 설정은 플랫폼 전체에서 통합 관리되며, 여기서는 현재 적용된 값만 읽기 전용으로 표시됩니다. 변경할 수 없습니다.",
     advanced: {
       title: "고급 설정",
       description: "질문 생성, 멀티모달 등 고급 기능 설정",
@@ -6098,7 +6162,7 @@ export default {
     registerSuccess: "가입이 완료되었습니다. 로그인해주세요",
     registerFailed: "가입 실패",
     subtitle:
-      "RAG Q&A, ReAct 에이전트, Wiki 지식베이스 — 대규모 언어 모델 기반 엔터프라이즈 지식 프레임워크",
+      "AI 네이티브 소프트웨어 엔지니어링을 위한 지능형 R&D 운영 시스템",
     registerSubtitle: "계정을 만들고 WeKnora를 시작하세요",
     emailPlaceholder: "이메일 주소 입력",
     passwordPlaceholder: "비밀번호 입력",

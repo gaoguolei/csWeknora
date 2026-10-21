@@ -179,6 +179,43 @@ var registry = map[string]settingSpec{
 			"{\"overrides\":{\"system:contain.text\":{\"in_searchfield\":true}}}。" +
 			"留空 = 完全使用来源端声明。修改后立即生效，刷新图库页可见。",
 	},
+	// knowledge_base.default_config is the platform-wide default knowledge-base
+	// configuration a super admin manages under Settings -> 知识库设置. It holds
+	// the fields reclaimed from the per-KB editor: default models (B),
+	// chunking (E), image (F), audio (G), knowledge graph (H) and advanced (I).
+	// Read on every KB creation to fill unset fields (see types.KBDefaultsConfig.
+	// ApplyTo). Vector store / parser / storage engines are NOT here — they are
+	// operations-admin system-level settings resolved elsewhere. Empty string =
+	// no platform defaults, new KBs fall back to request values / built-in
+	// defaults. Edits take effect on the next KB created, no restart.
+	"knowledge_base.default_config": {
+		Type:     "string",
+		EnvName:  "",
+		Default:  "",
+		Category: "knowledgebase",
+		Description: "知识库平台默认配置（JSON，可选）。由超级管理员在「设置 → 知识库设置」统一维护，" +
+			"包含默认模型（summary/embedding）、分块、图像处理、音频处理、知识图谱、高级设置等子块；" +
+			"创建知识库时用于填充界面不再暴露的配置项。留空 = 不套用平台默认。修改后对新建知识库立即生效。",
+	},
+	// agent.default_config is the platform-wide default agent configuration a
+	// super admin manages under Settings -> 智能体配置. It holds the fields
+	// reclaimed from the per-agent editor: model (A), multi-turn (B), question
+	// suggestions (C), retrieval strategy (E), web search (F), attachments (G),
+	// tools (H), MCP services (I) and skills (J). Read on every agent creation
+	// to fill unset fields (see types.AgentDefaultsConfig.ApplyTo). Basic info,
+	// prompts and the knowledge-base scope stay user-owned and are NOT here.
+	// Empty string = no platform defaults, new agents fall back to request
+	// values / built-in defaults. Edits take effect on the next agent created,
+	// no restart.
+	"agent.default_config": {
+		Type:     "string",
+		EnvName:  "",
+		Default:  "",
+		Category: "agent",
+		Description: "智能体平台默认配置（JSON，可选）。由超级管理员在「设置 → 智能体配置」统一维护，" +
+			"包含默认模型、多轮对话、问题推荐、检索策略、网络搜索、附件上传、工具、MCP 服务、技能等子块；" +
+			"创建智能体时用于填充界面不再暴露的配置项。留空 = 不套用平台默认。修改后对新建智能体立即生效。",
+	},
 	// tenant.max_owned_per_user caps how many tenants a single non-superuser
 	// can create (and Own) via self-service POST /tenants. Read on every
 	// request — UI edits take effect immediately, no restart required. The

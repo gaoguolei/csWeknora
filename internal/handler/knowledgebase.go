@@ -45,6 +45,11 @@ type KnowledgeBaseHandler struct {
 	// default handle mode is available.
 	fileService     interfaces.FileService
 	storageResolver interfaces.StorageBackendResolver
+	// systemSettingSvc reads the platform-wide default knowledge-base config
+	// (system_settings "knowledge_base.default_config") applied to newly
+	// created KBs for the fields the KB editor no longer exposes. May be nil
+	// in tests, in which case defaults are simply not applied.
+	systemSettingSvc interfaces.SystemSettingService
 }
 
 // NewKnowledgeBaseHandler creates a new knowledge base handler instance
@@ -60,6 +65,7 @@ func NewKnowledgeBaseHandler(
 	fileService interfaces.FileService,
 	storageResolver interfaces.StorageBackendResolver,
 	profileService interfaces.KnowledgeBaseProfileService,
+	systemSettingSvc interfaces.SystemSettingService,
 ) *KnowledgeBaseHandler {
 	return &KnowledgeBaseHandler{
 		cfg:                cfg,
@@ -73,6 +79,7 @@ func NewKnowledgeBaseHandler(
 		userService:        userService,
 		fileService:        fileService,
 		storageResolver:    storageResolver,
+		systemSettingSvc:   systemSettingSvc,
 	}
 }
 
@@ -441,6 +448,12 @@ func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c *gin.Context) {
 		return
 	}
 
+	// Fill the configuration blocks the KB editor no longer exposes (models,
+	// chunking, image, audio, graph, advanced) from the platform defaults a
+	// super admin manages under Settings -> 知识库设置. Only unset fields are
+	// touched, so API/MCP clients that still send explicit config win.
+	h.applyKBPlatformDefaults(ctx, &req)
+
 	logger.Infof(ctx, "Creating knowledge base, name: %s", secutils.SanitizeForLog(req.Name))
 	// Create knowledge base using the service
 	kb, err := h.service.CreateKnowledgeBase(ctx, &req)
@@ -467,6 +480,26 @@ func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c *gin.Context) {
 		"success": true,
 		"data":    buildKBResponse(kb, h.resolveKBStoreView(ctx, kb, callerTenantID), nil),
 	})
+}
+
+// applyKBPlatformDefaults reads the platform-wide default knowledge-base
+// configuration (system_settings "knowledge_base.default_config") and fills
+// unset fields on a freshly-bound create request. A nil service, a missing
+// row or malformed JSON are all treated as "no defaults" and leave the
+// request untouched.
+func (h *KnowledgeBaseHandler) applyKBPlatformDefaults(ctx context.Context, kb *types.KnowledgeBase) {
+	if h.systemSettingSvc == nil || kb == nil {
+		return
+	}
+	row, err := h.systemSettingSvc.Get(ctx, types.KBDefaultsKey)
+	if err != nil || row == nil {
+		return
+	}
+	raw, err := row.AsString()
+	if err != nil {
+		return
+	}
+	types.ParseKBDefaultsConfig(raw).ApplyTo(kb)
 }
 
 // validateAndGetKnowledgeBase validates request parameters and retrieves the knowledge base.

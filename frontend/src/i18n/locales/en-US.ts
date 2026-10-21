@@ -3139,7 +3139,7 @@ export default {
     registerSuccess: "Registration successful. Please sign in",
     registerFailed: "Registration failed",
     subtitle:
-      "RAG Q&A, ReAct Agent and Wiki — an LLM-powered enterprise knowledge framework",
+      "An intelligent R&D operating system for AI-native software engineering",
     registerSubtitle: "Create your account and start using WeKnora",
     emailPlaceholder: "Enter email address",
     passwordPlaceholder: "Enter password",
@@ -3712,6 +3712,69 @@ export default {
       "Visitor UI language when chat opens; empty follows the browser or host Widget setLocale().",
     defaultLocaleBrowser: "Browser / host default",
   },
+  kbDefaults: {
+    title: "Knowledge Base Settings",
+    description:
+      "Configure platform-wide defaults for knowledge bases. Regular users only fill in basic information when creating a knowledge base; all other settings automatically reference the defaults defined here, shared across every workspace on the platform.",
+    navGroup: "Knowledge Base Configuration",
+    readonlyBanner:
+      "Only super admins can edit the platform knowledge base defaults.",
+    modelDefaultDesc:
+      "Models automatically selected for new knowledge bases; leave empty to let users choose.",
+    appliesHint:
+      "These defaults apply to knowledge bases created from now on and do not affect existing ones.",
+    save: "Save Defaults",
+    saving: "Saving…",
+    autoSaved: "Auto-saved",
+    saved: "Platform knowledge base defaults saved",
+    saveFailed: "Failed to save platform knowledge base defaults",
+    sections: {
+      models: "Default Models",
+      modelsDesc:
+        "Summary and embedding models referenced automatically when creating a knowledge base.",
+      chunking: "Chunking",
+      chunkingDesc:
+        "Default document chunking parameters that suit most scenarios.",
+      image: "Image Processing",
+      imageDesc:
+        "Whether multimodal image understanding is enabled by default.",
+      audio: "Audio Processing",
+      audioDesc:
+        "Whether audio speech recognition and transcription are enabled by default.",
+      graph: "Knowledge Graph",
+      graphDesc:
+        "Whether entity-relationship extraction for the knowledge graph is enabled by default.",
+      advanced: "Advanced Settings",
+      advancedDesc:
+        "Default toggles for question generation, auto tagging and knowledge base descriptions.",
+    },
+    datasource: {
+      targetKb: "Target knowledge base",
+      selectKb: "Select a knowledge base",
+      hint: "Data sources sync external content into a chosen knowledge base. Manage this workspace's data sources here; the create-knowledge-base dialog no longer offers this setting.",
+    },
+  },
+  agentDefaults: {
+    title: "Agent defaults",
+    description:
+      "Platform-wide default agent configuration. When ordinary members create an agent they only fill in the basic info and prompt; everything else is inherited from the defaults set here, shared by every workspace.",
+    navGroup: "Agent Configuration",
+    readonlyBanner: "Only a super administrator can edit the platform agent defaults.",
+    autoSaved: "Platform agent defaults saved",
+    saveFailed: "Failed to save platform agent defaults",
+    goModelSettings: "Add models under Settings → Models",
+    sections: {
+      toolsDesc: "Tools enabled by default on a newly created agent.",
+      toolsLabel: "Default tools",
+      toolsHint: "Leave empty to use the built-in default tool set.",
+      toolsPlaceholder: "Pick the default tools",
+      skillsDesc: "Sandbox and skills a newly created agent uses by default.",
+      skillsHint: "Skill scripts run inside the selected sandbox.",
+      skillsPickLabel: "Default skills",
+      skillsPickHint: "Choosing “selected” requires picking the specific skills.",
+      skillsPlaceholder: "Pick the default skills",
+    },
+  },
   knowledgeEditor: {
     activity: {
       title: "Activity",
@@ -3847,6 +3910,8 @@ export default {
     },
     titleCreate: "Create Knowledge Base",
     titleEdit: "Knowledge Base Settings",
+    platformManagedReadonly:
+      "This configuration is managed platform-wide and is shown read-only here; it cannot be modified.",
     navGroups: {
       basic: "Basics",
       processing: "Indexing & Parsing",
@@ -5987,9 +6052,14 @@ export default {
     },
   },
   platform: {
-    subtitle: "LLM-Powered Enterprise Knowledge Framework",
+    subtitle: "Enterprise Multi-Agent R&D Collaboration Platform",
     description:
-      "RAG retrieval, agentic reasoning and Wiki knowledge bases — so your documents are truly understood and put to work",
+      "Turn enterprise knowledge into intelligent assets, make Agents real R&D productivity, and let people focus on innovation and decisions",
+    valueCognition: "Cognition-driven",
+    valueOrchestration: "Intelligent orchestration",
+    valueCollaboration: "Collaborative execution",
+    valueOpenness: "Open integration",
+    valueTrust: "Secure and trustworthy",
     rag: "RAG Enhanced Generation",
     agent: "ReAct Agent",
     wiki: "Wiki Knowledge Base",

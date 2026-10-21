@@ -5,28 +5,28 @@
       <button type="button" class="knowledge-link" @click="$emit('knowledge')"><t-icon name="folder" />{{
         t('workspace.knowledgeLink') }}<t-icon name="arrow-right-up" /></button>
     </header> -->
-    <div class="welcome-mode-bar">
-      <div class="welcome-modes" role="group" :aria-label="t('workspace.modeLabel')">
-        <button type="button" :aria-pressed="composerModeFromIntent(mode || 'chat') === 'chat'"
-          :disabled="disabled" @click="$emit('select', 'chat')">
-          <t-icon name="chat" size="16px" />{{ t('workspace.modeChat') }}
-        </button>
-        <button type="button" :aria-pressed="composerModeFromIntent(mode || 'chat') === 'coding'"
-          :disabled="disabled" @click="$emit('select', 'code')">
-          <t-icon name="code" size="16px" />{{ t('workspace.modeCoding') }}
-        </button>
-        <button type="button" :aria-pressed="composerModeFromIntent(mode || 'chat') === 'testing'"
-          :disabled="disabled" @click="$emit('select', 'test')">
-          <t-icon name="check-circle" size="16px" />{{ t('workspace.modeTesting') }}
-        </button>
-      </div>
-    </div>
     <main class="welcome-content">
       <div class="welcome-intro">
         <img class="welcome-symbol" :src="thinkerflowMark" alt="" aria-hidden="true" />
-        <p class="welcome-eyebrow">{{ t("workspace.eyebrow") }}</p>
         <h1>{{ t("workspace.title") }}</h1>
-        <p class="welcome-description">{{ t("workspace.description") }}</p>
+        <div class="welcome-mode-bar">
+          <div class="welcome-modes" role="group" :aria-label="t('workspace.modeLabel')">
+            <!-- 选中滑块：随激活项左右平滑滑动，代替固定背景 -->
+            <span class="welcome-mode-thumb" :class="{ 'is-code': activeMode === 'coding', 'is-testing': activeMode === 'testing' }" aria-hidden="true"></span>
+            <button type="button" :aria-pressed="activeMode === 'chat'"
+              :disabled="disabled" @click="$emit('select', 'chat')">
+              <t-icon name="chat" size="16px" />{{ t('workspace.modeChat') }}
+            </button>
+            <button type="button" :aria-pressed="activeMode === 'coding'"
+              :disabled="disabled" @click="$emit('select', 'code')">
+              <t-icon name="code" size="16px" />{{ t('workspace.modeCoding') }}
+            </button>
+            <button type="button" :aria-pressed="activeMode === 'testing'"
+              :disabled="disabled" @click="$emit('select', 'test')">
+              <t-icon name="check-circle" size="16px" />{{ t('workspace.modeTesting') }}
+            </button>
+          </div>
+        </div>
       </div>
       <div class="welcome-composer">
         <slot />
@@ -40,13 +40,15 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import thinkerflowMark from "@/assets/img/thinkerflow-mark.png";
+import thinkerflowMark from "@/assets/img/thinkerflow-mark.svg";
 import type { WorkspaceIntent } from "@/utils/workspaceEvents";
 import { composerModeFromIntent } from "@/utils/composerMode";
-defineProps<{ mode?: WorkspaceIntent; disabled?: boolean }>();
+const props = defineProps<{ mode?: WorkspaceIntent; disabled?: boolean }>();
 defineEmits<{ select: [intent: WorkspaceIntent]; knowledge: [] }>();
 const { t } = useI18n();
+const activeMode = computed(() => composerModeFromIntent(props.mode || 'chat'));
 </script>
 
 <style scoped lang="less">
@@ -103,8 +105,9 @@ const { t } = useI18n();
 .welcome-content {
   width: calc(100% - 64px);
   max-width: 760px;
-  margin: auto;
-  padding: 46px 0 64px;
+  /* 垂直居中基础上整体上移：下边距大于上边距，视觉重心靠上一些 */
+  margin: 18vh auto 18vh;
+  padding: 46px 0 0;
 }
 
 .welcome-intro {
@@ -123,44 +126,37 @@ const { t } = useI18n();
 }
 
 .welcome-symbol {
-  /* 品牌标记：透明底蓝色双条图（左高右矮、右条偏下），与侧边栏 logo 同图 */
+  /* 品牌标记：与侧边栏同用 thinkerflow-mark.svg（透明底蓝色双条，左高右矮、右条偏下）。
+     SVG 是竖长比例（viewBox 21×55），固定成正方形会被居中留出两侧空白，
+     所以用 height 定尺寸、width 自适应。 */
   display: block;
-  width: 40px;
   height: 40px;
-  margin: 0 auto 20px;
-}
-
-.welcome-eyebrow {
-  font-size: var(--app-text-xs);
-  letter-spacing: 2px;
-  color: var(--td-text-color-placeholder);
-}
-
-.welcome-description {
-  font-size: var(--app-text-base);
-  color: var(--td-text-color-secondary);
-  margin: 0;
+  width: auto;
+  /* 眉标行去掉后补一点间距，保持标记与标题原来的呼吸感 */
+  margin: 0 auto 28px;
 }
 
 .welcome-mode-bar {
-  position: sticky;
-  top: 0;
-  z-index: 5;
   display: flex;
   justify-content: center;
   flex-shrink: 0;
-  padding: 18px 16px;
-  background: var(--td-bg-color-container);
+  margin-top: 20px;
+  animation: welcome-rise .45s cubic-bezier(.22, .8, .3, 1) both;
 }
 
 .welcome-modes {
-  display: inline-flex;
+  position: relative;
+  isolation: isolate;
+  display: inline-grid;
+  grid-template-columns: repeat(3, 1fr);
   padding: 3px;
   border: 1px solid var(--td-component-stroke);
   border-radius: var(--app-radius-pill);
   background: var(--td-bg-color-secondarycontainer);
 
   button {
+    position: relative;
+    z-index: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -174,10 +170,19 @@ const { t } = useI18n();
     font: inherit;
     font-size: var(--app-text-sm);
     cursor: pointer;
+    transition: color .25s ease, transform .15s ease;
+
+    &:hover:not([aria-pressed="true"]):not(:disabled) {
+      color: var(--td-text-color-primary);
+    }
 
     &[aria-pressed="true"] {
-      background: var(--td-bg-color-container);
-      color: var(--td-text-color-primary);
+      /* 背景交给滑块，选中项文字用反白 */
+      color: #fff;
+    }
+
+    &:active {
+      transform: scale(.96);
     }
 
     &:focus-visible {
@@ -189,14 +194,48 @@ const { t } = useI18n();
   }
 }
 
+.welcome-mode-thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / 3);
+  border-radius: var(--app-radius-pill);
+  /* 品牌蓝滑块，深色/浅色模式下都与底色拉开对比 */
+  background: var(--brand-main);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--brand-main) 40%, transparent);
+  transition: transform .3s cubic-bezier(.22, .8, .3, 1);
+
+  &.is-code {
+    transform: translateX(100%);
+  }
+
+  &.is-testing {
+    transform: translateX(200%);
+  }
+}
+
 .welcome-composer {
   position: relative;
+  animation: welcome-rise .45s cubic-bezier(.22, .8, .3, 1) .08s both;
 
   :deep(.answers-input) {
     width: 100%;
     max-width: none;
     position: static;
     transform: none;
+  }
+}
+
+@keyframes welcome-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

@@ -3165,7 +3165,7 @@ export default {
     registerSuccess: "登録が完了しました。ログインしてください",
     registerFailed: "登録に失敗しました",
     subtitle:
-      "RAG質問応答、ReActエージェント、Wiki。LLMが支える企業向けナレッジフレームワーク",
+      "AI ネイティブなソフトウェアエンジニアリングのための知能型研究開発運行システム",
     registerSubtitle: "アカウントを作成してWeKnoraを使い始めましょう",
     emailPlaceholder: "メールアドレスを入力",
     passwordPlaceholder: "パスワードを入力",
@@ -3751,6 +3751,63 @@ export default {
       "チャットを開いたときの訪問者UIの言語です。空欄の場合はブラウザまたはホストのWidget setLocale()に従います。",
     defaultLocaleBrowser: "ブラウザ／ホストのデフォルト",
   },
+  kbDefaults: {
+    title: "ナレッジベース設定",
+    description:
+      "ナレッジベースのプラットフォーム既定値を統一設定します。一般ユーザーは新規作成時に基本情報のみを入力すればよく、その他の設定はここで定義した既定値が自動参照され、プラットフォーム全体のすべてのワークスペースで共通です。",
+    navGroup: "ナレッジベース設定",
+    readonlyBanner:
+      "スーパー管理者のみがプラットフォームのナレッジベース既定値を編集できます。",
+    modelDefaultDesc:
+      "新規ナレッジベースで自動的に選択されるモデル。空の場合、ユーザーが自分で選びます。",
+    appliesHint:
+      "これらの既定値は今後作成されるナレッジベースに適用され、既存のナレッジベースには影響しません。",
+    save: "既定値を保存",
+    saving: "保存中…",
+    autoSaved: "自動保存しました",
+    saved: "プラットフォームのナレッジベース既定値を保存しました",
+    saveFailed: "プラットフォームのナレッジベース既定値の保存に失敗しました",
+    sections: {
+      models: "既定モデル",
+      modelsDesc: "ナレッジベース作成時に自動参照される要約・埋め込みモデル。",
+      chunking: "チャンク設定",
+      chunkingDesc: "多くの場合適したドキュメント分割の既定パラメータ。",
+      image: "画像処理",
+      imageDesc: "画像などのマルチモーダル内容理解を既定で有効にするか。",
+      audio: "音声処理",
+      audioDesc: "音声認識と文字起こしを既定で有効にするか。",
+      graph: "ナレッジグラフ",
+      graphDesc: "エンティティ・関係抽出によるナレッジグラフ構築を既定で有効にするか。",
+      advanced: "高度な設定",
+      advancedDesc: "質問生成、自動タグ付け、ナレッジベース説明などの既定スイッチ。",
+    },
+    datasource: {
+      targetKb: "対象のナレッジベース",
+      selectKb: "ナレッジベースを選択",
+      hint: "データソースは外部コンテンツを指定したナレッジベースへ自動同期します。本スペースの各ナレッジベースのデータソースをここで一元管理し、ナレッジベース作成ダイアログでは設定できません。",
+    },
+  },
+  agentDefaults: {
+    title: "エージェント設定",
+    description:
+      "エージェントのプラットフォーム既定値をまとめて設定します。一般メンバーがエージェントを作成する際は基本情報とプロンプトのみを入力し、その他の設定はここで指定した既定値を全ワークスペース共通で参照します。",
+    navGroup: "エージェント設定",
+    readonlyBanner: "プラットフォームのエージェント既定値を編集できるのはシステム管理者のみです。",
+    autoSaved: "プラットフォームのエージェント既定値を保存しました",
+    saveFailed: "プラットフォームのエージェント既定値の保存に失敗しました",
+    goModelSettings: "「設定 → モデル」でモデルを追加してください",
+    sections: {
+      toolsDesc: "新規エージェントで既定で有効にするツール。",
+      toolsLabel: "既定のツール",
+      toolsHint: "空のままにすると組み込みの既定ツールセットを使用します。",
+      toolsPlaceholder: "既定で有効にするツールを選択",
+      skillsDesc: "新規エージェントが既定で使用するサンドボックスとスキル。",
+      skillsHint: "スキルのスクリプトは選択したサンドボックス内で実行されます。",
+      skillsPickLabel: "既定のスキル",
+      skillsPickHint: "「指定」を選んだ場合は具体的なスキルを選択してください。",
+      skillsPlaceholder: "既定のスキルを選択",
+    },
+  },
   knowledgeEditor: {
     activity: {
       title: "アクティビティ",
@@ -3886,6 +3943,8 @@ export default {
     },
     titleCreate: "ナレッジベースを作成",
     titleEdit: "ナレッジベース設定",
+    platformManagedReadonly:
+      "この設定はプラットフォーム全体で統一管理されており、ここでは現在有効な値を読み取り専用で表示しています。変更できません。",
     navGroups: {
       basic: "基本",
       processing: "インデックスと解析",
@@ -6031,9 +6090,14 @@ export default {
     },
   },
   platform: {
-    subtitle: "LLM駆動のエンタープライズ向けナレッジフレームワーク",
+    subtitle: "エンタープライズ向けマルチエージェント研究開発協働プラットフォーム",
     description:
-      "RAG検索、エージェント推論、Wikiナレッジベースにより、ドキュメントを本当に理解し活用できます",
+      "企業の知識を知的資産に、Agent を研究開発の生産力に。人はイノベーションと意思決定に集中できます",
+    valueCognition: "認知ドリブン",
+    valueOrchestration: "インテリジェントなオーケストレーション",
+    valueCollaboration: "協調実行",
+    valueOpenness: "オープンな接続",
+    valueTrust: "安全と信頼",
     rag: "RAG拡張生成",
     agent: "ReActエージェント",
     wiki: "Wikiナレッジベース",

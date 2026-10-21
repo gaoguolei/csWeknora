@@ -754,7 +754,7 @@ import {
 } from './sessionFolderState'
 import PanelResizeHandle from './PanelResizeHandle.vue'
 import ThemeToggle from './ThemeToggle.vue'
-import thinkerflowMark from '@/assets/img/thinkerflow-mark.png'
+import thinkerflowMark from '@/assets/img/thinkerflow-mark.svg'
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_MIN_WIDTH,
@@ -984,6 +984,7 @@ const toolboxPreview = computed(() =>
       currentTenantRole: authStore.currentTenantRole,
       canAccessAllTenants: authStore.canAccessAllTenants,
       isOperationsAdmin: authStore.isOperationsAdmin,
+      isSystemAdmin: authStore.isSystemAdmin,
       hasRole: (role) => authStore.hasRole(role),
       isSupported: (capability) =>
         deploymentCapabilities.isSupported(capability),
@@ -2412,7 +2413,7 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
 .aside_box {
   // 侧栏水平栅格：图标列与文案列统一对齐（Logo / 菜单 / 会话分组 / 会话行）
   --sidebar-inset-x: 10px;
-  --sidebar-icon-size: 18px;
+  --sidebar-icon-size: 20px;
   --sidebar-channel-icon: 14px;
   --sidebar-icon-gap: 8px;
   --sidebar-text-inset: calc(
@@ -2524,11 +2525,13 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
   }
 
   .logo_box {
-    /* 品牌标记：透明底蓝色双条图（左高右矮、右条偏下） */
+    /* 品牌标记：thinkerflow-mark.svg 是竖长双条（viewBox 21×55），
+       用 height 定尺寸、width 自适应；写成正方形会在字形两侧多出约 7px
+       看不见的空白，所以 gap 补回原来的实际视觉间距。 */
     .logo_mark {
       display: block;
-      width: 24px;
       height: 24px;
+      width: auto;
       flex-shrink: 0;
     }
 
@@ -2543,7 +2546,7 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
     }
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 12px;
     flex: 1;
     min-width: 0;
     overflow: visible;
@@ -2650,7 +2653,8 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 34px;
+    /* 图标与文字放大一号后，行高同步抬升，避免 6px 内边距被吃光 */
+    height: 36px;
     padding: 6px 8px 6px var(--sidebar-inset-x);
     box-sizing: border-box;
     margin-bottom: 1px;
@@ -2684,8 +2688,8 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
     transition: color var(--app-motion-fast) ease;
 
     .icon {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       overflow: hidden;
     }
 
@@ -2709,13 +2713,13 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
     color: var(--td-text-color-primary);
     text-overflow: ellipsis;
     font-family: var(--app-font-family);
-    font-size: var(--app-text-base);
+    font-size: var(--app-text-lg);
     font-style: normal;
     font-weight: 500;
-    line-height: 20px;
+    line-height: 22px;
     overflow: hidden;
     white-space: nowrap;
-    max-width: 120px;
+    max-width: 132px;
     flex: 1;
   }
 
@@ -2758,7 +2762,7 @@ const resizeSidebar = (delta: number, keyboard: boolean) => {
     opacity: 1;
   }
 
-  // 列表行统一栅格：左缘 inset-x + 图标槽 18px + 间距 8px → 文案列与主菜单文字对齐
+  // 列表行统一栅格：左缘 inset-x + 图标槽 20px + 间距 8px → 文案列与主菜单文字对齐
   .session-list-row {
     display: flex;
     align-items: center;

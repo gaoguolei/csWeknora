@@ -103,6 +103,12 @@ export const OPERATIONS_ADMIN_ONLY_SECTIONS = new Set([
   'sandbox',
   'skills',
   'websearch',
+  // 知识库配置（平台默认）中收归运营管理员的四个分区（连超管也不显示），
+  // 与同名基础设施页一致：向量存储 / 解析引擎 / 存储引擎 / 数据源。
+  'kb-vectorStore',
+  'kb-parser',
+  'kb-storage',
+  'kb-datasource',
 ])
 
 /**
@@ -114,5 +120,35 @@ export const OPERATIONS_ADMIN_ONLY_SECTIONS = new Set([
  * 沙箱密钥 moved here: a super admin configures one encrypted global secret
  * store that every workspace's runs read from; members and workspace admins no
  * longer see the page at all.
+ *
+ * kb-defaults: the platform-wide default knowledge-base configuration (models,
+ * chunking, image, audio, graph, advanced) that the KB editor no longer
+ * exposes. Backed by system_settings "knowledge_base.default_config", whose
+ * PUT route is SystemAdmin-gated; operations admins also see it because they
+ * inherit isSystemAdmin.
  */
-export const SUPER_ADMIN_ONLY_SECTIONS = new Set(['envvars'])
+export const SUPER_ADMIN_ONLY_SECTIONS = new Set([
+  'envvars',
+  'kb-defaults',
+  // 知识库配置（平台默认）提升到设置主侧栏后拆成的独立分区键：模型 / 分块 /
+  // 图像 / 音频 / 图谱 / 高级，仅超管（及其继承者运营管理员）可见。
+  'kb-models',
+  'kb-chunking',
+  'kb-image',
+  'kb-audio',
+  'kb-graph',
+  'kb-advanced',
+  // 智能体配置（平台默认）分区键，与知识库同样是超管专有：模型 / 多轮对话 /
+  // 问题推荐 / 检索策略 / 网络搜索 / 附件上传 / 工具 / MCP / 技能。
+  // 需求把这些全部划给超级管理员（没有给运营管理员的项），所以统一走
+  // isSystemAdmin；「知识库检索」留给用户，不在这个集合里。
+  'agent-model',
+  'agent-conversation',
+  'agent-suggestions',
+  'agent-retrieval',
+  'agent-websearch',
+  'agent-multimodal',
+  'agent-tools',
+  'agent-mcp',
+  'agent-skills',
+])

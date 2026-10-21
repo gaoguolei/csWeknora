@@ -39,6 +39,11 @@ type CustomAgentHandler struct {
 	// nil in partially-wired unit tests, where the selection is left unchecked.
 	sandboxConfigs sandboxConfigLookup
 	desktop        bool
+	// systemSettingSvc reads the platform-wide default agent configuration
+	// (system_settings "agent.default_config") applied to newly created agents
+	// for the fields the agent editor no longer exposes. May be nil in tests,
+	// in which case defaults are simply not applied.
+	systemSettingSvc interfaces.SystemSettingService
 }
 
 // NewCustomAgentHandler creates a new custom agent handler instance
@@ -49,14 +54,16 @@ func NewCustomAgentHandler(
 	userService interfaces.UserService,
 	sandboxConfigs *service.TenantSandboxConfigService,
 	host service.HostSandboxManager,
+	systemSettingSvc interfaces.SystemSettingService,
 ) *CustomAgentHandler {
 	return &CustomAgentHandler{
-		service:        service,
-		imService:      imService,
-		disabledRepo:   disabledRepo,
-		userService:    userService,
-		sandboxConfigs: sandboxConfigs,
-		desktop:        host.Desktop,
+		service:          service,
+		imService:        imService,
+		disabledRepo:     disabledRepo,
+		userService:      userService,
+		sandboxConfigs:   sandboxConfigs,
+		desktop:          host.Desktop,
+		systemSettingSvc: systemSettingSvc,
 	}
 }
 
@@ -104,6 +111,17 @@ func (h *CustomAgentHandler) CreateAgent(c *gin.Context) {
 		c.Error(errors.NewBadRequestError("Invalid request parameters").WithDetails(err.Error()))
 		return
 	}
+	// Fill the configuration blocks the agent editor no longer exposes (model,
+	// multi-turn, suggestions, retrieval, web search, attachments, tools, MCP,
+	// skills) from the platform defaults a super admin manages under
+	// Settings -> 智能体配置. Only unset fields are touched, so API/MCP clients
+	// that still send explicit config win.
+	//
+	// Must run BEFORE agent.EnsureDefaults(): that method materialises concrete
+	// values for every empty field, after which ApplyTo can no longer tell "the
+	// user left it unset" from "the user picked the default".
+	h.applyAgentPlatformDefaults(ctx, &req.Config)
+
 	if err := authorizeAgentKnowledgeScope(ctx, req.Config); err != nil {
 		c.Error(err)
 		return
@@ -171,6 +189,26 @@ func (h *CustomAgentHandler) CreateAgent(c *gin.Context) {
 		resp["allowed_tools_warnings"] = toolWarnings
 	}
 	c.JSON(http.StatusCreated, resp)
+}
+
+// applyAgentPlatformDefaults reads the platform-wide default agent
+// configuration (system_settings "agent.default_config") and fills unset
+// fields on a freshly-bound create request. A nil service, a missing row or
+// malformed JSON are all treated as "no defaults" and leave the request
+// untouched.
+func (h *CustomAgentHandler) applyAgentPlatformDefaults(ctx context.Context, config *types.CustomAgentConfig) {
+	if h.systemSettingSvc == nil || config == nil {
+		return
+	}
+	row, err := h.systemSettingSvc.Get(ctx, types.AgentDefaultsKey)
+	if err != nil || row == nil {
+		return
+	}
+	raw, err := row.AsString()
+	if err != nil {
+		return
+	}
+	types.ParseAgentDefaultsConfig(raw).ApplyTo(config)
 }
 
 // GetAgent godoc

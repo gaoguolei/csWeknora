@@ -1,0 +1,272 @@
+// 智能体各配置分区共用的表单样式。
+//
+// 【为什么有这个文件】
+// 这些规则原本定义在 AgentEditorModal.vue 的 scoped style 里。分区被抽成
+// 独立子组件后，父组件的 scoped 样式（带父组件的 data-v 属性）不会再作用到
+// 子组件的元素上，所以把共用部分搬到这里，由各子组件 @import。
+//
+// 【改动约定】
+// 样式值必须与 AgentEditorModal.vue 中同名规则保持一致，否则平台默认页和
+// 编辑器里的同一种表单会长得不一样。改这里时请同步改编辑器（反之亦然）。
+//
+// 注意不包含 `.section` —— 那个类仍在编辑器/默认页的外层包裹 div 上。
+
+.section-header {
+  margin-bottom: 20px;
+
+  .section-header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+
+    h2 {
+      margin: 0;
+    }
+  }
+
+  h2 {
+    font-size: var(--app-text-3xl);
+    font-weight: 600;
+    color: var(--td-text-color-primary);
+    margin: 0 0 6px 0;
+  }
+
+  .section-description {
+    font-size: var(--app-text-base);
+    color: var(--td-text-color-secondary);
+    margin: 0;
+    line-height: 1.5;
+
+    .doc-link {
+      margin-left: 8px;
+    }
+  }
+}
+
+// 与知识库设置一致的 settings-group 样式
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.parser-policy-block {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--td-component-stroke);
+
+  &__header {
+    margin-bottom: 12px;
+
+    label {
+      display: block;
+      font-size: var(--app-text-lg);
+      font-weight: 500;
+      color: var(--td-text-color-primary);
+      margin-bottom: 4px;
+    }
+
+    .desc {
+      margin: 0;
+      font-size: var(--app-text-md);
+      color: var(--td-text-color-secondary);
+      line-height: 1.5;
+    }
+  }
+}
+
+.setting-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--td-component-stroke);
+  min-width: 0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &.setting-row-vertical {
+    flex-direction: column;
+    gap: 12px;
+
+    .setting-info {
+      max-width: 100%;
+      padding-right: 0;
+    }
+  }
+
+  // 强调行：用于"智能体类型"这类对用户影响最大、需要突出的关键配置。
+  &.setting-row--emphasize {
+    position: relative;
+    padding-left: 14px;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 18px;
+      bottom: 18px;
+      width: 3px;
+      border-radius: 2px;
+      background: var(--td-brand-color);
+    }
+
+    .setting-info label {
+      font-weight: 600;
+    }
+  }
+
+  &.setting-row--field-highlight {
+    border-radius: var(--app-radius-sm);
+    animation: agent-field-flash 0.8s ease-in-out 3;
+  }
+}
+
+@keyframes agent-field-flash {
+
+  0%,
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+
+  50% {
+    background-color: var(--td-warning-color-light);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--td-warning-color) 35%, transparent);
+  }
+}
+
+.setting-info {
+  flex: 0 0 42%;
+  max-width: 42%;
+  min-width: 0;
+  padding-right: 0;
+
+  &.full-width {
+    max-width: 100%;
+    padding-right: 0;
+  }
+
+  .setting-info-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+
+    label {
+      margin-bottom: 0;
+    }
+  }
+
+  label {
+    font-size: var(--app-text-lg);
+    font-weight: 500;
+    color: var(--td-text-color-primary);
+    display: block;
+    margin-bottom: 4px;
+
+    .required {
+      color: var(--td-error-color);
+      margin-left: 2px;
+    }
+  }
+
+  .desc {
+    font-size: var(--app-text-md);
+    color: var(--td-text-color-secondary);
+    margin: 0;
+    line-height: 1.5;
+
+    .hint {
+      color: var(--td-warning-color);
+    }
+  }
+}
+
+.setting-control {
+  flex: 1 1 58%;
+  min-width: 0;
+  max-width: 58%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  overflow: hidden;
+
+  .reasoning-effort-select {
+    width: 100%;
+    max-width: 220px;
+  }
+
+  &.setting-control-full {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+
+  &.max-tokens-control {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+
+    :deep(.t-input-number) {
+      width: 140px;
+    }
+  }
+
+  // 让 select 和 input 占满控件区域
+  :deep(.t-select),
+  :deep(.t-input),
+  :deep(.t-textarea) {
+    width: 100%;
+    min-width: 0;
+  }
+
+  :deep(.t-select-input) {
+    min-width: 0;
+  }
+
+  :deep(.t-select .t-tag) {
+    max-width: 160px;
+  }
+
+  :deep(.t-select .t-tag__text) {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :deep(.t-input-number) {
+    width: 120px;
+  }
+}
+
+.slider-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+
+  :deep(.t-slider) {
+    flex: 1;
+  }
+}
+
+.slider-value {
+  width: 40px;
+  text-align: right;
+  font-family: var(--app-font-family-mono);
+  font-size: var(--app-text-base);
+  color: var(--td-text-color-primary);
+}
+
+.max-tokens-value {
+  font-family: var(--app-font-family-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--app-text-sm);
+  color: var(--td-text-color-placeholder);
+}
