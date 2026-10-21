@@ -1195,7 +1195,7 @@ onUnmounted(() => {
 
 .im-step.active .im-step-num {
   background: var(--td-brand-color);
-  color: var(--td-text-color-anti);
+  color: #fff;
   border-color: var(--td-brand-color);
 }
 
@@ -1468,7 +1468,7 @@ onUnmounted(() => {
   justify-content: center;
   gap: 8px;
   background: rgba(0, 0, 0, 0.6);
-  color: var(--td-text-color-anti);
+  color: #fff;
   cursor: pointer;
   font-size: var(--app-text-sm);
 

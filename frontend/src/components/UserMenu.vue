@@ -769,7 +769,7 @@ onUnmounted(() => {
   }
 
   .avatar-placeholder {
-    color: var(--td-text-color-anti);
+    color: #fff;
     font-size: var(--app-text-sm);
     font-weight: 600;
     line-height: 1;
@@ -915,7 +915,7 @@ onUnmounted(() => {
     }
 
     .dropdown-user-avatar-placeholder {
-      color: var(--td-text-color-anti);
+      color: #fff;
       font-size: var(--app-text-sm);
       font-weight: 600;
       line-height: 1;
@@ -1291,7 +1291,7 @@ onUnmounted(() => {
         var(--td-brand-color) 0%,
         var(--td-brand-color-active) 100%
       );
-      color: var(--td-text-color-anti);
+      color: #fff;
     }
   }
 

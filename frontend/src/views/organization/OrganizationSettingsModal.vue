@@ -3400,7 +3400,7 @@ watch(addMemberPopupVisible, (visible) => {
 
   .me-tag {
     background: @primary-color;
-    color: var(--td-text-color-anti);
+    color: #fff;
   }
 
   .owner-tag {

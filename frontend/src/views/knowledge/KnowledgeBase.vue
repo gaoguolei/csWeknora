@@ -2799,8 +2799,15 @@ const handleKBEditorSuccess = (kbIdValue: string) => {
     padding: 0 12px;
     border-radius: var(--app-radius-md);
     background: var(--td-brand-color);
-    color: var(--td-text-color-anti);
+    /* 实心品牌蓝底固定白字：--td-text-color-anti 在深色主题被重定义为近黑 */
+    color: #fff;
     &:hover { background: var(--td-brand-color-hover); }
+  }
+  .doc-filter-actions :deep(.content-bar-icon-btn:hover) {
+    color: #fff;
+  }
+  .doc-filter-actions :deep(.content-bar-icon-btn .t-icon) {
+    color: inherit;
   }
 }
 .doc-folder-path {
@@ -3168,7 +3175,7 @@ const handleKBEditorSuccess = (kbIdValue: string) => {
     transition: all var(--app-motion-instant) ease;
 
     &:hover:not(:disabled) {
-      color: var(--td-success-color);
+      color: var(--td-brand-color);
       background: var(--td-bg-color-container);
     }
 
@@ -3301,7 +3308,7 @@ const handleKBEditorSuccess = (kbIdValue: string) => {
   padding: 0;
 
   &:hover:not(:disabled) {
-    background: var(--td-success-color-light);
+    background: color-mix(in srgb, var(--td-brand-color) 12%, transparent);
     color: var(--td-brand-color);
     box-shadow: none;
   }

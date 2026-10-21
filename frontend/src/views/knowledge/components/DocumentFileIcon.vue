@@ -38,7 +38,7 @@ defineProps<{ sourceType?: string; fileName: string }>();
     height: 16px;
     border-radius: var(--app-radius-xs);
     background: currentColor;
-    .t-icon { color: var(--td-text-color-anti); }
+    .t-icon { color: #fff; }
   }
 }
 </style>

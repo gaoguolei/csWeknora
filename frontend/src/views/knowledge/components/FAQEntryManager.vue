@@ -3710,7 +3710,7 @@ watch(
     transition: all var(--app-motion-instant) ease;
 
     &:hover:not(:disabled) {
-      color: var(--td-success-color);
+      color: var(--td-brand-color);
       background: var(--td-bg-color-container);
     }
 
@@ -3986,7 +3986,7 @@ watch(
   padding: 0;
 
   &:hover:not(:disabled) {
-    background: var(--td-success-color-light);
+    background: color-mix(in srgb, var(--td-brand-color) 12%, transparent);
     color: var(--td-brand-color);
   }
 
@@ -4269,7 +4269,7 @@ watch(
     &:hover {
       border-color: var(--td-brand-color);
       color: var(--td-brand-color-active);
-      background: var(--td-success-color-light);
+      background: color-mix(in srgb, var(--td-brand-color) 10%, transparent);
     }
   }
 }
@@ -4697,11 +4697,11 @@ watch(
   &:hover {
     border-color: var(--td-brand-color);
     color: var(--td-brand-color);
-    background: var(--td-success-color-light);
+    background: color-mix(in srgb, var(--td-brand-color) 10%, transparent);
   }
 
   &:active {
-    background: var(--td-success-color-light);
+    background: color-mix(in srgb, var(--td-brand-color) 16%, transparent);
   }
 
   :deep(.t-icon) {
@@ -4759,12 +4759,12 @@ watch(
 
   &:hover {
     border-color: var(--td-brand-color);
-    background: var(--td-success-color-light);
+    background: color-mix(in srgb, var(--td-brand-color) 10%, transparent);
   }
 
   &.has-file {
     border-color: var(--td-brand-color);
-    background: var(--td-success-color-light);
+    background: color-mix(in srgb, var(--td-brand-color) 10%, transparent);
     border-style: solid;
   }
 }
@@ -4889,7 +4889,7 @@ watch(
     var(--td-brand-color) 0%,
     var(--td-brand-color-active) 100%
   );
-  color: var(--td-text-color-anti);
+  color: #fff;
   border-radius: var(--app-radius-xs);
   font-family: var(--app-font-family);
   font-size: var(--app-text-sm);
@@ -5022,7 +5022,7 @@ watch(
     background: var(--td-brand-color) !important;
     border: 1px solid var(--td-brand-color) !important;
     border-radius: var(--app-radius-md) !important;
-    color: var(--td-text-color-anti) !important;
+    color: #fff !important;
     display: flex;
     align-items: center;
     justify-content: center;

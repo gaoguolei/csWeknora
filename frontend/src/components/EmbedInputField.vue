@@ -411,7 +411,7 @@ onUnmounted(() => {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: var(--td-text-color-anti);
+    color: #fff;
     background: rgba(0, 0, 0, 0.55);
   }
 }

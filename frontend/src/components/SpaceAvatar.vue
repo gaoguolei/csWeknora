@@ -177,7 +177,7 @@ const letterStyle = computed(() => {
 .space-avatar-letter {
   position: relative;
   z-index: 1;
-  color: var(--td-text-color-anti);
+  color: #fff;
   font-size: var(--app-text-base);
   font-weight: 600;
   font-family: var(--app-font-family);

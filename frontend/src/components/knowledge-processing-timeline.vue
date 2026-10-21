@@ -2321,19 +2321,19 @@ const processConfigLines = computed<string[]>(() => {
 
 .kp-attempt-active {
   background: var(--td-brand-color);
-  color: var(--td-text-color-anti);
+  color: #fff;
   border-color: var(--td-brand-color);
 }
 
 .kp-attempt-active:hover {
   background: var(--td-brand-color);
-  color: var(--td-text-color-anti);
+  color: #fff;
   border-color: var(--td-brand-color);
 }
 
 .kp-attempt-active .kp-attempt-glyph,
 .kp-attempt-active:hover .kp-attempt-glyph {
-  color: var(--td-text-color-anti) !important;
+  color: #fff !important;
 }
 
 .kp-attempt-num {
@@ -2961,7 +2961,7 @@ const processConfigLines = computed<string[]>(() => {
   width: 16px;
   height: 16px;
   background: var(--td-error-color);
-  color: var(--td-text-color-anti);
+  color: #fff;
   border-radius: 50%;
   font-size: var(--app-text-xs);
   font-weight: 700;
@@ -3061,7 +3061,7 @@ const processConfigLines = computed<string[]>(() => {
 
 .kp-err-btn:hover {
   background: var(--td-error-color);
-  color: var(--td-text-color-anti);
+  color: #fff;
 }
 
 /* Same card shape as .kp-last-error in the warning tone: the run may still
@@ -3132,7 +3132,7 @@ const processConfigLines = computed<string[]>(() => {
 
 .kp-stall-btn:hover:not(:disabled) {
   background: var(--td-warning-color);
-  color: var(--td-text-color-anti);
+  color: #fff;
 }
 
 .kp-stall-btn:disabled {
@@ -3390,12 +3390,12 @@ const processConfigLines = computed<string[]>(() => {
 
 .kp-section-action:hover {
   background: var(--td-brand-color);
-  color: var(--td-text-color-anti);
+  color: #fff;
   border-color: var(--td-brand-color);
 }
 
 .kp-section-action:hover :deep(.t-icon) {
-  color: var(--td-text-color-anti);
+  color: #fff;
 }
 
 /* KV grid — TDesign description list aesthetic. White card on the gray
@@ -3651,7 +3651,7 @@ const processConfigLines = computed<string[]>(() => {
   width: 16px;
   height: 16px;
   background: var(--td-error-color);
-  color: var(--td-text-color-anti);
+  color: #fff;
   border-radius: 50%;
   font-size: var(--app-text-xs);
   font-weight: 700;
@@ -3668,7 +3668,7 @@ const processConfigLines = computed<string[]>(() => {
   margin-left: auto;
   font-size: var(--app-text-2xs);
   background: var(--td-error-color);
-  color: var(--td-text-color-anti);
+  color: #fff;
   padding: 1px 6px;
   border-radius: var(--td-radius-small);
 }

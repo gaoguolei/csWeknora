@@ -3037,7 +3037,7 @@ button {
   border: 0;
   border-radius: 6px;
   background: var(--td-brand-color);
-  color: var(--td-text-color-anti);
+  color: #fff;
   cursor: pointer;
   font: inherit;
   font-size: 12px;

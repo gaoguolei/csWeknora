@@ -4479,7 +4479,7 @@ const getImgSrc = (url: string) => {
     top: -2px;
     right: -2px;
     background: var(--td-brand-color);
-    color: var(--td-text-color-anti);
+    color: #fff;
     font-size: var(--app-text-2xs);
     width: 14px;
     height: 14px;
@@ -4518,7 +4518,7 @@ const getImgSrc = (url: string) => {
     top: -2px;
     right: -2px;
     background: var(--td-brand-color);
-    color: var(--td-text-color-anti);
+    color: #fff;
     font-size: var(--app-text-2xs);
     width: 14px;
     height: 14px;
@@ -4558,7 +4558,7 @@ const getImgSrc = (url: string) => {
     width: 16px;
     height: 16px;
     background: rgba(0, 0, 0, 0.5);
-    color: var(--td-text-color-anti);
+    color: #fff;
     border-radius: 50%;
     display: flex;
     align-items: center;

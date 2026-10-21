@@ -398,7 +398,7 @@ watch(() => props.visible, async (v) => {
   transition: border var(--app-motion-instant);
 }
 .kb-search-input:focus {
-  border-color: var(--td-success-color);
+  border-color: var(--td-brand-color);
   background: var(--td-bg-color-container);
 }
 
@@ -491,8 +491,8 @@ watch(() => props.visible, async (v) => {
   transition: all var(--app-motion-instant);
 }
 .kb-btn:hover {
-  border-color: var(--td-success-color);
-  color: var(--td-success-color);
+  border-color: var(--td-brand-color);
+  color: var(--td-brand-color);
   background: var(--td-brand-color-light);
 }
 

@@ -1160,7 +1160,7 @@ const toggleEnabled = async (ch: EmbedChannel, enabled: boolean) => {
 
 .im-step.active .im-step-num {
   background: var(--td-brand-color);
-  color: var(--td-text-color-anti);
+  color: #fff;
   border-color: var(--td-brand-color);
 }
 
@@ -1516,7 +1516,7 @@ const toggleEnabled = async (ch: EmbedChannel, enabled: boolean) => {
   height: 36px;
   border: none;
   border-radius: 50%;
-  color: var(--td-text-color-anti);
+  color: #fff;
   font-size: var(--app-text-xl);
   line-height: 1;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
