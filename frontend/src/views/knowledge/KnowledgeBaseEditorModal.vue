@@ -798,17 +798,11 @@ const isInstantSection = computed(() => INSTANT_SECTIONS.has(currentSection.valu
 const formData = ref<any>(null)
 
 const navItems = computed(() => {
-  // 建库模式：模型/向量存储/解析引擎/分块/图像/音频/图谱/高级/存储等配置统一
-  // 在平台「知识库设置」默认页维护，建库时由后端自动引用，因此新建仅展示
-  // 基本信息（问答类型再加 FAQ 设置），不展示其余分区。
+  // 建库模式：模型/向量存储/解析引擎/分块/图像/音频/图谱/高级/存储，以及
+  // 问答类型专属的 FAQ 索引策略，均统一在平台「知识库设置」默认页维护，
+  // 建库时由后端自动引用，因此新建仅展示基本信息，不展示其余分区。
   if (editorMode.value === 'create') {
-    const createItems: { key: string; icon: string; label: string; badge?: number }[] = [
-      { key: 'basic', icon: 'info-circle', label: t('knowledgeEditor.sidebar.basic') },
-    ]
-    if (formData.value?.type === 'faq') {
-      createItems.push({ key: 'faq', icon: 'help-circle', label: t('knowledgeEditor.sidebar.faq') })
-    }
-    return createItems
+    return [{ key: 'basic', icon: 'info-circle', label: t('knowledgeEditor.sidebar.basic') }]
   }
   const items: { key: string; icon: string; label: string; badge?: number }[] = [
     { key: 'basic', icon: 'info-circle', label: t('knowledgeEditor.sidebar.basic') },
@@ -1484,7 +1478,13 @@ const validateForm = (): boolean => {
     }
   }
 
-  if (formData.value.type === 'faq' && !formData.value.faqConfig?.indexMode) {
+  // 新建模式不再收集 FAQ 索引策略（改由平台「知识库设置」默认值提供），
+  // 只有编辑已有问答库时才校验该字段。
+  if (
+    editorMode.value === 'edit' &&
+    formData.value.type === 'faq' &&
+    !formData.value.faqConfig?.indexMode
+  ) {
     MessagePlugin.warning(t('knowledgeEditor.messages.indexModeRequired'))
     currentSection.value = 'faq'
     return false
@@ -1652,11 +1652,11 @@ const buildSubmitData = () => {
     }
   }
 
-  // 建库模式：模型/向量存储/解析引擎/分块/图像/音频/图谱/高级/存储等分区已从
-  // 建库菜单移除，统一由平台「知识库设置」默认页维护。这里不下发这些字段，
-  // 后端 ApplyTo 会套用平台默认值（仅填空字段，API/MCP 显式值优先）。
-  // 保留基本信息：name/description/type、索引策略 indexing_strategy、
-  // Wiki 开关 wiki_config、以及 FAQ 的 faq_config。
+  // 建库模式：模型/向量存储/解析引擎/分块/图像/音频/图谱/高级/存储等分区，
+  // 以及问答类型的 FAQ 索引策略，已从建库菜单移除，统一由平台「知识库设置」
+  // 默认页维护。这里不下发这些字段，后端 ApplyTo 会套用平台默认值（仅填空
+  // 字段，API/MCP 显式值优先）。保留基本信息：name/description/type、索引策略
+  // indexing_strategy、Wiki 开关 wiki_config。
   if (editorMode.value === 'create') {
     const platformManaged = [
       'chunking_config',
@@ -1666,7 +1666,7 @@ const buildSubmitData = () => {
       'asr_config',
       'storage_backend_id', 'storage_provider_config', 'storage_config',
       'question_generation_config', 'auto_tag_config', 'profile_config',
-      'extract_config',
+      'extract_config', 'faq_config',
     ]
     for (const key of platformManaged) {
       delete (data as Record<string, unknown>)[key]

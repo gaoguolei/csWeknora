@@ -3728,6 +3728,9 @@ export default {
     autoSaved: "Auto-saved",
     saved: "Platform knowledge base defaults saved",
     saveFailed: "Failed to save platform knowledge base defaults",
+    faqTitle: "FAQ Settings",
+    faqHint:
+      "Index strategy for FAQ knowledge bases; applies to FAQ-type knowledge bases only.",
     sections: {
       models: "Default Models",
       modelsDesc:

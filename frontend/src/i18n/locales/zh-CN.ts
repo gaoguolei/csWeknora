@@ -4465,6 +4465,8 @@ export default {
     autoSaved: "已自动保存",
     saved: "平台知识库默认配置已保存",
     saveFailed: "保存平台知识库默认配置失败",
+    faqTitle: "FAQ 设置",
+    faqHint: "问答型知识库的索引策略，仅对问答类型知识库生效。",
     sections: {
       models: "默认模型",
       modelsDesc: "新建知识库时自动引用的摘要与嵌入模型。",
