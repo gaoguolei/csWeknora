@@ -68,10 +68,10 @@ test('platform knowledge base defaults are super-admin-only', () => {
 })
 
 test('promoted kb-config sub-sections keep the same role split as the inner nav', () => {
-  // 6 super-admin sections (models / chunking / image / audio / graph / advanced)
-  // stay isSystemAdmin; the 4 ops-only ones (vectorStore / parser / storage /
+  // 7 super-admin sections (models / chunking / image / audio / graph / advanced /
+  // FAQ) stay isSystemAdmin; the 4 ops-only ones (vectorStore / parser / storage /
   // datasource) are isOperationsAdmin-only, exactly as the old inner nav gated.
-  for (const key of ['kb-models', 'kb-chunking', 'kb-image', 'kb-audio', 'kb-graph', 'kb-advanced']) {
+  for (const key of ['kb-models', 'kb-chunking', 'kb-image', 'kb-audio', 'kb-graph', 'kb-advanced', 'kb-faq']) {
     assert.equal(SETTINGS_SECTION_MIN_ROLE[key], undefined)
     assert.ok(SUPER_ADMIN_ONLY_SECTIONS.has(key))
     assert.equal(OPERATIONS_ADMIN_ONLY_SECTIONS.has(key), false)

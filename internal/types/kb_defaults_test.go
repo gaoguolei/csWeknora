@@ -83,25 +83,64 @@ func TestKBDefaultsApplyToPreservesExplicitValues(t *testing.T) {
 	assert.Equal(t, 40, kb.ChunkingConfig.ChunkOverlap)
 }
 
-func TestKBDefaultsApplyToFAQOnlyInheritsModels(t *testing.T) {
+func TestKBDefaultsApplyToFAQOnlyInheritsModelsAndFAQConfig(t *testing.T) {
 	cfg := &KBDefaultsConfig{
 		SummaryModelID:   "llm-1",
 		EmbeddingModelID: "emb-1",
 		ChunkingConfig:   &ChunkingConfig{ChunkSize: 1000},
 		ExtractConfig:    &ExtractConfig{Enabled: true},
 		VLMConfig:        &VLMConfig{Enabled: true, ModelID: "vllm-1"},
+		FAQConfig: &FAQConfig{
+			IndexMode:         FAQIndexModeQuestionAnswer,
+			QuestionIndexMode: FAQQuestionIndexModeCombined,
+		},
 	}
 
 	kb := &KnowledgeBase{Type: KnowledgeBaseTypeFAQ}
 	cfg.ApplyTo(kb)
 
-	// FAQ inherits the model defaults only.
+	// FAQ inherits the model defaults and the FAQ index-mode defaults.
 	assert.Equal(t, "llm-1", kb.SummaryModelID)
 	assert.Equal(t, "emb-1", kb.EmbeddingModelID)
+	require.NotNil(t, kb.FAQConfig)
+	assert.Equal(t, FAQIndexModeQuestionAnswer, kb.FAQConfig.IndexMode)
+	assert.Equal(t, FAQQuestionIndexModeCombined, kb.FAQConfig.QuestionIndexMode)
 	// Chunking / graph / image must stay untouched for FAQ knowledge bases.
 	assert.Equal(t, 0, kb.ChunkingConfig.ChunkSize)
 	assert.Nil(t, kb.ExtractConfig)
 	assert.False(t, kb.VLMConfig.Enabled)
+}
+
+func TestKBDefaultsFAQConfigPreservesExplicitValues(t *testing.T) {
+	cfg := &KBDefaultsConfig{
+		FAQConfig: &FAQConfig{
+			IndexMode:         FAQIndexModeQuestionAnswer,
+			QuestionIndexMode: FAQQuestionIndexModeCombined,
+		},
+	}
+
+	// An explicit request keeps its own values.
+	kb := &KnowledgeBase{
+		Type: KnowledgeBaseTypeFAQ,
+		FAQConfig: &FAQConfig{
+			IndexMode:         FAQIndexModeQuestionOnly,
+			QuestionIndexMode: FAQQuestionIndexModeSeparate,
+		},
+	}
+	cfg.ApplyTo(kb)
+	assert.Equal(t, FAQIndexModeQuestionOnly, kb.FAQConfig.IndexMode)
+	assert.Equal(t, FAQQuestionIndexModeSeparate, kb.FAQConfig.QuestionIndexMode)
+
+	// Only the fields left empty are filled.
+	partial := &KnowledgeBase{Type: KnowledgeBaseTypeFAQ, FAQConfig: &FAQConfig{}}
+	cfg.ApplyTo(partial)
+	assert.Equal(t, FAQIndexModeQuestionAnswer, partial.FAQConfig.IndexMode)
+	assert.Equal(t, FAQQuestionIndexModeCombined, partial.FAQConfig.QuestionIndexMode)
+
+	// Document KBs never carry FAQ config.
+	doc := &KnowledgeBase{Type: KnowledgeBaseTypeDocument}
+	cfg.ApplyTo(doc)
+	assert.Nil(t, doc.FAQConfig)
 }
 
 func TestKBDefaultsChunkingBuiltInFallback(t *testing.T) {

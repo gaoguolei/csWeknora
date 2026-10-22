@@ -4156,6 +4156,8 @@ export default {
     "autoSaved": "已自動儲存",
     "saved": "平台知識庫預設配置已儲存",
     "saveFailed": "儲存平台知識庫預設配置失敗",
+    "faqTitle": "FAQ 設定",
+    "faqHint": "問答型知識庫的索引策略，僅對問答類型知識庫生效。",
     "sections": {
       "models": "預設模型",
       "modelsDesc": "新建知識庫時自動引用的摘要與嵌入模型。",
