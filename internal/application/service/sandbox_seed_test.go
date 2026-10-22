@@ -141,6 +141,32 @@ func TestSeedConfigUpdatesChangedEndpoint(t *testing.T) {
 	require.Equal(t, "https://203.0.113.20:33000", repo.updated.Config.Cube.APIURL)
 }
 
+// The wizard's step-3 rollout choice rides along with the seed, and a seed
+// that stays silent never resets a choice already stored from the UI.
+func TestSeedConfigCarriesSkillRollout(t *testing.T) {
+	repo := &fakeConfigRepo{}
+	svc := newTestConfigService(t, repo, nil, stubAgentRepo{})
+
+	spec := seedCubeSpec("Seed Cube")
+	spec.SkillRollout = types.SkillRolloutNewSession
+	_, err := svc.SeedConfig(context.Background(), 7, spec)
+	require.NoError(t, err)
+	require.Equal(t, types.SkillRolloutNewSession, repo.entity.Config.SkillRollout)
+
+	// Same seed again is a no-op even though the row carries the rollout.
+	action, err := svc.SeedConfig(context.Background(), 7, spec)
+	require.NoError(t, err)
+	require.Equal(t, seedActionNone, action)
+
+	// A seed that omits skill_rollout keeps the stored choice (merge
+	// semantics), so it still compares equal and does not rewrite.
+	silent := seedCubeSpec("Seed Cube")
+	action, err = svc.SeedConfig(context.Background(), 7, silent)
+	require.NoError(t, err)
+	require.Equal(t, seedActionNone, action)
+	require.Equal(t, types.SkillRolloutNewSession, repo.entity.Config.SkillRollout)
+}
+
 // Empty fields in the seed are "unset", not "delete": a stored API key and
 // an already-resolved template must survive a partial card untouched.
 func TestSeedConfigInheritsStoredSecretsAndTemplate(t *testing.T) {

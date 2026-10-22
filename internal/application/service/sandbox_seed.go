@@ -67,6 +67,13 @@ type SandboxSeedSpec struct {
 	AllowPrivateEndpoints     bool                        `json:"allow_private_endpoints,omitempty"`
 	DefaultTimeoutSec         int                         `json:"default_timeout_sec,omitempty"`
 	TerminalIdleDisconnectSec int                         `json:"terminal_idle_disconnect_sec,omitempty"`
+
+	// SkillRollout is the wizard step-3 choice "技能镜像如何生效":
+	// "new_session" keeps live sandboxes on the previous image, "next_turn"
+	// (also the empty default) rebuilds them. Empty means "unset": the merge
+	// in SanitizeSandboxConfig carries over whatever the row already stores,
+	// so a seed that stays silent never resets a UI-made choice.
+	SkillRollout string `json:"skill_rollout,omitempty"`
 }
 
 // toConfig converts the spec into the stored payload shape.
@@ -78,6 +85,7 @@ func (s SandboxSeedSpec) toConfig() *types.TenantSandboxConfig {
 		AllowPrivateEndpoints:     s.AllowPrivateEndpoints,
 		EnvVars:                   s.EnvVars,
 		Network:                   s.Network,
+		SkillRollout:              strings.TrimSpace(s.SkillRollout),
 		Cube:                      s.Cube,
 		E2B:                       s.E2B,
 		Docker:                    s.Docker,
@@ -307,6 +315,7 @@ type sandboxSeedView struct {
 	AllowPrivateEndpoints     bool                        `json:"allow_private_endpoints"`
 	DefaultTimeoutSec         int                         `json:"default_timeout_sec"`
 	TerminalIdleDisconnectSec int                         `json:"terminal_idle_disconnect_sec"`
+	SkillRollout              string                      `json:"skill_rollout"`
 	Cube                      *types.CubeSandboxConfig    `json:"cube,omitempty"`
 	E2B                       *types.E2BSandboxConfig     `json:"e2b,omitempty"`
 	Docker                    *types.DockerSandboxConfig  `json:"docker,omitempty"`
@@ -323,6 +332,7 @@ func seedViewOf(c *types.TenantSandboxConfig) string {
 		AllowPrivateEndpoints:     c.AllowPrivateEndpoints,
 		DefaultTimeoutSec:         c.DefaultTimeoutSec,
 		TerminalIdleDisconnectSec: c.TerminalIdleDisconnectSec,
+		SkillRollout:              strings.TrimSpace(c.SkillRollout),
 		Cube:                      c.Cube,
 		E2B:                       c.E2B,
 		Docker:                    c.Docker,
