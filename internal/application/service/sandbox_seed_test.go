@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/Tencent/WeKnora/internal/application/repository"
 	"github.com/Tencent/WeKnora/internal/sandbox"
 	"github.com/Tencent/WeKnora/internal/types"
 )
@@ -82,9 +83,10 @@ func TestSeedConfigCreatesMissingCard(t *testing.T) {
 	repo := &fakeConfigRepo{}
 	svc := newTestConfigService(t, repo, nil, stubAgentRepo{})
 
-	action, err := svc.SeedConfig(context.Background(), 7, seedCubeSpec("Seed Cube"))
+	action, configID, err := svc.SeedConfig(context.Background(), 7, seedCubeSpec("Seed Cube"))
 	require.NoError(t, err)
 	require.Equal(t, seedActionCreate, action)
+	require.NotEmpty(t, configID)
 	require.NotNil(t, repo.entity)
 	require.Equal(t, "Seed Cube", repo.entity.Name)
 	require.Equal(t, "cube", repo.entity.SandboxType)
@@ -102,7 +104,7 @@ func TestSeedConfigResolvesStandardTemplate(t *testing.T) {
 
 	spec := seedCubeSpec("Seed Cube")
 	spec.Cube.TemplateID = ""
-	_, err := svc.SeedConfig(context.Background(), 7, spec)
+	_, _, err := svc.SeedConfig(context.Background(), 7, spec)
 	require.NoError(t, err)
 	require.Equal(t, "tpl-std", repo.entity.Config.Cube.TemplateID)
 }
@@ -117,9 +119,10 @@ func TestSeedConfigNoopWhenUnchanged(t *testing.T) {
 	}}
 	svc := newTestConfigService(t, repo, nil, stubAgentRepo{})
 
-	action, err := svc.SeedConfig(context.Background(), 7, spec)
+	action, configID, err := svc.SeedConfig(context.Background(), 7, spec)
 	require.NoError(t, err)
 	require.Equal(t, seedActionNone, action)
+	require.Equal(t, "cfg-a", configID, "noop must still report the stable row id")
 	require.NotContains(t, repo.events, "write")
 }
 
@@ -134,9 +137,10 @@ func TestSeedConfigUpdatesChangedEndpoint(t *testing.T) {
 
 	spec := seedCubeSpec("Seed Cube")
 	spec.Cube.APIURL = "https://203.0.113.20:33000"
-	action, err := svc.SeedConfig(context.Background(), 7, spec)
+	action, configID, err := svc.SeedConfig(context.Background(), 7, spec)
 	require.NoError(t, err)
 	require.Equal(t, seedActionUpdate, action)
+	require.Equal(t, "cfg-a", configID)
 	require.NotNil(t, repo.updated)
 	require.Equal(t, "https://203.0.113.20:33000", repo.updated.Config.Cube.APIURL)
 }
@@ -149,19 +153,19 @@ func TestSeedConfigCarriesSkillRollout(t *testing.T) {
 
 	spec := seedCubeSpec("Seed Cube")
 	spec.SkillRollout = types.SkillRolloutNewSession
-	_, err := svc.SeedConfig(context.Background(), 7, spec)
+	_, _, err := svc.SeedConfig(context.Background(), 7, spec)
 	require.NoError(t, err)
 	require.Equal(t, types.SkillRolloutNewSession, repo.entity.Config.SkillRollout)
 
 	// Same seed again is a no-op even though the row carries the rollout.
-	action, err := svc.SeedConfig(context.Background(), 7, spec)
+	action, _, err := svc.SeedConfig(context.Background(), 7, spec)
 	require.NoError(t, err)
 	require.Equal(t, seedActionNone, action)
 
 	// A seed that omits skill_rollout keeps the stored choice (merge
 	// semantics), so it still compares equal and does not rewrite.
 	silent := seedCubeSpec("Seed Cube")
-	action, err = svc.SeedConfig(context.Background(), 7, silent)
+	action, _, err = svc.SeedConfig(context.Background(), 7, silent)
 	require.NoError(t, err)
 	require.Equal(t, seedActionNone, action)
 	require.Equal(t, types.SkillRolloutNewSession, repo.entity.Config.SkillRollout)
@@ -185,7 +189,7 @@ func TestSeedConfigInheritsStoredSecretsAndTemplate(t *testing.T) {
 
 	// The spec omits api_key and carries template_id "tpl-1"; only api_key
 	// is inherited silently — the template change must still update.
-	action, err := svc.SeedConfig(context.Background(), 7, seedCubeSpec("Seed Cube"))
+	action, _, err := svc.SeedConfig(context.Background(), 7, seedCubeSpec("Seed Cube"))
 	require.NoError(t, err)
 	require.Equal(t, seedActionUpdate, action)
 	require.Equal(t, "stored-secret", repo.updated.Config.Cube.APIKey)
@@ -199,8 +203,83 @@ func TestSeedConfigInheritsStoredSecretsAndTemplate(t *testing.T) {
 	repo.entity.Config = stored
 	unchanged := seedCubeSpec("Seed Cube")
 	unchanged.Cube.TemplateID = "tpl-resolved"
-	action, err = svc.SeedConfig(context.Background(), 7, unchanged)
+	action, _, err = svc.SeedConfig(context.Background(), 7, unchanged)
 	require.NoError(t, err)
 	require.Equal(t, seedActionNone, action)
 	require.NotContains(t, repo.events, "write")
+}
+
+// fakeSeedAgentRepo backs the agent-binding tests: agents live in a map,
+// and every write is recorded so idempotency can be asserted.
+type fakeSeedAgentRepo struct {
+	agents map[string]*types.CustomAgent
+	events []string
+}
+
+func (f *fakeSeedAgentRepo) GetAgentByID(
+	_ context.Context, id string, _ uint64,
+) (*types.CustomAgent, error) {
+	if a, ok := f.agents[id]; ok {
+		return a, nil
+	}
+	return nil, repository.ErrCustomAgentNotFound
+}
+
+func (f *fakeSeedAgentRepo) ListAgentsByTenantID(
+	context.Context, uint64,
+) ([]*types.CustomAgent, error) {
+	var out []*types.CustomAgent
+	for _, a := range f.agents {
+		out = append(out, a)
+	}
+	return out, nil
+}
+
+func (f *fakeSeedAgentRepo) CreateAgent(_ context.Context, a *types.CustomAgent) error {
+	f.events = append(f.events, "create:"+a.ID)
+	f.agents[a.ID] = a
+	return nil
+}
+
+func (f *fakeSeedAgentRepo) UpdateAgent(_ context.Context, a *types.CustomAgent) error {
+	f.events = append(f.events, "update:"+a.ID)
+	f.agents[a.ID] = a
+	return nil
+}
+
+func TestBindSeedAgents(t *testing.T) {
+	repo := &fakeSeedAgentRepo{agents: map[string]*types.CustomAgent{
+		"custom-1": {ID: "custom-1", Name: "测试助手", TenantID: 7,
+			Config: types.CustomAgentConfig{}},
+	}}
+	// Stand in for a registry-loaded built-in agent; the YAML loader does
+	// not run in unit tests, so seed the factory directly.
+	types.BuiltinAgentRegistry["builtin-seedtest"] = func(tid uint64) *types.CustomAgent {
+		return &types.CustomAgent{ID: "builtin-seedtest", Name: "Coding Assistant",
+			TenantID: tid, IsBuiltin: true, Config: types.CustomAgentConfig{}}
+	}
+	defer delete(types.BuiltinAgentRegistry, "builtin-seedtest")
+
+	ctx := context.Background()
+	bindSeedAgents(ctx, repo, 7, "生产Cube", "cfg-a",
+		[]string{"custom-1", "builtin-seedtest", "ghost-agent"})
+
+	// Existing agent bound by id.
+	require.Equal(t, "cfg-a", repo.agents["custom-1"].Config.SandboxConfigID)
+	// Built-in without a row yet: materialized with the binding, like the UI save.
+	require.Equal(t, "cfg-a", repo.agents["builtin-seedtest"].Config.SandboxConfigID)
+	require.Contains(t, repo.events, "create:builtin-seedtest")
+	// Unknown ref: skipped with a warning, no write, no panic. The name
+	// lookup path is covered by binding "测试助手" below.
+	require.NotContains(t, repo.events, "create:ghost-agent")
+
+	// Rebinding the same cards writes nothing for already-bound agents.
+	repo.events = nil
+	bindSeedAgents(ctx, repo, 7, "生产Cube", "cfg-a", []string{"custom-1", "builtin-seedtest"})
+	require.Empty(t, repo.events)
+
+	// Name match finds a custom agent; a re-point writes an update.
+	bindSeedAgents(ctx, repo, 7, "生产Cube", "cfg-b", []string{"测试助手"})
+	require.Equal(t, "cfg-b", repo.agents["custom-1"].Config.SandboxConfigID)
+	require.Contains(t, repo.events, "update:custom-1")
 }
