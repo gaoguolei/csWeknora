@@ -131,8 +131,9 @@ type KBModelConfigRequest struct {
 	StorageProvider  string `json:"storageProvider"`
 	StorageBackendID string `json:"storageBackendId"`
 
-	// 知识图谱配置
-	NodeExtract struct {
+	// 知识图谱配置。指针类型让「请求里省略该块」区别于「显式传空」：
+	// 省略时保持存量图谱配置不变，避免普通成员保存基本信息时被误清。
+	NodeExtract *struct {
 		Enabled            bool                  `json:"enabled"`
 		Text               string                `json:"text"`
 		Tags               []string              `json:"tags"`
