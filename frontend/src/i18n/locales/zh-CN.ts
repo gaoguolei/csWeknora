@@ -4471,6 +4471,8 @@ export default {
     autoSaved: "已自动保存",
     saved: "平台知识库默认配置已保存",
     saveFailed: "保存平台知识库默认配置失败",
+    faqTitle: "FAQ 设置",
+    faqHint: "问答型知识库的索引策略，仅对问答类型知识库生效。",
     sections: {
       models: "默认模型",
       modelsDesc: "新建知识库时自动引用的摘要与嵌入模型。",
@@ -7311,6 +7313,11 @@ export default {
       desc: "你当前的角色无权访问此设置项。请联系本空间的管理员获取所需角色。",
     },
     capabilityUnavailable: "当前部署不支持此功能，已返回可用页面。",
+    scopes: {
+      personal: "个人设置",
+      platform: "平台设置",
+      system: "系统管理",
+    },
     navGroups: {
       account: "账户",
       workspace: "空间",

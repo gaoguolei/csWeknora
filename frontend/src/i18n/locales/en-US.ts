@@ -2311,6 +2311,11 @@ export default {
     },
     capabilityUnavailable:
       "This feature is not supported by the current deployment. You have been returned to an available page.",
+    scopes: {
+      personal: "Personal",
+      platform: "Platform",
+      system: "System Administration",
+    },
     weknoraCloud: {
       title: "WeKnora Cloud",
       description:
@@ -3728,6 +3733,9 @@ export default {
     autoSaved: "Auto-saved",
     saved: "Platform knowledge base defaults saved",
     saveFailed: "Failed to save platform knowledge base defaults",
+    faqTitle: "FAQ Settings",
+    faqHint:
+      "Index strategy for FAQ knowledge bases; applies to FAQ-type knowledge bases only.",
     sections: {
       models: "Default Models",
       modelsDesc:

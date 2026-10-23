@@ -449,9 +449,10 @@ func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c *gin.Context) {
 	}
 
 	// Fill the configuration blocks the KB editor no longer exposes (models,
-	// chunking, image, audio, graph, advanced) from the platform defaults a
-	// super admin manages under Settings -> 知识库设置. Only unset fields are
-	// touched, so API/MCP clients that still send explicit config win.
+	// chunking, image, audio, graph, advanced — plus the FAQ index strategy for
+	// FAQ-type KBs) from the platform defaults a super admin manages under
+	// Settings -> 知识库设置. Only unset fields are touched, so API/MCP clients
+	// that still send explicit config win.
 	h.applyKBPlatformDefaults(ctx, &req)
 
 	logger.Infof(ctx, "Creating knowledge base, name: %s", secutils.SanitizeForLog(req.Name))
@@ -499,7 +500,54 @@ func (h *KnowledgeBaseHandler) applyKBPlatformDefaults(ctx context.Context, kb *
 	if err != nil {
 		return
 	}
-	types.ParseKBDefaultsConfig(raw).ApplyTo(kb)
+	cfg := types.ParseKBDefaultsConfig(raw)
+	h.pruneForeignPlatformBindings(ctx, cfg)
+	cfg.ApplyTo(kb)
+}
+
+// pruneForeignPlatformBindings drops the tenant-scoped resource bindings
+// (storage backend / vector store) that the caller's workspace cannot resolve.
+//
+// The platform default document is shared by every workspace, but the concrete
+// instances it names live in the workspace the operations admin configured it
+// from. Copying such an ID into a KB created elsewhere makes the tenant-scoped
+// resolvers reject the whole create request ("storage backend is unavailable" /
+// "vector store is currently unavailable"), so those callers fall back to their
+// own workspace default instead. The provider projection is kept: it names a
+// storage *type*, and every workspace resolves its own instance of that type.
+func (h *KnowledgeBaseHandler) pruneForeignPlatformBindings(ctx context.Context, cfg *types.KBDefaultsConfig) {
+	if cfg == nil {
+		return
+	}
+	tenant, _ := types.TenantInfoFromContext(ctx)
+	if h.storageResolver != nil && cfg.StorageBackendID != nil && strings.TrimSpace(*cfg.StorageBackendID) != "" {
+		backend, err := h.storageResolver.ResolveBackend(ctx, tenant, *cfg.StorageBackendID, "")
+		if err != nil || backend == nil {
+			logger.Infof(ctx,
+				"[kb.create] platform default storage backend %s is not available in workspace %d; falling back to the workspace default",
+				secutils.SanitizeForLog(*cfg.StorageBackendID), tenantIDOf(tenant))
+			cfg.StorageBackendID = nil
+		}
+	}
+	if h.vectorStoreService != nil && tenant != nil &&
+		cfg.VectorStoreID != nil && strings.TrimSpace(*cfg.VectorStoreID) != "" {
+		view, err := h.vectorStoreService.ResolveStoreView(ctx, tenant.ID, *cfg.VectorStoreID)
+		if err != nil || view.Source == types.StoreSourceUnavailable {
+			logger.Infof(ctx,
+				"[kb.create] platform default vector store %s is not available in workspace %d; falling back to the workspace default",
+				secutils.SanitizeForLog(*cfg.VectorStoreID), tenant.ID)
+			cfg.VectorStoreID = nil
+		}
+	}
+}
+
+// tenantIDOf returns the workspace id of a tenant for log fields, or 0 when
+// the tenant is missing.
+func tenantIDOf(tenant *types.Tenant) uint64 {
+	if tenant == nil {
+		return 0
+	}
+	return tenant.ID
 }
 
 // validateAndGetKnowledgeBase validates request parameters and retrieves the knowledge base.

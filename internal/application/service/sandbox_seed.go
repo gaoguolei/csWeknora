@@ -26,11 +26,13 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/Tencent/WeKnora/internal/application/repository"
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/sandbox"
 	"github.com/Tencent/WeKnora/internal/types"
@@ -67,6 +69,24 @@ type SandboxSeedSpec struct {
 	AllowPrivateEndpoints     bool                        `json:"allow_private_endpoints,omitempty"`
 	DefaultTimeoutSec         int                         `json:"default_timeout_sec,omitempty"`
 	TerminalIdleDisconnectSec int                         `json:"terminal_idle_disconnect_sec,omitempty"`
+
+	// SkillRollout is the wizard step-3 choice "技能镜像如何生效":
+	// "new_session" keeps live sandboxes on the previous image, "next_turn"
+	// (also the empty default) rebuilds them. Empty means "unset": the merge
+	// in SanitizeSandboxConfig carries over whatever the row already stores,
+	// so a seed that stays silent never resets a UI-made choice.
+	SkillRollout string `json:"skill_rollout,omitempty"`
+
+	// BindAgents points named agents at this config after it is seeded —
+	// the wizard-free equivalent of picking a card under
+	// "agent editor → skills → runtime sandbox". Entries are agent ids
+	// (preferred, e.g. "builtin-coding-assistant") or exact display names.
+	// Like the card itself, the env is the source of truth: every restart
+	// re-points the listed agents, so a manual unbind in the UI comes back
+	// on the next boot. Agents that do not exist in the workspace are
+	// skipped with a warning; built-in ids not yet customized are
+	// materialized with the binding, mirroring what the UI save does.
+	BindAgents []string `json:"bind_agents,omitempty"`
 }
 
 // toConfig converts the spec into the stored payload shape.
@@ -78,6 +98,7 @@ func (s SandboxSeedSpec) toConfig() *types.TenantSandboxConfig {
 		AllowPrivateEndpoints:     s.AllowPrivateEndpoints,
 		EnvVars:                   s.EnvVars,
 		Network:                   s.Network,
+		SkillRollout:              strings.TrimSpace(s.SkillRollout),
 		Cube:                      s.Cube,
 		E2B:                       s.E2B,
 		Docker:                    s.Docker,
@@ -125,12 +146,22 @@ func parseSandboxSeedTenantsEnv() (map[uint64]bool, error) {
 	return scope, nil
 }
 
+// SandboxSeedAgentRepo is the minimal agent-repository surface the seed
+// binding needs; satisfied by interfaces.CustomAgentRepository.
+type SandboxSeedAgentRepo interface {
+	GetAgentByID(ctx context.Context, id string, tenantID uint64) (*types.CustomAgent, error)
+	ListAgentsByTenantID(ctx context.Context, tenantID uint64) ([]*types.CustomAgent, error)
+	CreateAgent(ctx context.Context, agent *types.CustomAgent) error
+	UpdateAgent(ctx context.Context, agent *types.CustomAgent) error
+}
+
 // ApplySandboxSeedFromEnv upserts every (tenant, spec) pair. It never
 // returns an error: seeding is a startup convenience, not a boot gate.
 func ApplySandboxSeedFromEnv(
 	ctx context.Context,
 	svc *TenantSandboxConfigService,
 	tenantSvc interfaces.TenantService,
+	agentRepo SandboxSeedAgentRepo,
 ) {
 	specs, err := ParseSandboxSeedEnv()
 	if err != nil {
@@ -155,31 +186,40 @@ func ApplySandboxSeedFromEnv(
 			continue
 		}
 		for _, spec := range specs {
-			action, err := svc.SeedConfig(ctx, t.ID, spec)
+			action, configID, err := svc.SeedConfig(ctx, t.ID, spec)
 			switch {
 			case err != nil:
 				logger.Warnf(ctx,
 					"[sandbox-seed] workspace %d: %s of config %q failed (will retry next restart): %v",
 					t.ID, action, spec.Name, err)
+				continue
 			case action != seedActionNone:
 				logger.Infof(ctx,
 					"[sandbox-seed] workspace %d: %sd sandbox config %q",
 					t.ID, action, spec.Name)
+			}
+			// Bind even on a noop card: the operator may have re-chosen the
+			// agent's sandbox in the UI since the last boot, and the env is
+			// the declared source of truth for listed agents.
+			if configID != "" && len(spec.BindAgents) > 0 {
+				bindSeedAgents(ctx, agentRepo, t.ID, spec.Name, configID, spec.BindAgents)
 			}
 		}
 	}
 }
 
 // SeedConfig upserts one env-declared card for one workspace. Match key is
-// the card name; the row id stays whatever the first create assigned.
+// the card name; the row id stays whatever the first create assigned. The
+// returned configID is the row's id on every path (create, update and noop),
+// which is what the agent binding needs to re-point at a stable id.
 func (s *TenantSandboxConfigService) SeedConfig(
 	ctx context.Context, tenantID uint64, spec SandboxSeedSpec,
-) (string, error) {
+) (string, string, error) {
 	incoming := spec.toConfig()
 
 	list, err := s.repo.ListByTenant(ctx, tenantID)
 	if err != nil {
-		return seedActionCreate, fmt.Errorf("list configs: %w", err)
+		return seedActionCreate, "", fmt.Errorf("list configs: %w", err)
 	}
 	var existing *types.TenantSandboxConfigEntity
 	for _, e := range list {
@@ -210,12 +250,13 @@ func (s *TenantSandboxConfigService) SeedConfig(
 	}
 
 	if existing == nil {
-		if _, err := s.Create(ctx, tenantID, CreateSandboxConfigInput{
+		created, err := s.Create(ctx, tenantID, CreateSandboxConfigInput{
 			Name: spec.Name, Description: spec.Description, Config: incoming,
-		}); err != nil {
-			return seedActionCreate, err
+		})
+		if err != nil {
+			return seedActionCreate, "", err
 		}
-		return seedActionCreate, nil
+		return seedActionCreate, created.ID, nil
 	}
 
 	// Compare what the seed controls against what is stored, after the same
@@ -223,17 +264,101 @@ func (s *TenantSandboxConfigService) SeedConfig(
 	// (nil vs empty slice) would trigger a rewrite on every restart.
 	merged, err := SanitizeSandboxConfig(incoming, existing.Config)
 	if err != nil {
-		return seedActionUpdate, err
+		return seedActionUpdate, existing.ID, err
 	}
 	if seedViewOf(merged) == seedViewOf(existing.Config) {
-		return seedActionNone, nil
+		return seedActionNone, existing.ID, nil
 	}
 	if _, err := s.Update(ctx, tenantID, existing.ID, UpdateSandboxConfigInput{
 		Name: spec.Name, Description: spec.Description, Config: incoming,
 	}); err != nil {
-		return seedActionUpdate, err
+		return seedActionUpdate, existing.ID, err
 	}
-	return seedActionUpdate, nil
+	return seedActionUpdate, existing.ID, nil
+}
+
+// bindSeedAgents re-points the listed agents at configID. Per-agent
+// failures only warn: a renamed or deleted agent must not stop the card
+// itself from being seeded, and the next boot retries.
+func bindSeedAgents(
+	ctx context.Context,
+	repo SandboxSeedAgentRepo,
+	tenantID uint64,
+	configName string,
+	configID string,
+	refs []string,
+) {
+	for _, raw := range refs {
+		ref := strings.TrimSpace(raw)
+		if ref == "" {
+			continue
+		}
+		if err := bindOneAgent(ctx, repo, tenantID, configID, ref); err != nil {
+			logger.Warnf(ctx,
+				"[sandbox-seed] workspace %d: bind agent %q to config %q failed: %v",
+				tenantID, ref, configName, err)
+		} else {
+			logger.Infof(ctx,
+				"[sandbox-seed] workspace %d: agent %q runs sandbox config %q",
+				tenantID, ref, configName)
+		}
+	}
+}
+
+func bindOneAgent(
+	ctx context.Context,
+	repo SandboxSeedAgentRepo,
+	tenantID uint64,
+	configID string,
+	ref string,
+) error {
+	agent, err := repo.GetAgentByID(ctx, ref, tenantID)
+	if err != nil || agent == nil {
+		if types.IsBuiltinAgentID(ref) {
+			// Built-in ids have no DB row until a user first saves them; a
+			// lookup miss is expected here and materialization below is the
+			// point. Any other error is real and must not be swallowed.
+			if err != nil && !errors.Is(err, repository.ErrCustomAgentNotFound) {
+				return err
+			}
+			agent = nil
+		} else {
+			// Not an id this workspace knows — try an exact display-name match,
+			// which is how operators refer to their own custom agents.
+			agent = nil
+			if list, lerr := repo.ListAgentsByTenantID(ctx, tenantID); lerr == nil {
+				for _, a := range list {
+					if a != nil && strings.TrimSpace(a.Name) == ref {
+						agent = a
+						break
+					}
+				}
+			}
+			if agent == nil {
+				return fmt.Errorf("agent %q not found in workspace %d", ref, tenantID)
+			}
+		}
+	}
+
+	if agent == nil {
+		// A built-in id with no per-tenant row yet: materialize it from the
+		// registry defaults with the binding set, exactly what the UI does on
+		// the first save of a built-in agent's config.
+		def := types.GetBuiltinAgent(ref, tenantID)
+		if def == nil {
+			return fmt.Errorf("unknown built-in agent id %q", ref)
+		}
+		def.Config.SandboxConfigID = configID
+		return repo.CreateAgent(ctx, def)
+	}
+
+	// Config is a value struct on CustomAgent, so no nil guard exists — the
+	// binding is the only field this path touches.
+	if agent.Config.SandboxConfigID == configID {
+		return nil // already bound; steady-state restart writes nothing
+	}
+	agent.Config.SandboxConfigID = configID
+	return repo.UpdateAgent(ctx, agent)
 }
 
 // inheritUnseededFields carries stored values into the seed payload for
@@ -307,6 +432,7 @@ type sandboxSeedView struct {
 	AllowPrivateEndpoints     bool                        `json:"allow_private_endpoints"`
 	DefaultTimeoutSec         int                         `json:"default_timeout_sec"`
 	TerminalIdleDisconnectSec int                         `json:"terminal_idle_disconnect_sec"`
+	SkillRollout              string                      `json:"skill_rollout"`
 	Cube                      *types.CubeSandboxConfig    `json:"cube,omitempty"`
 	E2B                       *types.E2BSandboxConfig     `json:"e2b,omitempty"`
 	Docker                    *types.DockerSandboxConfig  `json:"docker,omitempty"`
@@ -323,6 +449,7 @@ func seedViewOf(c *types.TenantSandboxConfig) string {
 		AllowPrivateEndpoints:     c.AllowPrivateEndpoints,
 		DefaultTimeoutSec:         c.DefaultTimeoutSec,
 		TerminalIdleDisconnectSec: c.TerminalIdleDisconnectSec,
+		SkillRollout:              strings.TrimSpace(c.SkillRollout),
 		Cube:                      c.Cube,
 		E2B:                       c.E2B,
 		Docker:                    c.Docker,

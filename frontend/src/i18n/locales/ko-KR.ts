@@ -4659,6 +4659,8 @@ export default {
     autoSaved: "자동 저장됨",
     saved: "플랫폼 지식베이스 기본값이 저장되었습니다",
     saveFailed: "플랫폼 지식베이스 기본값 저장에 실패했습니다",
+    faqTitle: "FAQ 설정",
+    faqHint: "FAQ 유형 지식베이스에만 적용되는 인덱싱 전략입니다.",
     sections: {
       models: "기본 모델",
       modelsDesc: "지식베이스 생성 시 자동으로 참조되는 요약·임베딩 모델.",
@@ -7648,6 +7650,11 @@ export default {
     },
     capabilityUnavailable:
       "현재 배포에서는 이 기능을 지원하지 않습니다. 사용 가능한 페이지로 돌아갔습니다.",
+    scopes: {
+      personal: "개인 설정",
+      platform: "플랫폼 설정",
+      system: "시스템 관리",
+    },
     navGroups: {
       account: "계정",
       workspace: "공간",

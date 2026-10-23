@@ -89,8 +89,8 @@ func runStartupBootstrap(c *dig.Container) {
 	// shows up in "Settings -> sandbox configs" after a restart with no
 	// wizard clicking. Idempotent on (tenant, name) and best-effort; see
 	// ApplySandboxSeedFromEnv.
-	if err := c.Invoke(func(svc *service.TenantSandboxConfigService, tenantSvc interfaces.TenantService) {
-		service.ApplySandboxSeedFromEnv(ctx, svc, tenantSvc)
+	if err := c.Invoke(func(svc *service.TenantSandboxConfigService, tenantSvc interfaces.TenantService, agents interfaces.CustomAgentRepository) {
+		service.ApplySandboxSeedFromEnv(ctx, svc, tenantSvc, agents)
 	}); err != nil {
 		logger.Warnf(ctx, "[bootstrap] failed to resolve services for sandbox seeding: %v", err)
 	}

@@ -2334,6 +2334,11 @@ export default {
     },
     capabilityUnavailable:
       "この機能は現在のデプロイでは利用できません。利用可能なページに戻りました。",
+    scopes: {
+      personal: "個人設定",
+      platform: "プラットフォーム",
+      system: "システム管理",
+    },
     weknoraCloud: {
       title: "WeKnora Cloud",
       description:
@@ -3767,6 +3772,9 @@ export default {
     autoSaved: "自動保存しました",
     saved: "プラットフォームのナレッジベース既定値を保存しました",
     saveFailed: "プラットフォームのナレッジベース既定値の保存に失敗しました",
+    faqTitle: "FAQ 設定",
+    faqHint:
+      "FAQ タイプのナレッジベースに適用されるインデックス戦略です。",
     sections: {
       models: "既定モデル",
       modelsDesc: "ナレッジベース作成時に自動参照される要約・埋め込みモデル。",

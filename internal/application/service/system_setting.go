@@ -182,7 +182,8 @@ var registry = map[string]settingSpec{
 	// knowledge_base.default_config is the platform-wide default knowledge-base
 	// configuration a super admin manages under Settings -> 知识库设置. It holds
 	// the fields reclaimed from the per-KB editor: default models (B),
-	// chunking (E), image (F), audio (G), knowledge graph (H) and advanced (I).
+	// chunking (E), image (F), audio (G), knowledge graph (H) and advanced (I),
+	// plus the FAQ index strategy shown under the advanced block.
 	// Read on every KB creation to fill unset fields (see types.KBDefaultsConfig.
 	// ApplyTo). Vector store / parser / storage engines are NOT here — they are
 	// operations-admin system-level settings resolved elsewhere. Empty string =

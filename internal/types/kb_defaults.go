@@ -22,6 +22,7 @@ const KBDefaultsKey = "knowledge_base.default_config"
 //	G 音频处理    -> ASRConfig
 //	H 知识图谱    -> ExtractConfig
 //	I 高级设置    -> QuestionGenerationConfig / AutoTagConfig / ProfileConfig
+//	I 高级设置下的 FAQ 设置 -> FAQConfig（问答型知识库的索引策略）
 //
 // Vector store (C), parser engine (D) and storage engine (J) are NOT here —
 // they are operations-admin system-level concerns already provisioned on their
@@ -52,6 +53,10 @@ type KBDefaultsConfig struct {
 	QuestionGenerationConfig *QuestionGenerationConfig   `json:"question_generation_config,omitempty"`
 	AutoTagConfig            *AutoTagConfig              `json:"auto_tag_config,omitempty"`
 	ProfileConfig            *KnowledgeBaseProfileConfig `json:"profile_config,omitempty"`
+
+	// I (FAQ 设置): index strategy for FAQ-type knowledge bases. Lives under
+	// the advanced block in the settings UI and only applies to type=faq KBs.
+	FAQConfig *FAQConfig `json:"faq_config,omitempty"`
 
 	// C/J: operations-admin platform defaults for the vector-store binding and
 	// the storage backend/provider selection. Applied only when the create
@@ -97,8 +102,8 @@ func ParseKBDefaultsConfig(raw string) *KBDefaultsConfig {
 // platform default only acts as the source of truth for the fields the UI no
 // longer exposes.
 //
-// FAQ knowledge bases only inherit the model defaults (they have no
-// chunking / graph / image pipeline).
+// FAQ knowledge bases only inherit the model defaults and the FAQ index-mode
+// defaults (they have no chunking / graph / image pipeline).
 func (d *KBDefaultsConfig) ApplyTo(kb *KnowledgeBase) {
 	if d == nil || kb == nil {
 		return
@@ -112,8 +117,23 @@ func (d *KBDefaultsConfig) ApplyTo(kb *KnowledgeBase) {
 		kb.EmbeddingModelID = d.EmbeddingModelID
 	}
 
-	// FAQ stops here: no splitting / image / audio / graph / advanced.
+	// FAQ stops here: no splitting / image / audio / graph / advanced. The FAQ
+	// index strategy itself is a platform default too — fill only what the
+	// caller left unset so an explicit request still wins.
 	if kb.Type != KnowledgeBaseTypeDocument {
+		if kb.Type == KnowledgeBaseTypeFAQ && d.FAQConfig != nil {
+			if kb.FAQConfig == nil {
+				cfg := *d.FAQConfig
+				kb.FAQConfig = &cfg
+			} else {
+				if kb.FAQConfig.IndexMode == "" {
+					kb.FAQConfig.IndexMode = d.FAQConfig.IndexMode
+				}
+				if kb.FAQConfig.QuestionIndexMode == "" {
+					kb.FAQConfig.QuestionIndexMode = d.FAQConfig.QuestionIndexMode
+				}
+			}
+		}
 		return
 	}
 

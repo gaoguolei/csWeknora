@@ -4162,6 +4162,8 @@ export default {
     "autoSaved": "已自動儲存",
     "saved": "平台知識庫預設配置已儲存",
     "saveFailed": "儲存平台知識庫預設配置失敗",
+    "faqTitle": "FAQ 設定",
+    "faqHint": "問答型知識庫的索引策略，僅對問答類型知識庫生效。",
     "sections": {
       "models": "預設模型",
       "modelsDesc": "新建知識庫時自動引用的摘要與嵌入模型。",
@@ -6710,6 +6712,11 @@ export default {
       "desc": "你當前的角色無權存取此設定項。請聯絡本空間的管理員獲取所需角色。"
     },
     "capabilityUnavailable": "當前部署不支持此功能，已返回可用頁面。",
+    "scopes": {
+      "personal": "個人設定",
+      "platform": "平台設定",
+      "system": "系統管理"
+    },
     "navGroups": {
       "account": "帳戶",
       "workspace": "空間",
