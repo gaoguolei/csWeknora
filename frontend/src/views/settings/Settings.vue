@@ -755,7 +755,7 @@ const navGroups = computed<NavGroup[]>(() => {
     keys.map((key) => itemMap.get(key)).filter(Boolean) as NavItem[];
   const groups: NavGroup[] = [
     // 个人设置：自己账号与自己空间的东西。账户（外观、账号资料、我的记忆）+ 空间
-    // （空间信息、成员管理、消息管理、长期记忆）都归这里。
+    // （空间信息、成员管理、消息管理）都归这里。
     {
       scope: "personal",
       key: "account",
@@ -766,16 +766,17 @@ const navGroups = computed<NavGroup[]>(() => {
       scope: "personal",
       key: "workspace",
       label: t("settings.navGroups.workspace"),
-      items: pickItems(["tenant", "members", "chathistory", "memory"]),
+      items: pickItems(["tenant", "members", "chathistory"]),
     },
-    // 平台设置：模型 → 知识库配置 → 智能体配置 → 发布集成。
-    // 引擎、沙箱、技能、MCP、网络搜索这类基础设施与平台运行 / 审计页面单独提升为
-    // 「系统管理」块，不再堆在平台设置里。
+    // 平台设置：模型 → 知识库配置 → 智能体配置 → 发布集成。长期记忆是平台级
+    // 配置（memory.global_config），紧跟在模型管理之后。
+    // 引擎、沙箱、技能、MCP、网络搜索这类基础设施与平台运行 / 审计页面、以及
+    // 部署层面的 Ollama 服务，统一归「系统管理」块。
     {
       scope: "platform",
       key: "models_runtime",
       label: t("settings.navGroups.modelsRuntime"),
-      items: pickItems(["models", "ollama", "weknoracloud"]),
+      items: pickItems(["models", "memory", "weknoracloud"]),
     },
     {
       scope: "platform",
@@ -816,6 +817,7 @@ const navGroups = computed<NavGroup[]>(() => {
         "system-global",
         "system",
         "model-catalog",
+        "ollama",
         "runtime-queues",
         "platform-api-keys",
         "system-audit-log",
