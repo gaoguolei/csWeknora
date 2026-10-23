@@ -5,11 +5,37 @@
     overlay-class="all-settings-overlay"
     @close="modalShell.requestClose"
   >
+    <!-- 导航按「个人设置 / 平台设置 / 系统管理」分块，块标题可点击折叠；块内再按
+         功能分组。收起后只保留块标题，其分组标题与条目一并隐藏。 -->
     <template #nav>
       <template v-for="group in navGroups" :key="group.key">
-        <div class="nav-group-title">{{ group.label }}</div>
+        <div
+          v-if="group.scopeTitle"
+          class="nav-scope-header"
+          role="button"
+          tabindex="0"
+          :aria-expanded="!isScopeCollapsed(group.scope)"
+          @click="toggleScope(group.scope)"
+          @keydown.enter.prevent="toggleScope(group.scope)"
+          @keydown.space.prevent="toggleScope(group.scope)"
+        >
+          <span class="nav-scope-title">{{ group.scopeTitle }}</span>
+          <t-icon
+            :name="
+              isScopeCollapsed(group.scope) ? 'chevron-right' : 'chevron-down'
+            "
+            class="scope-expand-icon"
+          />
+        </div>
+        <div
+          v-if="group.label && !isScopeCollapsed(group.scope)"
+          class="nav-group-title"
+        >
+          {{ group.label }}
+        </div>
         <template v-for="item in group.items" :key="item.key">
           <div
+            v-if="!isScopeCollapsed(group.scope)"
             role="button"
             tabindex="0"
             :aria-current="currentSection === item.key ? 'page' : undefined"
@@ -155,7 +181,11 @@
           <!-- 子菜单 -->
           <Transition name="submenu">
             <div
-              v-if="item.children && expandedMenus.includes(item.key)"
+              v-if="
+                item.children &&
+                expandedMenus.includes(item.key) &&
+                !isScopeCollapsed(group.scope)
+              "
               class="submenu"
             >
               <div
@@ -461,10 +491,17 @@ type NavItem = {
   children?: Array<{ key: string; label: string }>;
 };
 
+// 导航的分块：个人设置 / 平台设置 / 系统管理
+type SettingsScopeKey = "personal" | "platform" | "system";
+
 type NavGroup = {
   key: string;
   label: string;
   items: NavItem[];
+  /** 所属外层分块：导航平铺在同一列表里，仅用于插入块标题 */
+  scope: SettingsScopeKey;
+  /** 块标题文案：仅在该分块的第一个可见分组上赋值，其余为空 */
+  scopeTitle?: string;
 };
 
 // 设置二级导航的最低可见角色来自 settingsAccess.ts，和
@@ -709,46 +746,51 @@ const navItems = computed(() => {
   );
 });
 
+// 设置项分两层展示：先按「个人设置 / 平台设置」分块，块内再按功能分组，全部平铺
+// 在同一个导航列表里滚动，不做顶部切换。作用域只影响标题和排序，入口可见性仍由
+// navItems（settingsAccess.ts 的角色矩阵）决定。
 const navGroups = computed<NavGroup[]>(() => {
   const itemMap = new Map(navItems.value.map((item) => [item.key, item]));
   const pickItems = (keys: string[]) =>
     keys.map((key) => itemMap.get(key)).filter(Boolean) as NavItem[];
-  // 分组：账户 → 空间 → 模型 → 发布集成 → 数据与扩展 → 系统管理 → 平台
-  // 关键调整：把个人偏好(general)和用户信息收进「账户」；
-  // 把空间内功能开关(chathistory)从「平台」挪到「空间」；
-  // 把检索引擎和外部集成合并为「数据与扩展」，避免两个 2~3 项的窄分组。
-  return [
+  const groups: NavGroup[] = [
+    // 个人设置：自己账号与自己空间的东西。账户（外观、账号资料、我的记忆）+ 空间
+    // （空间信息、成员管理、消息管理、长期记忆）都归这里。
     {
+      scope: "personal",
       key: "account",
       label: t("settings.navGroups.account"),
-      items: pickItems([
-        "general",
-        "userprofile",
-        "mymemory",
-        "envvars",
-      ]),
+      items: pickItems(["general", "userprofile", "mymemory"]),
     },
     {
+      scope: "personal",
       key: "workspace",
       label: t("settings.navGroups.workspace"),
       items: pickItems(["tenant", "members", "chathistory", "memory"]),
     },
+    // 平台设置：模型 → 知识库配置 → 智能体配置 → 发布集成。
+    // 引擎、沙箱、技能、MCP、网络搜索这类基础设施与平台运行 / 审计页面单独提升为
+    // 「系统管理」块，不再堆在平台设置里。
     {
+      scope: "platform",
       key: "models_runtime",
       label: t("settings.navGroups.modelsRuntime"),
       items: pickItems(["models", "ollama", "weknoracloud"]),
     },
     {
+      scope: "platform",
       key: "kbconfig",
       label: t("kbDefaults.navGroup"),
       items: pickItems(KB_DEFAULTS_SUBSECTIONS.map((s) => s.key)),
     },
     {
+      scope: "platform",
       key: "agentconfig",
       label: t("agentDefaults.navGroup"),
       items: pickItems(AGENT_DEFAULTS_SUBSECTIONS.map((s) => s.key)),
     },
     {
+      scope: "platform",
       key: "integrations",
       label: t("integrations.title"),
       items: pickItems(
@@ -757,9 +799,11 @@ const navGroups = computed<NavGroup[]>(() => {
         ),
       ),
     },
+    // 系统管理：整个块直接以条目列表展示，不再叠一层分组标题。
     {
-      key: "data_extensions",
-      label: t("settings.navGroups.dataExtensions"),
+      scope: "system",
+      key: "system_administration",
+      label: "",
       items: pickItems([
         "vectorstore",
         "parser",
@@ -768,26 +812,56 @@ const navGroups = computed<NavGroup[]>(() => {
         "skills",
         "websearch",
         "mcp",
-      ]),
-    },
-    {
-      key: "system_administration",
-      label: t("settings.navGroups.systemAdministration"),
-      items: pickItems([
+        "envvars",
         "system-global",
+        "system",
         "model-catalog",
         "runtime-queues",
         "platform-api-keys",
         "system-audit-log",
       ]),
     },
-    {
-      key: "platform",
-      label: t("settings.navGroups.platform"),
-      items: pickItems(["system"]),
-    },
-  ].filter((group) => group.items.length > 0);
+  ];
+  // 过滤后为空的分组（角色 / 部署能力不允许）不渲染；作用域标题只在它的第一个
+  // 可见分组前出现一次，避免个人设置全部不可见时留下空标题。
+  const visible = groups.filter((group) => group.items.length > 0);
+  return visible.map((group, index) => ({
+    ...group,
+    scopeTitle:
+      index === 0 || visible[index - 1].scope !== group.scope
+        ? t(`settings.scopes.${group.scope}`)
+        : "",
+  }));
 });
+
+// 三个分块（个人设置 / 平台设置 / 系统管理）默认全部展开，点标题收起/展开。
+// 收起后只保留块标题，分组标题与条目一并隐藏，长列表能快速收拢。
+const collapsedScopes = ref<SettingsScopeKey[]>([]);
+const isScopeCollapsed = (scope: SettingsScopeKey) =>
+  collapsedScopes.value.includes(scope);
+const toggleScope = (scope: SettingsScopeKey) => {
+  const index = collapsedScopes.value.indexOf(scope);
+  if (index > -1) {
+    collapsedScopes.value.splice(index, 1);
+  } else {
+    collapsedScopes.value.push(scope);
+  }
+};
+
+// 深链 / 头像菜单 / 工具箱快捷进入时，若目标分区所在分块正收起着，自动展开，
+// 避免“已经在这一页，导航里却看不到入口”。
+watch(
+  [currentSection, navGroups],
+  ([section]) => {
+    const scope = navGroups.value.find((group) =>
+      group.items.some((item) => item.key === section),
+    )?.scope;
+    if (scope && isScopeCollapsed(scope)) {
+      toggleScope(scope);
+    }
+  },
+  { immediate: true },
+);
 
 // 导航项点击处理
 const handleNavClick = (item: any) => {
@@ -1031,6 +1105,60 @@ onUnmounted(() => {
 /* 弹窗容器 */
 /* 关闭按钮 */
 /* 左侧导航栏：略紧凑于最初版，字号与留白适中 */
+/* 分块标题：个人设置 / 平台设置 / 系统管理。整行可点击收起/展开，比分组标题
+   （.nav-group-title）高一级：分块标题 → 分组标题 → 导航项。 */
+.nav-scope-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 6px 2px 0;
+  padding: 9px 12px;
+  border-radius: var(--app-radius-md);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--app-motion-base) ease;
+
+  &:hover {
+    background-color: var(--td-bg-color-container-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--app-focus-border);
+    outline-offset: -2px;
+  }
+}
+
+.nav-scope-title {
+  color: var(--td-text-color-primary);
+  font-size: var(--app-text-md);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.scope-expand-icon {
+  flex-shrink: 0;
+  font-size: var(--app-text-base);
+  color: var(--td-text-color-placeholder);
+}
+
+.settings-nav > .nav-scope-header:first-child {
+  margin-top: 0;
+}
+
+/* 分块标题紧后接的分组标题不再重复上边距，保持两级之间的层级感。 */
+.nav-scope-header + .nav-group-title {
+  padding-top: 2px;
+}
+
+@media (max-width: 720px) {
+  /* 移动端侧栏是横向 chip 列表，分块标题保留为可点的 chip 作为分节标记。 */
+  .nav-scope-header {
+    margin: 0;
+    padding: 4px 8px;
+  }
+}
+
 .expand-icon {
   margin-left: 4px;
   font-size: var(--app-text-base);

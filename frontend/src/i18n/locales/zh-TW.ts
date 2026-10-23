@@ -6706,6 +6706,11 @@ export default {
       "desc": "你當前的角色無權存取此設定項。請聯絡本空間的管理員獲取所需角色。"
     },
     "capabilityUnavailable": "當前部署不支持此功能，已返回可用頁面。",
+    "scopes": {
+      "personal": "個人設定",
+      "platform": "平台設定",
+      "system": "系統管理"
+    },
     "navGroups": {
       "account": "帳戶",
       "workspace": "空間",

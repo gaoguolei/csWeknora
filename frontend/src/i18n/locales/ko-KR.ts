@@ -7644,6 +7644,11 @@ export default {
     },
     capabilityUnavailable:
       "현재 배포에서는 이 기능을 지원하지 않습니다. 사용 가능한 페이지로 돌아갔습니다.",
+    scopes: {
+      personal: "개인 설정",
+      platform: "플랫폼 설정",
+      system: "시스템 관리",
+    },
     navGroups: {
       account: "계정",
       workspace: "공간",

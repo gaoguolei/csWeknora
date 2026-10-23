@@ -11,13 +11,23 @@ import { integrationSectionKey } from '../../config/settingsRoute'
 const source = readFileSync(new URL('./Settings.vue', import.meta.url), 'utf8')
 const script = source.match(/<script setup lang="ts">([\s\S]*?)<\/script>/)![1]!
 const ast = ts.createSourceFile('Settings.ts', script, ts.ScriptTarget.Latest, true)
-const grouping = ast.statements.find((statement) =>
-  ts.isVariableStatement(statement) && statement.declarationList.declarations.some(
-    (declaration) => ts.isIdentifier(declaration.name) && declaration.name.text === 'navGroups',
-  ),
-)
+// The sidebar is one flat list split into「个人设置 / 平台设置 / 系统管理」sections:
+// `navGroups` builds the grouped layout and stamps each section title onto its first
+// visible group (the title doubles as the collapse toggle). Transpile it so the
+// grouping stays assertable without mounting the panels.
+const grouping = ast.statements
+  .filter((statement) =>
+    ts.isVariableStatement(statement) &&
+    statement.declarationList.declarations.some(
+      (declaration) =>
+        ts.isIdentifier(declaration.name) &&
+        declaration.name.text === 'navGroups',
+    ),
+  )
+  .map((statement) => statement.getText(ast))
+  .join('\n')
 assert.ok(grouping, 'Settings must define sidebar groups')
-const compiled = ts.transpileModule(grouping.getText(ast), {
+const compiled = ts.transpileModule(grouping, {
   compilerOptions: { target: ts.ScriptTarget.ES2022 },
 }).outputText
 
@@ -28,6 +38,10 @@ function integrationMenu(visibleKeys: string[]): string[] {
     t: (key: string) => key,
     integrationSectionKey,
     INTEGRATION_PREVIEW_ITEMS,
+    // KB / agent default sub-sections have their own access tests; they are
+    // irrelevant here and only need to exist for the layout to evaluate.
+    KB_DEFAULTS_SUBSECTIONS: [],
+    AGENT_DEFAULTS_SUBSECTIONS: [],
   }) as Array<{ key: string; items: Array<{ key: string }> }>
   const integrationGroup = groups.find((group) => group.key === 'integrations')
   return Array.from(integrationGroup?.items ?? [], (item) => item.key)

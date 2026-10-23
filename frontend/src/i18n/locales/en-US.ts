@@ -2311,6 +2311,11 @@ export default {
     },
     capabilityUnavailable:
       "This feature is not supported by the current deployment. You have been returned to an available page.",
+    scopes: {
+      personal: "Personal",
+      platform: "Platform",
+      system: "System Administration",
+    },
     weknoraCloud: {
       title: "WeKnora Cloud",
       description:

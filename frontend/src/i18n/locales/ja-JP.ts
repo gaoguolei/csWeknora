@@ -2334,6 +2334,11 @@ export default {
     },
     capabilityUnavailable:
       "この機能は現在のデプロイでは利用できません。利用可能なページに戻りました。",
+    scopes: {
+      personal: "個人設定",
+      platform: "プラットフォーム",
+      system: "システム管理",
+    },
     weknoraCloud: {
       title: "WeKnora Cloud",
       description:
