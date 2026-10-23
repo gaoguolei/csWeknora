@@ -720,6 +720,22 @@ type ExtractConfig struct {
 	CustomInstructions string `yaml:"custom_instructions,omitempty" json:"custom_instructions,omitempty"`
 }
 
+// IsComplete reports whether the config carries everything the graph extractor
+// needs to run. The platform default editor autosaves as soon as the toggle
+// flips, so an enabled-but-empty config is a half-finished edit: copying it
+// into a new KB bypasses validateExtractConfig (platform defaults are applied
+// after validation) and then every later save of that KB would fail with
+// "text cannot be empty".
+func (e *ExtractConfig) IsComplete() bool {
+	if e == nil {
+		return false
+	}
+	return strings.TrimSpace(e.Text) != "" &&
+		len(e.Tags) > 0 &&
+		len(e.Nodes) > 0 &&
+		len(e.Relations) > 0
+}
+
 // Value implements the driver.Valuer interface, used to convert ExtractConfig to database value
 func (e ExtractConfig) Value() (driver.Value, error) {
 	return json.Marshal(e)

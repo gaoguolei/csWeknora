@@ -37,7 +37,13 @@ func TestKBDefaultsApplyToFillsEmptyFields(t *testing.T) {
 		ChunkingConfig:           &ChunkingConfig{ChunkSize: 1000, ChunkOverlap: 150},
 		VLMConfig:                &VLMConfig{Enabled: true, ModelID: "vllm-1"},
 		ASRConfig:                &ASRConfig{Enabled: true, ModelID: "asr-1"},
-		ExtractConfig:            &ExtractConfig{Enabled: true},
+		ExtractConfig: &ExtractConfig{
+			Enabled:   true,
+			Text:      "extract entities and relations",
+			Tags:      []string{"person"},
+			Nodes:     []*GraphNode{{Name: "person"}},
+			Relations: []*GraphRelation{{Node1: "person", Node2: "org", Type: "works_at"}},
+		},
 		QuestionGenerationConfig: &QuestionGenerationConfig{Enabled: true, QuestionCount: 5},
 		AutoTagConfig:            &AutoTagConfig{Enabled: true},
 		ProfileConfig:            &KnowledgeBaseProfileConfig{Enabled: true},
@@ -59,6 +65,45 @@ func TestKBDefaultsApplyToFillsEmptyFields(t *testing.T) {
 	assert.Equal(t, 5, kb.QuestionGenerationConfig.QuestionCount)
 	assert.NotNil(t, kb.AutoTagConfig)
 	assert.NotNil(t, kb.ProfileConfig)
+}
+
+func TestKBDefaultsSkipIncompleteExtractConfig(t *testing.T) {
+	// The platform settings page autosaves as soon as the graph toggle flips, so
+	// a stored default can be enabled with no content yet. Copying that
+	// half-finished edit into a new KB would pass creation (defaults are applied
+	// after validation) and then fail every later save with "text cannot be
+	// empty", so it is treated as unconfigured.
+	cfg := &KBDefaultsConfig{ExtractConfig: &ExtractConfig{Enabled: true}}
+	kb := &KnowledgeBase{Type: KnowledgeBaseTypeDocument}
+	cfg.ApplyTo(kb)
+	assert.Nil(t, kb.ExtractConfig, "incomplete enabled graph config must not be inherited")
+
+	// A disabled default is a complete instruction and still applies.
+	disabled := &KBDefaultsConfig{ExtractConfig: &ExtractConfig{Enabled: false}}
+	kb2 := &KnowledgeBase{Type: KnowledgeBaseTypeDocument}
+	disabled.ApplyTo(kb2)
+	require.NotNil(t, kb2.ExtractConfig)
+	assert.False(t, kb2.ExtractConfig.Enabled)
+}
+
+func TestExtractConfigIsComplete(t *testing.T) {
+	var nilCfg *ExtractConfig
+	assert.False(t, nilCfg.IsComplete())
+	assert.False(t, (&ExtractConfig{Enabled: true}).IsComplete())
+	assert.False(t, (&ExtractConfig{
+		Enabled:   true,
+		Text:      "extract",
+		Tags:      []string{"person"},
+		Nodes:     []*GraphNode{{Name: "person"}},
+		Relations: nil,
+	}).IsComplete())
+	assert.True(t, (&ExtractConfig{
+		Enabled:   true,
+		Text:      "extract",
+		Tags:      []string{"person"},
+		Nodes:     []*GraphNode{{Name: "person"}},
+		Relations: []*GraphRelation{{Node1: "person", Node2: "org", Type: "works_at"}},
+	}).IsComplete())
 }
 
 func TestKBDefaultsApplyToPreservesExplicitValues(t *testing.T) {

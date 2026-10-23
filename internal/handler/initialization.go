@@ -202,19 +202,16 @@ type InitializationRequest struct {
 		Separators   []string `json:"separators" binding:"required,min=1"`
 	} `json:"documentSplitting" binding:"required"`
 
-	NodeExtract struct {
-		Enabled bool     `json:"enabled"`
-		Text    string   `json:"text"`
-		Tags    []string `json:"tags"`
-		Nodes   []struct {
-			Name       string   `json:"name"`
-			Attributes []string `json:"attributes"`
-		} `json:"nodes"`
-		Relations []struct {
-			Node1 string `json:"node1"`
-			Node2 string `json:"node2"`
-			Type  string `json:"type"`
-		} `json:"relations"`
+	// NodeExtract is a pointer so an omitted block means "leave the stored
+	// graph config unchanged". Members who cannot see the graph section save
+	// the rest of the KB settings without touching (or being blocked by) it.
+	NodeExtract *struct {
+		Enabled            bool                  `json:"enabled"`
+		Text               string                `json:"text"`
+		Tags               []string              `json:"tags"`
+		Nodes              []types.GraphNode     `json:"nodes"`
+		Relations          []types.GraphRelation `json:"relations"`
+		CustomInstructions string                `json:"customInstructions"`
 	} `json:"nodeExtract"`
 
 	QuestionGeneration struct {
@@ -386,35 +383,38 @@ func (h *InitializationHandler) UpdateKBConfig(c *gin.Context) {
 		return
 	}
 
-	// 更新知识图谱配置
-	if req.NodeExtract.Enabled {
-		// 转换 Nodes 和 Relations 为指针类型
-		nodes := make([]*types.GraphNode, len(req.NodeExtract.Nodes))
-		for i := range req.NodeExtract.Nodes {
-			nodes[i] = &req.NodeExtract.Nodes[i]
-		}
-		relations := make([]*types.GraphRelation, len(req.NodeExtract.Relations))
-		for i := range req.NodeExtract.Relations {
-			relations[i] = &req.NodeExtract.Relations[i]
-		}
+	// 更新知识图谱配置。nodeExtract 缺省表示「保持不变」：图谱分区只对
+	// 超管/运营管理员可见，普通成员保存基本信息时不应因存量图谱配置而失败。
+	if req.NodeExtract != nil {
+		if req.NodeExtract.Enabled {
+			// 转换 Nodes 和 Relations 为指针类型
+			nodes := make([]*types.GraphNode, len(req.NodeExtract.Nodes))
+			for i := range req.NodeExtract.Nodes {
+				nodes[i] = &req.NodeExtract.Nodes[i]
+			}
+			relations := make([]*types.GraphRelation, len(req.NodeExtract.Relations))
+			for i := range req.NodeExtract.Relations {
+				relations[i] = &req.NodeExtract.Relations[i]
+			}
 
-		kb.ExtractConfig = &types.ExtractConfig{
-			Enabled:            req.NodeExtract.Enabled,
-			Text:               req.NodeExtract.Text,
-			Tags:               req.NodeExtract.Tags,
-			Nodes:              nodes,
-			Relations:          relations,
-			CustomInstructions: strings.TrimSpace(req.NodeExtract.CustomInstructions),
+			kb.ExtractConfig = &types.ExtractConfig{
+				Enabled:            req.NodeExtract.Enabled,
+				Text:               req.NodeExtract.Text,
+				Tags:               req.NodeExtract.Tags,
+				Nodes:              nodes,
+				Relations:          relations,
+				CustomInstructions: strings.TrimSpace(req.NodeExtract.CustomInstructions),
+			}
+		} else if kb.ExtractConfig != nil {
+			kb.ExtractConfig.Enabled = false
+		} else {
+			kb.ExtractConfig = &types.ExtractConfig{Enabled: false}
 		}
-	} else if kb.ExtractConfig != nil {
-		kb.ExtractConfig.Enabled = false
-	} else {
-		kb.ExtractConfig = &types.ExtractConfig{Enabled: false}
-	}
-	if err := validateExtractConfig(kb.ExtractConfig); err != nil {
-		logger.Error(ctx, "Invalid extract configuration", err)
-		c.Error(err)
-		return
+		if err := validateExtractConfig(kb.ExtractConfig); err != nil {
+			logger.Error(ctx, "Invalid extract configuration", err)
+			c.Error(err)
+			return
+		}
 	}
 
 	// 更新问题生成配置

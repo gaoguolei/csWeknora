@@ -1476,6 +1476,21 @@ const validateForm = (): boolean => {
       currentSection.value = 'multimodal'
       return false
     }
+
+    // 图谱启用时必须完整，否则后端会以 "text cannot be empty" 拒绝整次保存。
+    // 这种半成品配置通常来自平台默认值（开关已开、内容未填）。
+    const graph = formData.value.nodeExtractConfig
+    if (
+      graph.enabled &&
+      (!graph.text.trim() ||
+        graph.tags.length === 0 ||
+        graph.nodes.length === 0 ||
+        graph.relations.length === 0)
+    ) {
+      MessagePlugin.warning(t('knowledgeEditor.messages.graphIncomplete'))
+      currentSection.value = 'graph'
+      return false
+    }
   }
 
   // 新建模式不再收集 FAQ 索引策略（改由平台「知识库设置」默认值提供），
@@ -1803,18 +1818,24 @@ const doSubmit = async () => {
         },
         storageBackendId: formData.value?.storageBackendId || '',
         storageProvider: data.storage_provider_config?.provider || data.storage_config?.provider || 'local',
-        nodeExtract: {
+        questionGeneration: {
+          enabled: data.question_generation_config?.enabled || false,
+          questionCount: data.question_generation_config?.question_count || 3,
+          customInstructions: data.question_generation_config?.custom_instructions || ''
+        }
+      }
+
+      // 图谱分区只对平台管理员可见。普通成员不发送 nodeExtract（后端按
+      // 「保持不变」处理），否则存量的不完整图谱配置会让整次保存失败，
+      // 而他们又看不到也无法修复该分区。
+      if (canEditPlatform.value) {
+        config.nodeExtract = {
           enabled: data.extract_config?.enabled || false,
           text: data.extract_config?.text || '',
           tags: data.extract_config?.tags || [],
           nodes: data.extract_config?.nodes || [],
           relations: data.extract_config?.relations || [],
           customInstructions: data.extract_config?.custom_instructions || ''
-        },
-        questionGeneration: {
-          enabled: data.question_generation_config?.enabled || false,
-          questionCount: data.question_generation_config?.question_count || 3,
-          customInstructions: data.question_generation_config?.custom_instructions || ''
         }
       }
 

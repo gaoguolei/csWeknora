@@ -4859,6 +4859,8 @@ export default {
       nameRequired: "请输入知识库名称",
       summaryRequired: "请选择 Summary 模型",
       multimodalInvalid: "多模态配置验证失败",
+      graphIncomplete:
+        "知识图谱已启用，请补全提取要求、标签、节点与关系，或关闭「启用实体关系提取」",
       createSuccess: "已创建知识库",
       createFailed: "创建知识库失败",
       missingId: "缺少知识库 ID",

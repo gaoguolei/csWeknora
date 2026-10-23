@@ -165,9 +165,15 @@ func (d *KBDefaultsConfig) ApplyTo(kb *KnowledgeBase) {
 		kb.ASRConfig = *d.ASRConfig
 	}
 
-	// H: knowledge graph.
+	// H: knowledge graph. The platform editor autosaves the moment the toggle
+	// flips, so an enabled-but-empty document is a half-finished edit rather
+	// than an instruction. Copying it would create KBs that pass creation
+	// (defaults are applied after validation) but then reject every later save
+	// with "text cannot be empty", so only complete configs are applied.
 	if kb.ExtractConfig == nil && d.ExtractConfig != nil {
-		kb.ExtractConfig = d.ExtractConfig
+		if !d.ExtractConfig.Enabled || d.ExtractConfig.IsComplete() {
+			kb.ExtractConfig = d.ExtractConfig
+		}
 	}
 
 	// I: advanced (pointer fields — nil means "not supplied").

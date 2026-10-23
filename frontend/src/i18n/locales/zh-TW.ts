@@ -4484,6 +4484,8 @@ export default {
       "nameRequired": "請輸入知識庫名稱",
       "summaryRequired": "請選擇 Summary 模型",
       "multimodalInvalid": "多模態設定驗證失敗",
+      "graphIncomplete":
+        "知識圖譜已啟用，請補全提取要求、標籤、節點與關係，或關閉「啟用實體關係提取」",
       "createSuccess": "已建立知識庫",
       "createFailed": "建立知識庫失敗",
       "missingId": "缺少知識庫 ID",

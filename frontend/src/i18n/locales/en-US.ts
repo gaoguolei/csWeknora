@@ -4359,6 +4359,8 @@ export default {
       nameRequired: "Please enter the knowledge base name",
       summaryRequired: "Please select a summary model",
       multimodalInvalid: "Multimodal configuration validation failed",
+      graphIncomplete:
+        "Knowledge graph is enabled. Fill in the extraction instructions, tags, nodes and relations, or turn off entity-relation extraction.",
       createSuccess: "Knowledge base created successfully",
       createFailed: "Failed to create knowledge base",
       missingId: "Knowledge base ID is missing",

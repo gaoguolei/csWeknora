@@ -4392,6 +4392,8 @@ export default {
       nameRequired: "ナレッジベース名を入力してください",
       summaryRequired: "要約モデルを選択してください",
       multimodalInvalid: "マルチモーダル設定の検証に失敗しました",
+      graphIncomplete:
+        "ナレッジグラフが有効です。抽出指示・タグ・ノード・関係を入力するか、エンティティ関係の抽出をオフにしてください。",
       createSuccess: "ナレッジベースを作成しました",
       createFailed: "ナレッジベースの作成に失敗しました",
       missingId: "ナレッジベースIDがありません",

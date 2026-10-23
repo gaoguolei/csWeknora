@@ -149,7 +149,9 @@ export interface KBModelConfigRequest {
     /** 存储引擎选择："local" | "minio" | "cos" | "obs" 等，影响文档上传与文档内图片存储 */
     storageBackendId?: string
     storageProvider?: string
-    nodeExtract: {
+    // 图谱分区只对平台管理员可见：普通成员不发送该字段，后端按「保持不变」
+    // 处理，避免存量图谱配置阻塞其它设置的保存。
+    nodeExtract?: {
         enabled: boolean
         text: string
         tags: string[]

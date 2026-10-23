@@ -5057,6 +5057,8 @@ export default {
       nameRequired: "지식베이스 이름을 입력해주세요",
       summaryRequired: "Summary 모델을 선택해주세요",
       multimodalInvalid: "멀티모달 설정 검증 실패",
+      graphIncomplete:
+        "지식 그래프가 활성화되어 있습니다. 추출 지침, 태그, 노드 및 관계를 입력하거나 엔터티-관계 추출을 끄세요.",
       createSuccess: "지식베이스 생성 성공",
       createFailed: "지식베이스 생성 실패",
       missingId: "지식베이스 ID가 없습니다",
