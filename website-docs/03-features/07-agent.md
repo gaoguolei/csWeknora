@@ -598,17 +598,17 @@ sequenceDiagram
 
 MCP 工具审批由 `internal/agent/approval/gate.go` 实现。
 
-**审批范围**：审批门（`approval.MCPApproval`）**只接入 MCP 工具**——`MCPTool.Execute`（`internal/agent/tools/mcp_tool.go`）在真正调用 MCP 服务前询问 `gate.NeedsApproval(tenantID, serviceID, toolName)`；内置工具不走审批。哪些 MCP 工具需要审批由 `Checker`（DB 中的 `MCPToolApprovalService`，经 `approval.Adapter` 适配）按租户+服务+工具名判定。
+**审批范围**：「帮我批准」模式保留 MCP 服务的强制审批策略，由 `Checker`（`MCPToolApprovalService` 经 `approval.Adapter` 适配）按租户、服务和工具名判定。「请求批准」模式还会在命令执行、代码运行、文件修改和 MCP 调用前等待人工批准；读取和搜索直接进行。
 
 **Fail-close 默认**：`NeedsApproval` 的检查器出错时默认**要求审批**（对 HITL 特性更安全）；可用环境变量 `WEKNORA_AGENT_TOOL_APPROVAL_FAIL_OPEN=true` 恢复旧的放行行为。
 
 **审批流程**（`RequestAndWait`）：
 
 1. 生成 `pendingID`（UUID），把 waiter 挂入内存 map；
-2. 通过 EventBus 发射 `EventToolApprovalRequired`（携带服务名、MCP 工具名、参数 JSON、超时秒数、tool_call_id 等），前端弹出审批卡片；
-3. 阻塞等待三者之一：用户 `Resolve`、超时（默认 **10 分钟**，`cfg.Agent.ToolApprovalTimeoutSeconds` 可配）、请求 ctx 取消；结果统一以 `EventToolApprovalResolved` 通知 UI；
+2. 通过 EventBus 发射 `EventToolApprovalRequired`（携带服务名、MCP 工具名、参数 JSON、`timeout_seconds: 0`（不设到期时间）、tool_call_id 等），前端弹出审批卡片；
+3. 不设超时，阻塞等待用户 `Resolve` 或请求 ctx 取消；结果统一以 `EventToolApprovalResolved` 通知 UI；
 4. `Decision` 支持 `Approved`、`Reason`，以及 `ModifiedArgs`——用户可在批准时**修改工具参数**，MCPTool 会用修改后的参数重新解析执行；
-5. 拒绝/超时/取消都会作为工具失败结果返回给 LLM（而非中断整个 Agent）。
+5. 拒绝或取消都会作为工具失败结果返回给 LLM（而非中断整个 Agent）。
 
 **长等待与超时的配合**：普通工具执行有 60s 超时，但审批可能等更久。引擎在 `ToolExecContext.ApprovalCtx` 中传入**不含** per-tool 超时的轮级 ctx 供审批等待使用；批准后 MCPTool 再从 `ApprovalCtx` 派生一个全新的执行超时窗口，避免审批耗尽预算导致刚批准就超时。
 

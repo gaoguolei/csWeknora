@@ -122,6 +122,7 @@ export const useSettingsStore = defineStore("settings", {
     _isApplyingSessionState: false,
     // Session-only preference: never written into global settings/localStorage.
     reasoningEffortOverride: '' as ReasoningLevel | '',
+    toolApprovalMode: 'auto' as 'auto' | 'manual',
   }),
 
   getters: {
@@ -508,6 +509,7 @@ export const useSettingsStore = defineStore("settings", {
 
     // 还原默认（如果有快照），用于离开会话或跨会话切换时。
     restoreDefaultsIfSnapshotted() {
+      this.toolApprovalMode = 'auto';
       this.reasoningEffortOverride = '';
       if (!this._defaultsSnapshot) return;
       this.settings = this._defaultsSnapshot;
@@ -532,6 +534,7 @@ export const useSettingsStore = defineStore("settings", {
       this._isApplyingSessionState = true;
       try {
         this.reasoningEffortOverride = isReasoningLevel(state.reasoning_effort) ? state.reasoning_effort : '';
+        this.toolApprovalMode = state.tool_approval_mode === 'manual' ? 'manual' : 'auto';
         if (typeof state.agent_enabled === "boolean") {
           this.settings.isAgentEnabled = state.agent_enabled;
         }
@@ -624,6 +627,7 @@ export const useSettingsStore = defineStore("settings", {
 // 后端 sessions.last_request_state JSON 形状（与 SessionLastRequestState 对齐）。
 // 字段全部可选——历史会话或新建会话首发前的请求没有这条记录。
 export interface SessionLastRequestStatePayload {
+  tool_approval_mode?: 'auto' | 'manual';
   reasoning_effort?: string;
   agent_id?: string;
   agent_source_tenant_id?: string | number;

@@ -19,15 +19,18 @@ import (
 )
 
 type proxyApprovalGate struct {
-	request  approval.PendingRequest
-	reject   bool
-	disabled bool
+	request   approval.PendingRequest
+	reject    bool
+	disabled  bool
+	automatic bool
 }
 
 func (g *proxyApprovalGate) IsEnabled(context.Context, uint64, string, string) (bool, error) {
 	return !g.disabled, nil
 }
-func (*proxyApprovalGate) NeedsApproval(context.Context, uint64, string, string) bool { return true }
+func (g *proxyApprovalGate) NeedsApproval(context.Context, uint64, string, string) bool {
+	return !g.automatic
+}
 
 func (g *proxyApprovalGate) RequestAndWait(
 	_ context.Context,
@@ -152,6 +155,15 @@ func TestMCPProxyHTTPApprovalArgumentsAndImages(t *testing.T) {
 	require.False(t, result.Success)
 	require.Contains(t, result.Error, "rejected by test user")
 	require.Equal(t, int32(2), calls.Load())
+	// A per-turn manual policy also gates a normally automatic MCP tool.
+	gate.automatic = true
+	meta, _ := ToolExecFromContext(ctx)
+	meta.RequireApproval = true
+	gate.request = approval.PendingRequest{}
+	result = invoke(`{"count":2}`)
+	require.False(t, result.Success)
+	require.NotEmpty(t, gate.request.ToolCallID)
+	require.Equal(t, int32(2), calls.Load(), "rejected manual approval must not reach the server")
 	gate.disabled = true
 	result = invoke(`{"count":2}`)
 	require.False(t, result.Success)

@@ -2183,6 +2183,12 @@ export default {
       skipFailed: "건너뛰기 실패, 다시 시도하세요",
     },
     toolApproval: {
+      modeLabel: "권한",
+      autoMode: "자동 승인",
+      manualMode: "승인 요청",
+      autoModeDescription: "작업을 자동으로 실행합니다. 필수 MCP 승인은 계속 적용됩니다.",
+      manualModeDescription: "명령 실행, 파일 수정 및 MCP 도구 호출 전에 아래에서 승인을 기다립니다.",
+
       waiting: "승인 대기 · {target}",
       waitingStatus: "승인 대기",
       targetWithTool: "{service} › {tool}",

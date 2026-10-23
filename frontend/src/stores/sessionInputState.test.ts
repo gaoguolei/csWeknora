@@ -190,3 +190,14 @@ test('missing session state and first-send hydration preserve the current draft 
   assert.equal(JSON.stringify(store.settings), draft)
   assert.equal(store._defaultsSnapshot, null)
 })
+
+test('approval preference survives session restoration without leaking to other sessions', () => {
+  const store = useSettingsStore(createPinia())
+  assert.equal(store.toolApprovalMode, 'auto')
+  store.hydrateSessionInputState({ tool_approval_mode: 'manual' })
+  assert.equal(store.toolApprovalMode, 'manual')
+  store.restoreDefaultsIfSnapshotted()
+  assert.equal(store.toolApprovalMode, 'auto')
+  store.hydrateSessionInputState({})
+  assert.equal(store.toolApprovalMode, 'auto', 'older sessions keep the compatible default')
+})

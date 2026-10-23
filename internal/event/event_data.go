@@ -270,7 +270,7 @@ type ToolApprovalRequiredData struct {
 	Description        string      `json:"description"`
 	Args               interface{} `json:"args,omitempty"`
 	ArgsJSON           string      `json:"args_json,omitempty"`
-	TimeoutSeconds     int         `json:"timeout_seconds"`
+	TimeoutSeconds     int         `json:"timeout_seconds"` // Always 0: human tool approvals do not expire.
 	RequestedAtUnix    int64       `json:"requested_at"`
 	ToolCallID         string      `json:"tool_call_id"`
 	RequestID          string      `json:"request_id,omitempty"`

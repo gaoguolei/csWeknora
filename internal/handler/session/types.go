@@ -88,7 +88,8 @@ type CreateKnowledgeQARequest struct {
 	QuestionOrigin *types.QuestionOrigin `json:"question_origin,omitempty"`
 
 	// ReasoningEffort overrides thinking for this request; empty inherits the agent configuration.
-	ReasoningEffort string `json:"reasoning_effort,omitempty"`
+	ReasoningEffort  string                 `json:"reasoning_effort,omitempty"`
+	ToolApprovalMode types.ToolApprovalMode `json:"tool_approval_mode,omitempty"`
 }
 
 // AttachmentUpload represents a file attachment upload from the client

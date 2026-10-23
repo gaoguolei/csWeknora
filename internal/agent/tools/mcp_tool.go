@@ -170,13 +170,16 @@ func (t *MCPTool) Execute(ctx context.Context, args json.RawMessage) (*types.Too
 	// the exec metadata; read it once here so the OAuth prompt still works
 	// for tools that require approval.
 	execMeta, _ := ToolExecFromContext(ctx)
+	if execMeta != nil && execMeta.RequireApproval && (t.gate == nil || execMeta.EventBus == nil) {
+		return &types.ToolResult{Success: false, Error: "manual tool approval is unavailable; execution blocked"}, nil
+	}
 	callWindowDerived := false
 
 	// Human approval gate for dangerous tools (issue #1173)
 	if t.gate != nil {
 		if meta := execMeta; meta != nil && meta.EventBus != nil {
 			tenantID, _ := types.TenantIDFromContext(ctx)
-			if t.gate.NeedsApproval(ctx, tenantID, t.service.ID, t.mcpTool.Name) {
+			if meta.RequireApproval || t.gate.NeedsApproval(ctx, tenantID, t.service.ID, t.mcpTool.Name) {
 				// Use ApprovalCtx (round-level ctx WITHOUT defaultToolExecTimeout) so
 				// human approval can legitimately wait longer than the per-tool 60s.
 				// User-stop / request cancel still propagates because ApprovalCtx is a
@@ -186,7 +189,7 @@ func (t *MCPTool) Execute(ctx context.Context, args json.RawMessage) (*types.Too
 					waitCtx = meta.ApprovalCtx
 				}
 				decision, waitErr := t.gate.RequestAndWait(waitCtx, approval.PendingRequest{
-					TenantID:           tenantID,
+					TenantID:           types.CallerFromContext(ctx).TenantID,
 					UserID:             meta.UserID,
 					SessionID:          meta.SessionID,
 					AssistantMessageID: meta.AssistantMessageID,

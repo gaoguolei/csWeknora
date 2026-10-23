@@ -34,6 +34,7 @@ import { useOrganizationStore } from '@/stores/organization'
 import KnowledgeBaseSelector from './KnowledgeBaseSelector.vue'
 import MentionSelector from './MentionSelector.vue'
 import AgentSelector from './AgentSelector.vue'
+import ToolApprovalModeSelector from './ToolApprovalModeSelector.vue'
 import { getCaretCoordinates } from '@/utils/caret'
 import { getRootZoom, rectToCssPx, cssViewportSize } from '@/utils/zoom'
 import { type ModelConfig } from '@/api/model'
@@ -3683,6 +3684,8 @@ defineExpose({
               </svg>
             </button>
           </t-tooltip>
+
+          <ToolApprovalModeSelector v-if="!embeddedMode && isAgentEnabled" :disabled="composerLocked || isReplying" />
 
           <!-- 模型显示 -->
           <t-tooltip

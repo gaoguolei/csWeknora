@@ -563,6 +563,7 @@ func (e *AgentEngine) runToolCall(
 		}
 	}
 	toolExecCtx := agenttools.WithToolExecContext(toolCtx, &agenttools.ToolExecContext{
+		RequireApproval:    e.config.ToolApprovalMode == types.ToolApprovalManual,
 		SessionID:          sessionID,
 		AssistantMessageID: assistantMessageID,
 		EventBus:           e.eventBus,
@@ -582,14 +583,22 @@ func (e *AgentEngine) runToolCall(
 		// never reach persistence, an external service, or a routing decision.
 		err = fmt.Errorf("tool arguments contain unresolved model handles: %v", tc.UnresolvedHandles)
 	} else {
-		execCtx, toolCancel := context.WithTimeout(toolExecCtx, execTimeout)
-		result, err = e.toolRegistry.ExecuteTool(
-			execCtx, tc.Function.Name,
-			json.RawMessage(tc.Function.Arguments),
-		)
-		toolCancel()
+		var approvedArgs json.RawMessage
+		approvedArgs, err = e.approveBuiltinTool(toolExecCtx, tc.Function.Name, json.RawMessage(tc.Function.Arguments))
 		if err == nil {
-			e.describeToolImages(toolCtx, result)
+			// Record the same arguments that the human approved and the tool executes.
+			tc.Function.Arguments = string(approvedArgs)
+			args = nil
+			_ = json.Unmarshal(approvedArgs, &args)
+			execCtx, toolCancel := context.WithTimeout(toolExecCtx, execTimeout)
+			result, err = e.toolRegistry.ExecuteTool(
+				execCtx, tc.Function.Name,
+				json.RawMessage(tc.Function.Arguments),
+			)
+			toolCancel()
+			if err == nil {
+				e.describeToolImages(toolCtx, result)
+			}
 		}
 	}
 	duration := time.Since(toolCallStartTime).Milliseconds()

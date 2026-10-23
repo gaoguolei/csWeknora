@@ -11,7 +11,7 @@
           :name="collapsed ? 'chevron-right' : 'chevron-down'"
           size="13px"
         />
-        <t-icon name="history" size="14px" />
+        <t-icon name="history" size="14px" />   
         <span>{{ t("workspace.commitHistory") }}</span>
         <span v-if="report?.commits.length" class="git-history__count">{{
           report.commits.length

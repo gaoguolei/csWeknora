@@ -354,6 +354,7 @@ Handler: `internal/handler/session/qa.go`。API key：聊天需 `chat`/full；`k
 | `agent_id` | string | 否 | 自定义 Agent ID |
 | `agent_source_tenant_id` | uint64 | 否 | 共享智能体的来源空间，同名共享智能体来自多个空间时用于区分 |
 | `reasoning_effort` | string | 否 | 本轮思考强度：`off`、`auto`、`minimal`、`low`、`medium`、`high`、`xhigh`、`max`（`none`/`false` 视为 `off`，`true`/`on` 视为 `auto`）；省略时沿用智能体配置。只作用于本轮，不修改智能体；模型不支持所选档位时自动调整到相近档位。非法值返回 400 |
+| `tool_approval_mode` | string | 否 | 本轮工具审批模式：`auto`（帮我批准，默认）或 `manual`（请求批准）。人工模式下命令、代码执行、写入和 MCP 调用需等待授权，人工审核不设超时，可通过停止生成取消等待；读取和搜索直接进行。自动模式仍保留 MCP 强制审批。非法值返回 400 |
 | `web_search_enabled` | bool | 否 | 联网搜索；只在智能体本身开启联网搜索时生效 |
 | `local_browser_enabled` | bool | 否 | 本轮允许使用已连接的本机浏览器；只能用于智能推理智能体的 `agent-chat`，否则返回 400。见[本机浏览器](../05-clients/09-local-browser.md) |
 | `summary_model_id` | string | 否 | 总结模型；使用共享智能体时忽略，始终使用智能体配置的模型 |
@@ -369,7 +370,7 @@ Handler: `internal/handler/session/qa.go`。API key：聊天需 `chat`/full；`k
 | `suggestion_attribution` | object | 否 | 点击建议的归因信息 |
 | `question_origin` | object | 否 | 用户点选的建议问题来自哪里：`knowledge_base_id`、可选 `knowledge_id`。仅智能推理模式使用，智能体会先检索该来源；来源不在本轮检索范围内时忽略，不会扩大范围 |
 
-所选 `reasoning_effort` 会写入会话的 `last_request_state.reasoning_effort`，重新打开会话时前端据此恢复。
+所选 `reasoning_effort` 和 `tool_approval_mode` 会写入会话的 `last_request_state` 对应字段，重新打开会话时前端据此恢复。
 
 响应：200 SSE 流，`event: message` + `data: StreamResponse`（见总览），以 `complete` 事件结束。回答因模型单次输出上限被截断时，`answer` 事件带 `data.truncated: true`，截断前已生成的内容照常保留。
 

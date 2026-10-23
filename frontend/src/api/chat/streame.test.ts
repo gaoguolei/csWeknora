@@ -80,3 +80,20 @@ for (const selected of [true, false, undefined]) {
     } finally { stream.stopStream() }
   })
 }
+
+for (const mode of [undefined, 'auto', 'manual'] as const) {
+  test(`SSE body carries tool approval mode: ${mode}`, async () => {
+    let stream!: ReturnType<typeof useStream>
+    await renderToString(createSSRApp({ setup() { stream = useStream(); return () => null } }))
+    try {
+      await stream.startStream({
+        session_id: 'session', query: 'question', method: 'POST', url: '/api/v1/agent-chat',
+        tool_approval_mode: mode,
+      })
+      assert.equal(stream.error.value, null)
+      const body = JSON.parse(transport.requests.at(-1)!.options.body)
+      assert.equal(body.tool_approval_mode, mode)
+      assert.equal(Object.hasOwn(body, 'tool_approval_mode'), mode !== undefined)
+    } finally { stream.stopStream() }
+  })
+}

@@ -261,6 +261,7 @@ func (s *agentService) CreateAgentEngine(
 		systemPromptTemplate,
 	)
 	engine.SetAppConfig(s.cfg)
+	engine.SetToolApprovalGate(s.toolApprovalGate)
 	pinnedMCP := s.resolvePinnedMCPServiceInfos(ctx, config)
 	s.attachPinnedMCPToolNames(toolRegistry, pinnedMCP)
 	engine.SetPinnedMentions(

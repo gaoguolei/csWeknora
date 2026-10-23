@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Tencent/WeKnora/internal/agent/approval"
 	"github.com/Tencent/WeKnora/internal/agent/compaction"
 	"github.com/Tencent/WeKnora/internal/agent/skills"
 	agenttoken "github.com/Tencent/WeKnora/internal/agent/token"
@@ -35,6 +36,7 @@ const langfuseQueryPreview = 2000
 // engine therefore does not maintain its own cache, system-prompt store, or
 // cross-turn buffer.
 type AgentEngine struct {
+	toolApprovalGate     approval.MCPApproval
 	config               *types.AgentConfig
 	toolRegistry         *agenttools.ToolRegistry
 	chatModel            chat.Chat

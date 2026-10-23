@@ -319,6 +319,7 @@
               <t-icon name="chevron-down" size="18px" />
             </div>
           </transition>
+          <div v-if="!embeddedMode" id="chat-tool-approval-dock" class="tool-approval-dock" aria-live="polite" />
           <InputField
             ref="inputFieldRef"
             :auto-focus="focusComposerOnMount"
@@ -2299,6 +2300,7 @@ const sendMsg = async (
       !useBrowserConnectionStore().knownOffline,
     summary_model_id: modelId,
     reasoning_effort: reasoningEffort,
+    tool_approval_mode: props.embeddedMode ? undefined : useSettingsStoreInstance.toolApprovalMode,
     mcp_service_ids: requestMcpServiceIds,
     skill_names: requestSkillNames,
     tag_ids: tagIds,
@@ -2861,6 +2863,18 @@ onBeforeRouteUpdate((to, from, next) => {
   flex-direction: column;
   gap: 8px;
   padding-left: 4px;
+}
+
+.tool-approval-dock {
+  max-height: 38vh;
+  overflow-y: auto;
+  &:not(:empty) {
+    margin-bottom: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--td-component-border);
+    border-radius: var(--app-radius-lg);
+    background: var(--td-bg-color-container);
+  }
 }
 
 .input-container {

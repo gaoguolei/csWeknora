@@ -135,12 +135,12 @@ var _ MCPApproval = (*Gate)(nil)
 // (issue #1173 cross-instance support). Without redis, the gate degrades to
 // single-process behavior (deployments must use sticky sessions).
 type Gate struct {
-	mu        sync.Mutex
-	pending   map[string]*waiter
-	checker   Checker
-	timeout   time.Duration
-	rdb       *redis.Client // optional; nil disables cross-instance fan-out
-	failClose bool          // when true, NeedsApproval errors block (require approval) instead of skip
+	mu           sync.Mutex
+	pending      map[string]*waiter
+	checker      Checker
+	oauthTimeout time.Duration
+	rdb          *redis.Client // optional; nil disables cross-instance fan-out
+	failClose    bool          // when true, NeedsApproval errors block (require approval) instead of skip
 }
 
 type waiter struct {
@@ -186,8 +186,9 @@ var (
 	ErrUserMismatch = errors.New("user mismatch for tool approval")
 )
 
-// NewGate builds a gate. checker may be nil (disables gating). cfg may be nil
-// (defaults apply). rdb may be nil (single-instance mode).
+// NewGate builds a gate. checker may be nil (no automatic MCP policy).
+// cfg controls the OAuth wait fallback, never the human tool-approval lifetime.
+// rdb may be nil (single-instance mode).
 func NewGate(cfg *config.Config, checker Checker, rdb *redis.Client) *Gate {
 	timeout := 10 * time.Minute
 	if cfg != nil && cfg.Agent != nil && cfg.Agent.ToolApprovalTimeoutSeconds > 0 {
@@ -197,11 +198,11 @@ func NewGate(cfg *config.Config, checker Checker, rdb *redis.Client) *Gate {
 	// HITL feature). Set WEKNORA_AGENT_TOOL_APPROVAL_FAIL_OPEN=true to revert.
 	failClose := !strings.EqualFold(strings.TrimSpace(os.Getenv("WEKNORA_AGENT_TOOL_APPROVAL_FAIL_OPEN")), "true")
 	g := &Gate{
-		pending:   make(map[string]*waiter),
-		checker:   checker,
-		timeout:   timeout,
-		rdb:       rdb,
-		failClose: failClose,
+		pending:      make(map[string]*waiter),
+		checker:      checker,
+		oauthTimeout: timeout,
+		rdb:          rdb,
+		failClose:    failClose,
 	}
 	if rdb != nil {
 		go g.runSubscriber()
@@ -321,12 +322,10 @@ func (g *Gate) IsEnabled(ctx context.Context, tenantID uint64, serviceID, toolNa
 	return g.checker.IsEnabled(ctx, tenantID, serviceID, toolName)
 }
 
-// RequestAndWait emits a UI event, then blocks until Resolve, timeout, or ctx cancellation.
+// RequestAndWait emits a UI event, then waits for a human decision or request
+// cancellation. Human review has no deadline; execution timeouts start afterwards.
 func (g *Gate) RequestAndWait(ctx context.Context, req PendingRequest) (Decision, error) {
 	if g == nil {
-		return Decision{Approved: true}, nil
-	}
-	if g.checker == nil {
 		return Decision{Approved: true}, nil
 	}
 	if req.EventBus == nil {
@@ -355,11 +354,6 @@ func (g *Gate) RequestAndWait(ctx context.Context, req PendingRequest) (Decision
 		_ = json.Unmarshal(req.Args, &argsObj)
 	}
 
-	timeoutSec := int(g.timeout / time.Second)
-	if timeoutSec < 1 {
-		timeoutSec = 1
-	}
-
 	evtData := event.ToolApprovalRequiredData{
 		PendingID:          pendingID,
 		TenantID:           req.TenantID,
@@ -372,7 +366,7 @@ func (g *Gate) RequestAndWait(ctx context.Context, req PendingRequest) (Decision
 		Description:        req.Description,
 		Args:               argsObj,
 		ArgsJSON:           string(req.Args),
-		TimeoutSeconds:     timeoutSec,
+		TimeoutSeconds:     0, // Tool approval never expires.
 		RequestedAtUnix:    time.Now().Unix(),
 		ToolCallID:         req.ToolCallID,
 		RequestID:          req.RequestID,
@@ -391,9 +385,6 @@ func (g *Gate) RequestAndWait(ctx context.Context, req PendingRequest) (Decision
 	}); err != nil {
 		return Decision{}, fmt.Errorf("emit tool approval required: %w", err)
 	}
-
-	timer := time.NewTimer(g.timeout)
-	defer timer.Stop()
 
 	emitResolved := func(d Decision) {
 		_ = req.EventBus.Emit(context.WithoutCancel(ctx), event.Event{
@@ -419,12 +410,6 @@ func (g *Gate) RequestAndWait(ctx context.Context, req PendingRequest) (Decision
 	case d = <-w.ch:
 		emitResolved(d)
 		return d, nil
-	case <-timer.C:
-		d = Decision{Approved: false, Reason: "approval timeout", TimedOut: true}
-		_ = w.deliver(d)
-		d = <-w.ch
-		emitResolved(d)
-		return d, nil
 	case <-ctx.Done():
 		d = Decision{Approved: false, Reason: "request canceled", ContextCanceled: true}
 		_ = w.deliver(d)
@@ -439,7 +424,7 @@ func (g *Gate) RequestAndWait(ctx context.Context, req PendingRequest) (Decision
 // the request ctx is canceled. A returned Decision.Approved==true means the
 // user completed authorization and the tool call should be retried.
 //
-// Unlike RequestAndWait this does NOT consult the approval checker — it is
+// OAuth waits are bounded independently of human tool approvals. They are
 // driven reactively by an authorization-required error from the MCP transport.
 func (g *Gate) RequestOAuthAndWait(ctx context.Context, req OAuthPendingRequest) (Decision, error) {
 	if g == nil {
@@ -466,7 +451,7 @@ func (g *Gate) RequestOAuthAndWait(ctx context.Context, req OAuthPendingRequest)
 		g.mu.Unlock()
 	}()
 
-	waitTimeout := g.timeout
+	waitTimeout := g.oauthTimeout
 	if req.WaitTimeout > 0 {
 		waitTimeout = req.WaitTimeout
 	}

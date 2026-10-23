@@ -2078,6 +2078,12 @@ export default {
       skipFailed: "跳过失败，请重试",
     },
     toolApproval: {
+      modeLabel: "权限",
+      autoMode: "帮我批准",
+      manualMode: "请求批准",
+      autoModeDescription: "自动执行操作，无需人工干预",
+      manualModeDescription: "检测到风险操作的请求批准",
+
       waiting: "等待审核 · {target}",
       waitingStatus: "等待审核",
       targetWithTool: "{service} › {tool}",

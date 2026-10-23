@@ -2229,6 +2229,12 @@ export default {
       skipFailed: "Не удалось пропустить, повторите попытку",
     },
     toolApproval: {
+      modeLabel: "Разрешения",
+      autoMode: "Одобрять автоматически",
+      manualMode: "Запрашивать одобрение",
+      autoModeDescription: "Выполнять действия автоматически; обязательное одобрение MCP сохраняется.",
+      manualModeDescription: "Перед выполнением команд, изменением файлов и вызовом MCP ожидать вашего одобрения внизу.",
+
       waiting: "Ожидание проверки · {target}",
       waitingStatus: "Ожидание проверки",
       targetWithTool: "{service} › {tool}",

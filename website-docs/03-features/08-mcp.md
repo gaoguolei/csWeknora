@@ -379,11 +379,11 @@ flowchart LR
 
 关键实现点：
 
-- **阻塞与恢复**：`RequestAndWait` 生成 `pending_id`，向 EventBus 发 `EventToolApprovalRequired`（含工具名、参数 JSON、超时秒数），在内存 waiter 上等待；用户通过 `POST /agent/tool-approvals/{pending_id}` 传 `decision: approve|reject` 解除。审批放行后 `mcp_tool.go` 会**从 ApprovalCtx 重新派生完整的工具执行超时**（审批可能耗尽原 60 秒预算）。
+- **阻塞与恢复**：`RequestAndWait` 生成 `pending_id`，向 EventBus 发 `EventToolApprovalRequired`（含工具名、参数 JSON、`timeout_seconds: 0`（不设到期时间）），在内存 waiter 上等待；用户通过 `POST /agent/tool-approvals/{pending_id}` 传 `decision: approve|reject` 解除。审批放行后 `mcp_tool.go` 会**从 ApprovalCtx 重新派生完整的工具执行超时**（审批可能耗尽原 60 秒预算）。
 - **参数修改**：approve 时可附 `modified_args`（必须是非 null JSON object，handler 侧显式拒绝 `"null"`），替换原始参数后执行。
 - **鉴权**：Resolve 校验 tenant 与 session 属主（`ErrTenantMismatch` / `ErrUserMismatch`，空 userID 按不匹配处理，fail-close）；重复决议返回 `ErrAlreadyResolved`。
 - **跨实例**：waiter 在发起等待的实例内存中；配置 Redis 时，落在其他副本的 Resolve 经 `weknora:mcp_approval:resolve` Pub/Sub 广播，属主实例投递决议并通过 per-pending 回复通道回 ack（3 秒窗口），使 HTTP 状态码跨实例仍准确；无 Redis 时退化为单实例（需 sticky session）。
-- **超时与失败策略**：等待超时默认 10 分钟，可由 `config.Agent.ToolApprovalTimeoutSeconds` 配置。审批检查默认 **fail-close**——查询 DB 出错时按「需要审批」处理，可设 `WEKNORA_AGENT_TOOL_APPROVAL_FAIL_OPEN=true` 恢复旧的 fail-open 行为。
+- **等待与失败策略**：人工审批不设超时，一直等待批准、拒绝或请求取消。审批检查默认 **fail-close**——查询 DB 出错时按「需要审批」处理，可设 `WEKNORA_AGENT_TOOL_APPROVAL_FAIL_OPEN=true` 恢复旧的 fail-open 行为。
 
 #### 单工具启停
 

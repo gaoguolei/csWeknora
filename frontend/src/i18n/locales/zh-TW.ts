@@ -1891,6 +1891,12 @@ export default {
       "skipFailed": "跳過失敗，請重試"
     },
     "toolApproval": {
+      modeLabel: "權限",
+      autoMode: "幫我批准",
+      manualMode: "請求批准",
+      autoModeDescription: "自動執行操作；MCP 強制審批仍然生效。",
+      manualModeDescription: "執行命令、修改檔案和呼叫 MCP 前，等待你在下方授權。",
+
       "waiting": "等待審核 · {target}",
       "waitingStatus": "等待審核",
       "targetWithTool": "{service} › {tool}",

@@ -2488,7 +2488,7 @@ export default {
       nameLabel: "名前",
       namePlaceholder: "例: 本番COS、アーカイブCOS",
       providerLabel: "ストレージの種類",
-      modeLabel: "デプロイモード",
+      modeLabel: "権限",
       modeRemote: "リモートインスタンス",
       modeEnv: "環境変数",
       connectionSection: "接続設定",
@@ -7206,6 +7206,12 @@ export default {
   },
   agentStream: {
     toolApproval: {
+      modeLabel: "Permissions",
+      autoMode: "承認を任せる",
+      manualMode: "承認を求める",
+      autoModeDescription: "操作を自動実行します。MCP で必須の承認は引き続き適用されます。",
+      manualModeDescription: "コマンドの実行、ファイルの変更、MCP ツールの呼び出し前に、下部での承認を待ちます。",
+
       waiting: "承認待ち · {target}",
       waitingStatus: "承認待ち",
       targetWithTool: "{service} › {tool}",

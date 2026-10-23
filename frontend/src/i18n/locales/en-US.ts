@@ -7161,6 +7161,12 @@ export default {
   },
   agentStream: {
     toolApproval: {
+      modeLabel: "Permissions",
+      autoMode: "Approve for me",
+      manualMode: "Request approval",
+      autoModeDescription: "Run actions automatically; required MCP approvals still apply.",
+      manualModeDescription: "Wait for your approval below before running commands, changing files or calling MCP tools.",
+
       waiting: "Awaiting review · {target}",
       waitingStatus: "Awaiting review",
       targetWithTool: "{service} › {tool}",

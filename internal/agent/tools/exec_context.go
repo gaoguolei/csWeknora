@@ -11,6 +11,7 @@ type execCtxKey struct{}
 
 // ToolExecContext is attached to context during agent tool execution (per tool call).
 type ToolExecContext struct {
+	RequireApproval    bool // Per-turn manual approval, including MCP calls through discovery proxies.
 	SessionID          string
 	AssistantMessageID string
 	RequestID          string

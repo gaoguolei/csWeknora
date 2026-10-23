@@ -57,6 +57,7 @@ type qaRequestContext struct {
 	skillNames            []string
 	summaryModelID        string
 	reasoningEffort       string
+	toolApprovalMode      types.ToolApprovalMode
 	localBrowserEnabled   bool
 	webSearchEnabled      bool
 	mentionedItems        types.MentionedItems
@@ -113,6 +114,7 @@ func (rc *qaRequestContext) buildQARequest() *types.QARequest {
 		AssistantMessageID:  rc.assistantMessage.ID,
 		SummaryModelID:      rc.summaryModelID,
 		ReasoningEffort:     rc.reasoningEffort,
+		ToolApprovalMode:    rc.toolApprovalMode,
 		CustomAgent:         rc.customAgent,
 		SharedAgentReadOnly: rc.sharedAgentReadOnly,
 		KnowledgeBaseIDs:    rc.knowledgeBaseIDs,
@@ -183,6 +185,9 @@ func (h *Handler) parseQARequest(c *gin.Context, logPrefix string) (*qaRequestCo
 		)
 	}
 	request.ReasoningEffort = string(level)
+	if !request.ToolApprovalMode.Valid() {
+		return nil, nil, errors.NewBadRequestError("tool_approval_mode must be auto or manual")
+	}
 
 	// Validate syntax before session lookup or QA work, preserving the original
 	// query text. KnowledgeQA applies its XSS-pattern check later in the chat
@@ -471,6 +476,7 @@ func (h *Handler) parseQARequest(c *gin.Context, logPrefix string) (*qaRequestCo
 		skillNames:            secutils.SanitizeForLogArray(skillNames),
 		summaryModelID:        secutils.SanitizeForLog(request.SummaryModelID),
 		reasoningEffort:       request.ReasoningEffort,
+		toolApprovalMode:      request.ToolApprovalMode,
 		webSearchEnabled:      request.WebSearchEnabled,
 		localBrowserEnabled:   request.LocalBrowserEnabled,
 		mentionedItems:        convertMentionedItems(request.MentionedItems),
@@ -1934,6 +1940,7 @@ func (h *Handler) persistLastRequestState(parentCtx context.Context, reqCtx *qaR
 		AgentEnabled:        agentEnabled,
 		ModelID:             reqCtx.summaryModelID,
 		ReasoningEffort:     reqCtx.reasoningEffort,
+		ToolApprovalMode:    reqCtx.toolApprovalMode,
 		KnowledgeBaseIDs:    reqCtx.knowledgeBaseIDs,
 		KnowledgeIDs:        reqCtx.knowledgeIDs,
 		TagIDs:              reqCtx.tagIDs,

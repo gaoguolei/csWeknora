@@ -67,24 +67,55 @@ func TestGate_RequestAndWait_Approve(t *testing.T) {
 	require.JSONEq(t, `{"a":2}`, string(d.ModifiedArgs))
 }
 
-func TestGate_RequestAndWait_Timeout(t *testing.T) {
-	g := NewGate(&config.Config{Agent: &config.AgentConfig{ToolApprovalTimeoutSeconds: 1}}, &stubChecker{required: true}, nil)
-	ctx := context.Background()
-	req := PendingRequest{
-		TenantID:           1,
-		SessionID:          "s1",
-		AssistantMessageID: "m1",
-		EventBus:           event.NewEventBus(),
-		ServiceID:          "svc",
-		ServiceName:        "svcname",
-		MCPToolName:        "t",
-		RegisteredToolName: "mcp_svcname_t",
-		Args:               json.RawMessage(`{}`),
+func TestGate_RequestAndWait_DoesNotExpire(t *testing.T) {
+	for _, approved := range []bool{true, false} {
+		t.Run(map[bool]string{true: "approve", false: "reject"}[approved], func(t *testing.T) {
+			g := NewGate(nil, &stubChecker{required: true}, nil)
+			// OAuth's deadline must never expire a human tool approval.
+			g.oauthTimeout = 20 * time.Millisecond
+			bus := event.NewEventBus()
+			pending := make(chan event.ToolApprovalRequiredData, 1)
+			bus.On(event.EventToolApprovalRequired, func(_ context.Context, evt event.Event) error {
+				pending <- evt.Data.(event.ToolApprovalRequiredData)
+				return nil
+			})
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+			type outcome struct {
+				decision Decision
+				err      error
+			}
+			done := make(chan outcome, 1)
+			go func() {
+				d, err := g.RequestAndWait(ctx, PendingRequest{
+					TenantID: 1, SessionID: "s", AssistantMessageID: "m", EventBus: bus,
+					ServiceID: "svc", MCPToolName: "tool", Args: json.RawMessage(`{}`),
+				})
+				done <- outcome{d, err}
+			}()
+			var request event.ToolApprovalRequiredData
+			select {
+			case request = <-pending:
+			case <-ctx.Done():
+				t.Fatal("approval was not requested")
+			}
+			require.Zero(t, request.TimeoutSeconds, "no expiry may be advertised to clients")
+			select {
+			case result := <-done:
+				t.Fatalf("approval ended without human decision: %+v", result)
+			case <-time.After(3 * g.oauthTimeout):
+			}
+			require.NoError(t, g.Resolve(1, "", request.PendingID, Decision{Approved: approved}))
+			select {
+			case result := <-done:
+				require.NoError(t, result.err)
+				require.Equal(t, approved, result.decision.Approved)
+				require.False(t, result.decision.TimedOut)
+			case <-ctx.Done():
+				t.Fatal("human decision did not finish the wait")
+			}
+		})
 	}
-	d, err := g.RequestAndWait(ctx, req)
-	require.NoError(t, err)
-	require.False(t, d.Approved)
-	require.True(t, d.TimedOut)
 }
 
 func TestGate_NeedsApproval_NoChecker(t *testing.T) {
@@ -163,36 +194,33 @@ func TestGate_Resolve_EmptyUserIDRejectedWhenWaiterHasUser(t *testing.T) {
 	require.False(t, d.Approved)
 }
 
-func TestGate_Resolve_AlreadyResolvedAfterTimeout(t *testing.T) {
-	g := NewGate(&config.Config{Agent: &config.AgentConfig{ToolApprovalTimeoutSeconds: 1}}, &stubChecker{required: true}, nil)
+func TestGate_RequestAndWait_CancelRemovesPending(t *testing.T) {
+	g := NewGate(nil, &stubChecker{required: true}, nil)
 	bus := event.NewEventBus()
-
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	var pendingID string
-	gotPending := make(chan struct{}, 1)
+	var resolved event.ToolApprovalResolvedData
 	bus.On(event.EventToolApprovalRequired, func(_ context.Context, evt event.Event) error {
 		pendingID = evt.Data.(event.ToolApprovalRequiredData).PendingID
-		gotPending <- struct{}{}
+		cancel()
 		return nil
 	})
-
-	go func() {
-		<-gotPending
-		// Wait until timeout has fired and the pending entry is still there
-		// (defer delete only happens after RequestAndWait returns).
-		// 1s timeout + small slack.
-		<-time.After(1500 * time.Millisecond)
-		require.ErrorIs(t,
-			g.Resolve(1, "", pendingID, Decision{Approved: true}),
-			ErrPendingNotFound, // entry already removed by RequestAndWait's defer
-		)
-	}()
-
-	d, err := g.RequestAndWait(context.Background(), PendingRequest{
+	bus.On(event.EventToolApprovalResolved, func(_ context.Context, evt event.Event) error {
+		resolved = evt.Data.(event.ToolApprovalResolvedData)
+		return nil
+	})
+	d, err := g.RequestAndWait(ctx, PendingRequest{
 		TenantID: 1, EventBus: bus, SessionID: "s",
 		ServiceID: "svc", MCPToolName: "t", Args: json.RawMessage(`{}`),
 	})
 	require.NoError(t, err)
-	require.True(t, d.TimedOut)
+	require.False(t, d.Approved)
+	require.True(t, d.ContextCanceled)
+	require.False(t, d.TimedOut)
+	require.True(t, resolved.Canceled)
+	require.False(t, resolved.TimedOut)
+	require.ErrorIs(t, g.Resolve(1, "", pendingID, Decision{Approved: true}), ErrPendingNotFound)
 }
 
 func TestGate_Resolve_RaceWinsAlreadyResolved(t *testing.T) {

@@ -47,8 +47,8 @@ type AgentConfig struct {
 	// LLMCallTimeout is the default timeout for a single LLM call in seconds.
 	// Default: 120 (standard agents) or 300 (can be overridden by Env).
 	LLMCallTimeout int `yaml:"llm_call_timeout" json:"llm_call_timeout"`
-	// ToolApprovalTimeoutSeconds is how long the agent waits for human approval on a flagged MCP tool.
-	// 0 means default 600 (10 minutes).
+	// ToolApprovalTimeoutSeconds is the legacy fallback for MCP OAuth authorization waits.
+	// Human tool approvals never expire. 0 uses a 600-second OAuth fallback.
 	ToolApprovalTimeoutSeconds int `yaml:"tool_approval_timeout_seconds" json:"tool_approval_timeout_seconds"`
 }
 
@@ -812,7 +812,7 @@ func applyAgentEnvOverrides(cfg *Config) {
 			cfg.Agent.LLMCallTimeout = int(sec.Seconds())
 		}
 	}
-	// MCP tool human-approval wait timeout (issue #1173). Accepts Go duration
+	// Legacy MCP OAuth wait fallback; tool approvals have no timeout. Accepts Go duration
 	// (e.g. "10m", "30s") or a bare number interpreted as seconds.
 	if value := strings.TrimSpace(os.Getenv("WEKNORA_AGENT_TOOL_APPROVAL_TIMEOUT")); value != "" {
 		if d, err := time.ParseDuration(value); err == nil {

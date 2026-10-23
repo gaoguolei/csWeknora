@@ -387,7 +387,7 @@ curl -X POST $BASE/api/v1/mcp-endpoints -H "Authorization: Bearer $TOKEN" \
 
 ### POST /api/v1/agent/tool-approvals/:pending_id
 
-用途：裁决待审批的工具调用。Handler: `internal/handler/mcp_service.go` 的 `ResolveToolApproval`。
+用途：裁决待审批的工具调用。人工审核不设超时，持续等待批准、拒绝或停止生成；`tool_approval_required` 事件的 `timeout_seconds` 固定为 `0`，表示无到期时间。Handler: `internal/handler/mcp_service.go` 的 `ResolveToolApproval`。
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
