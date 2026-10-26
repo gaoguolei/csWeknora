@@ -41,7 +41,7 @@
         </div>
         <div class="model-header-actions">
           <t-button
-            v-if="authStore.isSystemAdmin"
+            v-if="authStore.isOperationsAdmin"
             type="button"
             theme="default"
             variant="text"
@@ -76,18 +76,6 @@
             {{ $t('modelSettings.actions.addModel') }}
           </t-button>
         </div>
-        <t-button
-          v-if="authStore.isSystemAdmin"
-          type="button"
-          theme="primary"
-          variant="text"
-          size="medium"
-          class="model-test-trigger"
-          @click="showDebugDrawer = true"
-        >
-          <template #icon><play-circle-icon /></template>
-          {{ $t('modelSettings.actions.debugModel') }}
-        </t-button>
       </div>
       <p class="section-description">{{ $t('modelSettings.description') }}</p>
     </div>

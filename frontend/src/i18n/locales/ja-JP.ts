@@ -1565,7 +1565,7 @@ export default {
       rerankModelDesc: "ナレッジベースの検索結果を並べ替えて精度を高めます",
       rerankModelPlaceholder: "リランクモデルを選択",
       rerankModelOptionalHint:
-        "現在の範囲にRAG型のナレッジベースがないため任意です。後からRAG型ナレッジベースを追加した場合は、ワークスペースのデフォルトリランクモデルが自動的に使用されます。明示的に設定することを推奨します。",
+        "エージェントのスコープに RAG ナレッジベースがない場合は任意です。後から RAG ナレッジベースを追加した場合は、設定済みのリランクモデルが自動的に使用されます。",
       maxIterations: "最大反復回数",
       maxIterationsLimit: "上限あり",
       maxIterationsUnlimited: "無制限",
@@ -2324,6 +2324,7 @@ export default {
       account: "アカウント",
       workspace: "ワークスペース",
       modelsRuntime: "モデル",
+      memory: "メモリ",
       dataExtensions: "データ・拡張",
       systemAdministration: "システム管理",
       platform: "プラットフォーム",
@@ -3798,23 +3799,12 @@ export default {
   agentDefaults: {
     title: "エージェント設定",
     description:
-      "エージェントのプラットフォーム既定値をまとめて設定します。一般メンバーがエージェントを作成する際は基本情報とプロンプトのみを入力し、その他の設定はここで指定した既定値を全ワークスペース共通で参照します。",
+      "エージェントのプラットフォーム既定値をまとめて設定します。エージェント作成時は基本情報・プロンプト・ツール / MCP / スキルなどをユーザーが指定し、その他のプラットフォーム設定はここで指定した既定値を全ワークスペース共通で参照します。",
     navGroup: "エージェント設定",
     readonlyBanner: "プラットフォームのエージェント既定値を編集できるのはシステム管理者のみです。",
     autoSaved: "プラットフォームのエージェント既定値を保存しました",
     saveFailed: "プラットフォームのエージェント既定値の保存に失敗しました",
     goModelSettings: "「設定 → モデル」でモデルを追加してください",
-    sections: {
-      toolsDesc: "新規エージェントで既定で有効にするツール。",
-      toolsLabel: "既定のツール",
-      toolsHint: "空のままにすると組み込みの既定ツールセットを使用します。",
-      toolsPlaceholder: "既定で有効にするツールを選択",
-      skillsDesc: "新規エージェントが既定で使用するサンドボックスとスキル。",
-      skillsHint: "スキルのスクリプトは選択したサンドボックス内で実行されます。",
-      skillsPickLabel: "既定のスキル",
-      skillsPickHint: "「指定」を選んだ場合は具体的なスキルを選択してください。",
-      skillsPlaceholder: "既定のスキルを選択",
-    },
   },
   knowledgeEditor: {
     activity: {
@@ -5605,7 +5595,7 @@ export default {
         title: "プラットフォームユーザー一覧",
         rowLabel: "ユーザー管理",
         rowDesc:
-          "ワークスペース横断の登録ユーザーを、ページ送りとユーザー名/メール絞り込み付きで表示します。",
+          "ワークスペース横断の登録ユーザーを表示します。システム管理者は全ユーザーの表示と任意のロール設定ができ、スーパー管理者はスーパー管理者と一般ユーザーのみ表示・設定できます。",
         searchPlaceholder: "ユーザー名またはメールで絞り込み（現在ページ）",
         refresh: "更新",
         active: "有効",
@@ -5629,13 +5619,11 @@ export default {
         actionFailed: "操作に失敗しました",
         loadFailed: "ユーザー一覧の読み込みに失敗しました",
         roleAdmin: "システム管理者",
+        roleSuperAdmin: "スーパー管理者",
         roleUser: "一般ユーザー",
-        confirmRevoke: "{name} のシステム管理者権限を取り消しますか？",
-        confirmPromote: "{name} をシステム管理者に昇格させますか？",
-        revokeBtn: "取り消す",
-        promoteBtn: "昇格",
-        revokedMsg: "{name} の管理者権限を取り消しました",
-        promotedMsg: "{name} をシステム管理者に昇格しました",
+        confirmRoleChange: "{name} のロールを「{role}」に変更しますか？",
+        changeRoleBtn: "変更",
+        roleChangedMsg: "{name} のロールを「{role}」に変更しました",
         roleFailed: "ロールの変更に失敗しました",
       },
       passwordReset: {

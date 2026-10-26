@@ -271,7 +271,7 @@
           />
         </div>
 
-        <!-- 智能体配置（平台默认，超管）：同上，9 个 agent-* 键共用一个实例。 -->
+        <!-- 智能体配置（平台默认，超管）：同上，6 个 agent-* 键共用一个实例。 -->
         <div v-if="isAgentDefaultsSection(currentSection)" class="section">
           <AgentDefaultsSettings
             :active-section="agentDefaultsSectionFromKey(currentSection)"
@@ -288,7 +288,7 @@
           <ChatHistorySettings />
         </div>
 
-        <!-- 长期记忆（全平台设置，仅超管可编辑，其余成员只读置灰） -->
+        <!-- 长期记忆（平台级配置，入口仅超管与运营管理员可见；非超管深链进来由 canSeeSection 兜底渲染无权限空态） -->
         <div v-if="currentSection === 'memory'" class="section">
           <MemoryWorkspaceSettings />
         </div>
@@ -371,6 +371,11 @@
           <TenantMembers />
         </div>
 
+        <!-- 数据源（空间级，空间管理员配置，对本空间所有知识库生效） -->
+        <div v-if="currentSection === 'kb-datasource'" class="section">
+          <WorkspaceDataSourceSettings />
+        </div>
+
         <!-- 发布集成 -->
         <div v-if="isIntegrationSection(currentSection)" class="section">
           <IntegrationSettingsSection
@@ -412,6 +417,7 @@ import UserProfile from "./UserProfile.vue";
 import GeneralSettings from "./GeneralSettings.vue";
 import ModelSettings from "./ModelSettings.vue";
 import KnowledgeBaseDefaultsSettings from "./KnowledgeBaseDefaultsSettings.vue";
+import WorkspaceDataSourceSettings from "./WorkspaceDataSourceSettings.vue";
 import AgentDefaultsSettings from "./AgentDefaultsSettings.vue";
 import ModelCatalog from "../system/ModelCatalog.vue";
 import OllamaSettings from "./OllamaSettings.vue";
@@ -530,7 +536,9 @@ const SYSTEM_ADMIN_SECTIONS = SYSTEM_ADMIN_SETTINGS_SECTIONS;
 // 设置主侧栏，归入「知识库配置」分组（小标题）。这些 kb-* 键共用同一个
 // KnowledgeBaseDefaultsSettings 组件实例（共享 cfg + 单个保存按钮），切换分区
 // 时组件保持挂载不重载。权限见 settingsAccess.ts：kb-vectorStore/kb-parser/
-// kb-storage/kb-datasource 仅运营管理员可见（连超管也不显示），其余仅超管可见。
+// kb-storage 仅运营管理员可见（连超管也不显示），其余仅超管可见。
+// 注意：数据源（kb-datasource）已从本组拆出——它是空间级配置，入口在
+// 「个人设置 → 空间」分组，由空间管理员维护。
 const KB_DEFAULTS_SUBSECTIONS: {
   key: string;
   icon: string;
@@ -547,7 +555,6 @@ const KB_DEFAULTS_SUBSECTIONS: {
   { key: "kb-advanced", icon: "setting", labelKey: "knowledgeEditor.sidebar.advanced", section: "advanced" },
   { key: "kb-faq", icon: "help-circle", labelKey: "knowledgeEditor.sidebar.faq", section: "faq" },
   { key: "kb-storage", icon: "cloud", labelKey: "knowledgeEditor.sidebar.storage", section: "storage" },
-  { key: "kb-datasource", icon: "cloud-download", labelKey: "knowledgeEditor.sidebar.datasource", section: "datasource" },
 ];
 const KB_DEFAULTS_KEYS = new Set(KB_DEFAULTS_SUBSECTIONS.map((s) => s.key));
 const isKbDefaultsSection = (key: string) => KB_DEFAULTS_KEYS.has(key);
@@ -555,9 +562,10 @@ const kbDefaultsSectionFromKey = (key: string) =>
   KB_DEFAULTS_SUBSECTIONS.find((s) => s.key === key)?.section || "models";
 
 // 智能体配置（平台默认）分区：与知识库同样的做法 —— 编辑器里这些分区收归超管，
-// 管理员在这里统一维护，新建智能体时由后端套用。9 个 agent-* 键共用同一个
+// 管理员在这里统一维护，新建智能体时由后端套用。6 个 agent-* 键共用同一个
 // AgentDefaultsSettings 组件实例，切换分区时不卸载。权限见 settingsAccess.ts：
 // 全部归超级管理员（需求没给运营管理员的项），「知识库检索」留给用户，不在此列。
+// 工具配置 / MCP 服务 / 技能属于用户级配置，创建智能体时由用户自己设置，不在此维护。
 const AGENT_DEFAULTS_SUBSECTIONS: {
   key: string;
   icon: string;
@@ -570,9 +578,6 @@ const AGENT_DEFAULTS_SUBSECTIONS: {
   { key: "agent-retrieval", icon: "search", labelKey: "agent.editor.retrievalStrategy", section: "retrieval" },
   { key: "agent-websearch", icon: "internet", labelKey: "agent.editor.webSearchConfig", section: "websearch" },
   { key: "agent-multimodal", icon: "attach", labelKey: "agentEditor.imageUpload.navLabel", section: "multimodal" },
-  { key: "agent-tools", icon: "tools", labelKey: "agent.editor.toolsConfig", section: "tools" },
-  { key: "agent-mcp", icon: "server", labelKey: "agentEditor.mcp.label", section: "mcp" },
-  { key: "agent-skills", icon: SKILL_ICON, labelKey: "agent.editor.skillsConfig", section: "skills" },
 ];
 const AGENT_DEFAULTS_KEYS = new Set(AGENT_DEFAULTS_SUBSECTIONS.map((s) => s.key));
 const isAgentDefaultsSection = (key: string) => AGENT_DEFAULTS_KEYS.has(key);
@@ -727,6 +732,13 @@ const navItems = computed(() => {
     },
     { key: "userprofile", icon: "user", label: t("userProfile.title") },
     { key: "mymemory", icon: "bookmark", label: t("memorySettings.title") },
+    // 数据源：空间级配置（对本空间所有知识库生效），单独成页，入口归「个人设置
+    // → 空间」分组。沿用原 kb-datasource 键，旧书签/深链继续有效。
+    {
+      key: "kb-datasource",
+      icon: "cloud-download",
+      label: t("knowledgeEditor.sidebar.datasource"),
+    },
     { key: "envvars", icon: "key", label: envNavLabel() },
     { key: "tenant", icon: "user-circle", label: t("settings.tenantInfo") },
     { key: "members", icon: "usergroup", label: t("tenantMember.title") },
@@ -755,7 +767,7 @@ const navGroups = computed<NavGroup[]>(() => {
     keys.map((key) => itemMap.get(key)).filter(Boolean) as NavItem[];
   const groups: NavGroup[] = [
     // 个人设置：自己账号与自己空间的东西。账户（外观、账号资料、我的记忆）+ 空间
-    // （空间信息、成员管理、消息管理）都归这里。
+    // （空间信息、成员管理、数据源、消息管理）+ 发布集成都归这里。
     {
       scope: "personal",
       key: "account",
@@ -766,17 +778,38 @@ const navGroups = computed<NavGroup[]>(() => {
       scope: "personal",
       key: "workspace",
       label: t("settings.navGroups.workspace"),
-      items: pickItems(["tenant", "members", "chathistory"]),
+      items: pickItems(["tenant", "members", "kb-datasource", "chathistory"]),
     },
-    // 平台设置：模型 → 知识库配置 → 智能体配置 → 发布集成。长期记忆是平台级
-    // 配置（memory.global_config），紧跟在模型管理之后。
+    // 发布集成（API 集成 / MCP 服务器 / Chrome 插件）都是空间级或个人级入口，
+    // 不属于平台配置，因此归「个人设置」块。权限不变：API 集成仍限空间 Owner
+    // （INTEGRATION_TAB_MIN_ROLE.api + 服务端 g.Owner()），MCP 服务器由空间管理员
+    // 配置、其余成员只读，Chrome 插件引导页对全部成员开放。这里只决定分组归属，
+    // 入口可见性仍由 canSeeSection 决定。
+    {
+      scope: "personal",
+      key: "integrations",
+      label: t("integrations.title"),
+      items: pickItems(
+        INTEGRATION_PREVIEW_ITEMS.map((item) =>
+          integrationSectionKey(item.key),
+        ),
+      ),
+    },
+    // 平台设置：模型 → 记忆 → 知识库配置 → 智能体配置。长期记忆
+    // 是平台级配置（memory.global_config），单独用「记忆」分组承装。
     // 引擎、沙箱、技能、MCP、网络搜索这类基础设施与平台运行 / 审计页面、以及
     // 部署层面的 Ollama 服务，统一归「系统管理」块。
     {
       scope: "platform",
       key: "models_runtime",
       label: t("settings.navGroups.modelsRuntime"),
-      items: pickItems(["models", "memory", "weknoracloud"]),
+      items: pickItems(["models", "weknoracloud"]),
+    },
+    {
+      scope: "platform",
+      key: "memory",
+      label: t("settings.navGroups.memory"),
+      items: pickItems(["memory"]),
     },
     {
       scope: "platform",
@@ -789,16 +822,6 @@ const navGroups = computed<NavGroup[]>(() => {
       key: "agentconfig",
       label: t("agentDefaults.navGroup"),
       items: pickItems(AGENT_DEFAULTS_SUBSECTIONS.map((s) => s.key)),
-    },
-    {
-      scope: "platform",
-      key: "integrations",
-      label: t("integrations.title"),
-      items: pickItems(
-        INTEGRATION_PREVIEW_ITEMS.map((item) =>
-          integrationSectionKey(item.key),
-        ),
-      ),
     },
     // 系统管理：整个块直接以条目列表展示，不再叠一层分组标题。
     {

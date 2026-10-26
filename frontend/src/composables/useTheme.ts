@@ -41,6 +41,15 @@ function loadTheme(): ThemeMode {
 // Shared reactive state across all consumers
 const currentTheme = ref<ThemeMode>(loadTheme())
 
+// Effective light/dark after resolving "system" against the OS. This is the only
+// safe reactive source for icon glyphs and palettes: the `theme-mode` DOM
+// attribute is not reactive, and under applyTheme's View Transition the DOM is
+// painted a frame after setTheme returns, so reading it during the rerender
+// yields the previous mode.
+const effectiveTheme = ref<'light' | 'dark'>(
+  currentTheme.value === 'system' ? getSystemTheme() : currentTheme.value,
+)
+
 let lastEffective: 'light' | 'dark' | null = null
 
 function getSystemTheme(): 'light' | 'dark' {
@@ -87,6 +96,7 @@ function syncWailsNativeChrome(effective: 'light' | 'dark') {
 
 function applyTheme(mode: ThemeMode) {
   const effective = mode === 'system' ? getSystemTheme() : mode
+  effectiveTheme.value = effective
   if (lastEffective === effective) return
   const mutate = () => {
     lastEffective = effective
@@ -127,7 +137,7 @@ export function useTheme() {
     return true
   }
 
-  return { currentTheme, setTheme }
+  return { currentTheme, effectiveTheme, setTheme }
 }
 
 /** Call once in main.ts to initialise theme and listen for OS changes. */

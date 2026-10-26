@@ -60,89 +60,6 @@
           <AgentAttachmentSettings :config="cfg" :all-models="allModels"
             :image-storage-options="imageStorageOptions" @add-model="onAddModel" />
         </div>
-
-        <!-- I MCP 服务 -->
-        <div v-show="activeSection === 'mcp'" class="agent-defaults-block">
-          <!-- mcp_selection_mode 在类型上是可选的：用显式绑定 + 兜底值，
-               避免 v-model 因为 string | undefined 而报类型错。 -->
-          <AgentMcpSettings :selection-mode="cfg.mcp_selection_mode ?? 'none'" :config="cfg"
-            :show-service-select="mcpOptions.length > 0" :mcp-options="mcpOptions"
-            @update:selection-mode="(v: string) => (cfg.mcp_selection_mode = v as any)" />
-        </div>
-
-        <!-- H 工具配置。平台默认不需要编辑器的能力校验 / 生效预览，
-             只让管理员挑默认启用的工具。 -->
-        <div v-show="activeSection === 'tools'" class="agent-defaults-block">
-          <div class="section-header">
-            <h2>{{ $t('agent.editor.toolsConfig') }}</h2>
-            <p class="section-description">{{ $t('agentDefaults.sections.toolsDesc') }}</p>
-          </div>
-          <div class="settings-group">
-            <div class="setting-row">
-              <div class="setting-info">
-                <label>{{ $t('agentDefaults.sections.toolsLabel') }}</label>
-                <p class="desc">{{ $t('agentDefaults.sections.toolsHint') }}</p>
-              </div>
-              <div class="setting-control">
-                <t-select v-model="cfg.allowed_tools" multiple filterable clearable
-                  :placeholder="$t('agentDefaults.sections.toolsPlaceholder')">
-                  <t-option v-for="tool in toolOptions" :key="tool.name" :value="tool.name"
-                    :label="tool.name" />
-                </t-select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- J 技能。同上：只要默认选择，不含编辑器里的"装到某沙箱"操作。 -->
-        <div v-show="activeSection === 'skills'" class="agent-defaults-block">
-          <div class="section-header">
-            <h2>{{ $t('agent.editor.skillsConfig') }}</h2>
-            <p class="section-description">{{ $t('agentDefaults.sections.skillsDesc') }}</p>
-          </div>
-          <div class="settings-group">
-            <div class="setting-row">
-              <div class="setting-info">
-                <label>{{ $t('agent.editor.sandboxBackend') }}</label>
-                <p class="desc">{{ $t('agent.editor.sandboxBackendHint') }}</p>
-              </div>
-              <div class="setting-control">
-                <t-select v-model="cfg.sandbox_config_id" filterable clearable
-                  :placeholder="$t('agent.editor.sandboxBackendDefault')">
-                  <t-option value="" :label="$t('agent.editor.sandboxBackendDefault')" />
-                  <t-option v-for="c in sandboxConfigOptions" :key="c.id" :value="c.id" :label="c.name" />
-                </t-select>
-              </div>
-            </div>
-
-            <div class="setting-row">
-              <div class="setting-info">
-                <label>{{ $t('agent.editor.skillsSelection') }}</label>
-                <p class="desc">{{ $t('agentDefaults.sections.skillsHint') }}</p>
-              </div>
-              <div class="setting-control">
-                <t-radio-group v-model="cfg.skills_selection_mode">
-                  <t-radio-button value="all">{{ $t('agent.editor.skillsAll') }}</t-radio-button>
-                  <t-radio-button value="selected">{{ $t('agent.editor.skillsSelected') }}</t-radio-button>
-                  <t-radio-button value="none">{{ $t('agent.editor.skillsNone') }}</t-radio-button>
-                </t-radio-group>
-              </div>
-            </div>
-
-            <div v-if="cfg.skills_selection_mode === 'selected'" class="setting-row">
-              <div class="setting-info">
-                <label>{{ $t('agentDefaults.sections.skillsPickLabel') }}</label>
-                <p class="desc">{{ $t('agentDefaults.sections.skillsPickHint') }}</p>
-              </div>
-              <div class="setting-control">
-                <t-select v-model="cfg.selected_skills" multiple filterable clearable
-                  :placeholder="$t('agentDefaults.sections.skillsPlaceholder')">
-                  <t-option v-for="s in skillCatalog" :key="s.name" :value="s.name" :label="s.name" />
-                </t-select>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </t-loading>
   </div>
@@ -152,7 +69,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
-import { getSystemSetting, updateSystemSetting, isNamedSandboxBackend } from '@/api/system'
+import { getSystemSetting, updateSystemSetting } from '@/api/system'
 import { listModels, type ModelConfig } from '@/api/model'
 import { useAuthStore } from '@/stores/auth'
 import { useEditorResourcesStore } from '@/stores/editorResources'
@@ -174,7 +91,6 @@ import AgentSuggestionsSettings from '@/views/agent/settings/AgentSuggestionsSet
 import AgentRetrievalSettings from '@/views/agent/settings/AgentRetrievalSettings.vue'
 import AgentWebSearchSettings from '@/views/agent/settings/AgentWebSearchSettings.vue'
 import AgentAttachmentSettings from '@/views/agent/settings/AgentAttachmentSettings.vue'
-import AgentMcpSettings from '@/views/agent/settings/AgentMcpSettings.vue'
 
 // 与后端 types.AgentDefaultsKey 对应
 const AGENT_DEFAULTS_KEY = 'agent.default_config'
@@ -198,9 +114,6 @@ const PLATFORM_MANAGED_KEYS = [
   'image_upload_enabled', 'vlm_model_id', 'attachment_image_understanding',
   'attachment_ocr_max_pages', 'image_storage_provider', 'audio_upload_enabled',
   'asr_model_id', 'attachment_parse_wait_timeout_sec', 'chat_parser_engine_rules',
-  'allowed_tools',
-  'mcp_selection_mode', 'mcp_services', 'mcp_auth_wait_timeout',
-  'skills_selection_mode', 'selected_skills', 'sandbox_config_id',
 ] as const
 
 withDefaults(defineProps<{ activeSection?: string }>(), { activeSection: 'model' })
@@ -362,25 +275,6 @@ const webSearchProviderList = computed(() =>
   })).filter((p) => p.id && p.name),
 )
 
-// MCP 选项 / 工具 / 技能目录都来自 editorResources 缓存，与编辑器同源。
-const mcpOptions = computed(() => {
-  const list: any[] = editorResources.mcpServices || []
-  return list
-    .filter((m) => m?.id && m?.name)
-    .map((m) => ({ value: String(m.id), label: String(m.name), disabled: false }))
-})
-const toolOptions = computed(() => {
-  const catalog: any = editorResources.agentTools
-  const tools: any[] = catalog?.tools || []
-  return tools.map((tool: any) => ({ name: String(tool.name ?? '') })).filter((t) => t.name)
-})
-const skillCatalog = computed(() => editorResources.skillCatalog || [])
-// 沙箱配置来自对话资源缓存，与编辑器同一份；过滤掉没有命名的后端类型。
-const sandboxConfigOptions = computed(() =>
-  ((chatResources as any).sandboxConfigs || [])
-    .filter((c: any) => isNamedSandboxBackend(c?.sandbox_type)),
-)
-
 const onAddModel = () => {
   // 平台默认页不直接建模型，引导到「模型」设置页。
   MessagePlugin.info(t('agentDefaults.goModelSettings'))
@@ -471,11 +365,9 @@ async function loadModels() {
 
 async function loadCatalogs() {
   // 与编辑器同源的缓存；失败只影响对应下拉的可选项，不影响已保存的值。
+  // MCP / 工具 / 技能是用户级配置，平台默认页不维护，无需预拉对应目录。
   await Promise.allSettled([
-    editorResources.ensureSkillCatalog(),
-    editorResources.ensureAgentTools(),
     editorResources.ensureStorageEngine(),
-    editorResources.ensureMcpServices(),
     chatResources.ensureWebSearchProviders?.(),
   ])
 }

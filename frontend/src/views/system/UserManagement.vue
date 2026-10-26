@@ -44,22 +44,21 @@
             </span>
           </template>
           <template #role="{ row }">
+            <!-- 自己的角色只读：后端也会拒绝任何自我改角色的请求 -->
             <span v-if="row.id === authStore.currentUserId" class="user-management__own-role">
-              {{ t('system.globalSettings.userList.roleAdmin') }}
+              {{ roleLabel(roleOf(row)) }}
             </span>
-            <t-popconfirm v-else :visible="active && pendingRole?.id === row.id"
-              :content="row.is_system_admin
-                ? t('system.globalSettings.userList.confirmRevoke', { name: row.username })
-                : t('system.globalSettings.userList.confirmPromote', { name: row.username })"
+            <t-popconfirm v-else :visible="active && pendingChange?.user.id === row.id"
+              :content="pendingRoleConfirm"
               :popup-props="{ trigger: 'context-menu', overlayClassName: 'wk-popover user-management-confirm-popup' }" placement="left" theme="warning"
-              :confirm-btn="{ content: t(row.is_system_admin ? 'system.globalSettings.userList.revokeBtn' : 'system.globalSettings.userList.promoteBtn'), theme: row.is_system_admin ? 'danger' : 'primary', loading: busyId === row.id }"
-              :cancel-btn="t('common.cancel')" @confirm="changeRole(row)" @cancel="pendingRole = null"
-              @visible-change="(v: boolean) => { if (!v && !busyId) pendingRole = null }">
-              <t-select :model-value="row.is_system_admin ? 'admin' : 'user'" :options="roleOptions"
+              :confirm-btn="{ content: t('system.globalSettings.userList.changeRoleBtn'), theme: 'primary', loading: busyId === row.id }"
+              :cancel-btn="t('common.cancel')" @confirm="confirmRoleChange" @cancel="pendingChange = null"
+              @visible-change="(v: boolean) => { if (!v && !busyId) pendingChange = null }">
+              <t-select :model-value="roleOf(row)" :options="roleOptions"
                 :aria-label="`${row.username} · ${t('system.globalSettings.userList.colRole')}`" :borderless="true"
                 class="user-management__role" :disabled="loading || locked"
                 :popup-props="{ overlayClassName: 'wk-popover user-management-role-popup' }"
-                @change="(value: unknown) => { if (value !== (row.is_system_admin ? 'admin' : 'user')) pendingRole = row }" />
+                @change="(value: unknown) => selectRole(row, value)" />
             </t-popconfirm>
           </template>
           <template #created="{ row }"><span class="user-management__date">{{ formatDate(row.created_at) }}</span></template>
@@ -111,7 +110,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MessagePlugin } from 'tdesign-vue-next'
-import { listAllUsers, setUserStatus, promoteUserToSystemAdmin, revokeSystemAdmin, type SystemAdminUser } from '@/api/system'
+import { listAllUsers, setUserStatus, setUserRole, type PlatformUserRole, type SystemAdminUser } from '@/api/system'
 import { useAuthStore } from '@/stores/auth'
 import CreateUserDialog from './CreateUserDialog.vue'
 import ResetPasswordDialog from './ResetPasswordDialog.vue'
@@ -128,16 +127,48 @@ const limit = 20
 const hasMore = ref(false)
 const search = ref('')
 const busyId = ref<string | null>(null)
-const pendingRole = ref<SystemAdminUser | null>(null)
+const pendingChange = ref<{ user: SystemAdminUser; role: PlatformUserRole } | null>(null)
 const statusVisibleId = ref<string | null>(null)
 const resetVisibleId = ref<string | null>(null)
 const resetBusy = ref(false)
 const createVisible = ref(false)
 const locked = computed(() => busyId.value !== null || resetVisibleId.value !== null || createVisible.value)
-const roleOptions = computed(() => [
-  { value: 'user', label: t('system.globalSettings.userList.roleUser') },
-  { value: 'admin', label: t('system.globalSettings.userList.roleAdmin') },
-])
+// 平台角色的唯一事实来源是 User 上的两个独立标记：is_operations_admin 对应
+// 「系统管理员」，is_system_admin 对应「超级管理员」。前者在鉴权层继承后者
+// 的全部权限，所以同时置位时按更高的一档展示。
+function roleOf(user: SystemAdminUser): PlatformUserRole {
+  if (user.is_operations_admin) return 'system_admin'
+  if (user.is_system_admin) return 'super_admin'
+  return 'user'
+}
+const ROLE_LABEL_KEYS: Record<PlatformUserRole, string> = {
+  user: 'system.globalSettings.userList.roleUser',
+  super_admin: 'system.globalSettings.userList.roleSuperAdmin',
+  system_admin: 'system.globalSettings.userList.roleAdmin',
+}
+function roleLabel(role: PlatformUserRole): string {
+  return t(ROLE_LABEL_KEYS[role])
+}
+// 只有「系统管理员」可以授予/撤销「系统管理员」角色：超级管理员的下拉里
+// 不出现该选项，与服务端同一规则的 403 保持一致。
+const roleOptions = computed(() => {
+  const options = [
+    { value: 'user', label: roleLabel('user') },
+    { value: 'super_admin', label: roleLabel('super_admin') },
+  ] as { value: PlatformUserRole; label: string }[]
+  if (authStore.isOperationsAdmin) {
+    options.push({ value: 'system_admin', label: roleLabel('system_admin') })
+  }
+  return options
+})
+const pendingRoleConfirm = computed(() => {
+  const change = pendingChange.value
+  if (!change) return ''
+  return t('system.globalSettings.userList.confirmRoleChange', {
+    name: change.user.username,
+    role: roleLabel(change.role),
+  })
+})
 const columns = computed(() => [
   { colKey: 'user', title: t('system.globalSettings.userList.colUsername'), minWidth: 230 },
   { colKey: 'role', title: t('system.globalSettings.userList.colRole'), width: 160 },
@@ -145,9 +176,14 @@ const columns = computed(() => [
   { colKey: 'created', title: t('system.globalSettings.userList.colCreated'), width: 130 },
   { colKey: 'actions', title: t('system.globalSettings.userList.colAction'), width: 170 },
 ])
+// 防御性过滤：超级管理员永远看不到系统管理员行。服务端已在分页查询里过滤，
+// 这里只兜住「列表拉取后角色发生变化」的竞态。
+const visibleUsers = computed(() =>
+  users.value.filter(user => authStore.isOperationsAdmin || !user.is_operations_admin),
+)
 const filteredUsers = computed(() => {
   const query = search.value.trim().toLowerCase()
-  return users.value.filter(user => !query || `${user.username} ${user.email}`.toLowerCase().includes(query))
+  return visibleUsers.value.filter(user => !query || `${user.username} ${user.email}`.toLowerCase().includes(query))
 })
 function formatDate(value: string) {
   const date = new Date(value)
@@ -161,7 +197,7 @@ async function fetchPage(nextOffset: number) {
   if (loading.value || resetBusy.value) return
   loading.value = true
   loadError.value = ''
-  pendingRole.value = null
+  pendingChange.value = null
   statusVisibleId.value = null
   try {
     const response = await listAllUsers({ offset: nextOffset, limit })
@@ -184,21 +220,32 @@ async function changeStatus(row: SystemAdminUser) {
   } catch (error) { MessagePlugin.error(errorMessage(error, 'system.globalSettings.userList.actionFailed')) }
   finally { busyId.value = null; statusVisibleId.value = null }
 }
-async function changeRole(row: SystemAdminUser) {
-  if (busyId.value || row.id === authStore.currentUserId) return
-  busyId.value = row.id
+// 下拉选中后先挂起，等 popconfirm 确认再写库；关闭气泡或取消都丢弃这次选择。
+function selectRole(row: SystemAdminUser, value: unknown) {
+  const role = value as PlatformUserRole
+  if (role === roleOf(row)) return
+  pendingChange.value = { user: row, role }
+}
+async function confirmRoleChange() {
+  const change = pendingChange.value
+  if (!change || busyId.value || change.user.id === authStore.currentUserId) return
+  busyId.value = change.user.id
   try {
-    const updated = row.is_system_admin ? await revokeSystemAdmin(row.id) : await promoteUserToSystemAdmin({ user_id: row.id })
-    row.is_system_admin = updated.is_system_admin
-    const message = t(row.is_system_admin ? 'system.globalSettings.userList.promotedMsg' : 'system.globalSettings.userList.revokedMsg', { name: row.username })
+    const updated = await setUserRole(change.user.id, change.role)
+    change.user.is_system_admin = updated.is_system_admin
+    change.user.is_operations_admin = updated.is_operations_admin === true
+    const message = t('system.globalSettings.userList.roleChangedMsg', {
+      name: change.user.username,
+      role: roleLabel(change.role),
+    })
     MessagePlugin.success(message)
     announce(message)
   } catch (error) { MessagePlugin.error(errorMessage(error, 'system.globalSettings.userList.roleFailed')) }
-  finally { busyId.value = null; pendingRole.value = null }
+  finally { busyId.value = null; pendingChange.value = null }
 }
 watch(() => props.active, active => {
   if (active && !locked.value) fetchPage(offset.value)
-  if (!active) { pendingRole.value = null; statusVisibleId.value = null }
+  if (!active) { pendingChange.value = null; statusVisibleId.value = null }
 }, { immediate: true })
 </script>
 

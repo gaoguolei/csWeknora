@@ -611,9 +611,9 @@ func (s *userService) SetUserActive(ctx context.Context, userID, actorID string,
 // user-management UI. It fetches limit+1 rows to derive has_more without a
 // separate COUNT. Role gating is the handler's responsibility.
 func (s *userService) ListAllUsers(
-	ctx context.Context, offset, limit int,
+	ctx context.Context, offset, limit int, excludeOperationsAdmins bool,
 ) ([]*types.User, bool, error) {
-	rows, err := s.userRepo.ListUsers(ctx, offset, limit+1)
+	rows, err := s.userRepo.ListUsers(ctx, offset, limit+1, excludeOperationsAdmins)
 	if err != nil {
 		return nil, false, err
 	}

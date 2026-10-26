@@ -53,7 +53,8 @@
 import { computed } from 'vue'
 import type { CustomAgentConfig } from '@/api/agent'
 
-// MCP 服务分区（需求 I）。编辑器与平台「智能体配置」共用本组件。
+// MCP 服务分区（需求 I）。仅在智能体编辑器里使用：MCP 服务是用户级配置，
+// 由用户创建智能体时自己选，平台默认页不维护。
 //
 // selectionMode 由父级持有：编辑器里它是一个本地 ref，并被一个 watch 同步到
 // config.mcp_selection_mode；这里用 v-model 透传，保持那条 watch 仍然生效。

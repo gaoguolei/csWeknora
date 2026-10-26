@@ -92,7 +92,11 @@ type UserService interface {
 	// Returns the page plus a has_more flag so the system-admin user-list UI
 	// can paginate without a second count query. The handler enforces the
 	// SystemAdmin gate, so the service does not duplicate it here.
-	ListAllUsers(ctx context.Context, offset, limit int) ([]*types.User, bool, error)
+	//
+	// excludeOperationsAdmins is set by the handler for super admins: those
+	// rows (系统管理员) are only visible to a system administrator, so the
+	// filter runs inside the paging query rather than post-filtering a page.
+	ListAllUsers(ctx context.Context, offset, limit int, excludeOperationsAdmins bool) ([]*types.User, bool, error)
 	// ListSystemAdmins lists users with IsSystemAdmin=true.
 	// Returns the page of admins plus the total count (for pagination UI);
 	// callers pass offset/limit to page through results. Used by the
@@ -144,8 +148,10 @@ type UserRepository interface {
 	SetUserActive(ctx context.Context, userID, actorID string, active bool) (*types.User, error)
 	// DeleteUser deletes a user
 	DeleteUser(ctx context.Context, id string) error
-	// ListUsers lists users with pagination
-	ListUsers(ctx context.Context, offset, limit int) ([]*types.User, error)
+	// ListUsers lists users with pagination. excludeOperationsAdmins
+	// drops is_operations_admin rows from the result (and from paging) so a
+	// super admin's user list never surfaces a system administrator.
+	ListUsers(ctx context.Context, offset, limit int, excludeOperationsAdmins bool) ([]*types.User, error)
 	// ListSystemAdmins lists users where is_system_admin = true.
 	// Walks the partial-friendly idx_users_is_system_admin index. Returns
 	// the slice plus the total count for pagination metadata. Used by

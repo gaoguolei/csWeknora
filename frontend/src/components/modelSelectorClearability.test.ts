@@ -3,7 +3,10 @@ import test from 'node:test'
 import { readFileSync } from 'node:fs'
 
 const selector = readFileSync(new URL('./ModelSelector.vue', import.meta.url), 'utf8')
-const agentEditor = readFileSync(new URL('../views/agent/AgentEditorModal.vue', import.meta.url), 'utf8')
+// 编辑器的模型选择器已按分区抽到 settings/ 下的组件里（编辑器与平台「智能体配置」共用）
+const agentModelSettings = readFileSync(new URL('../views/agent/settings/AgentModelSettings.vue', import.meta.url), 'utf8')
+const agentAttachmentSettings = readFileSync(new URL('../views/agent/settings/AgentAttachmentSettings.vue', import.meta.url), 'utf8')
+const agentSuggestionsSettings = readFileSync(new URL('../views/agent/settings/AgentSuggestionsSettings.vue', import.meta.url), 'utf8')
 const kbModelConfig = readFileSync(new URL('../views/knowledge/settings/KBModelConfig.vue', import.meta.url), 'utf8')
 const kbEditor = readFileSync(new URL('../views/knowledge/KnowledgeBaseEditorModal.vue', import.meta.url), 'utf8')
 const uploadConfirm = readFileSync(new URL('../views/knowledge/components/UploadConfirmDialog.vue', import.meta.url), 'utf8')
@@ -31,11 +34,11 @@ test('ModelSelector 清空时向父组件回传空字符串，默认仍不可清
 })
 
 test('智能体中允许继承或关闭的可选模型可以恢复为空', () => {
-  const rerank = modelSelectorTag(agentEditor, 'formData.config.rerank_model_id')
+  const rerank = modelSelectorTag(agentModelSettings, 'config.rerank_model_id')
   assert.match(rerank, /:clearable="!needsRerankModel"/)
-  assertClearable(modelSelectorTag(agentEditor, 'formData.config.query_understand_model_id'))
-  assertClearable(modelSelectorTag(agentEditor, 'formData.config.asr_model_id'))
-  assertClearable(modelSelectorTag(agentEditor, 'formData.config.question_suggestions.follow_ups.model_id'))
+  assertClearable(modelSelectorTag(agentModelSettings, 'config.query_understand_model_id'))
+  assertClearable(modelSelectorTag(agentAttachmentSettings, 'config.asr_model_id'))
+  assertClearable(modelSelectorTag(agentSuggestionsSettings, 'qs.follow_ups.model_id'))
 })
 
 test('知识库仅在模型确实可选时允许恢复为空', () => {
@@ -45,8 +48,8 @@ test('知识库仅在模型确实可选时允许恢复为空', () => {
 })
 
 test('必填模型继续保持不可清空', () => {
-  assertNotClearable(modelSelectorTag(agentEditor, 'formData.config.model_id'))
-  assertNotClearable(modelSelectorTag(agentEditor, 'formData.config.vlm_model_id'))
+  assertNotClearable(modelSelectorTag(agentModelSettings, 'config.model_id'))
+  assertNotClearable(modelSelectorTag(agentAttachmentSettings, 'config.vlm_model_id'))
   assertNotClearable(modelSelectorTag(kbModelConfig, 'config.llmModelId'))
   assertNotClearable(modelSelectorTag(kbEditor, 'formData.multimodalConfig.vllmModelId'))
   assertNotClearable(modelSelectorTag(kbEditor, 'formData.asrConfig.modelId'))

@@ -246,25 +246,7 @@
           />
         </div>
 
-        <!-- K 数据源（仅运营管理员；工作区级集中管理，已从知识库弹窗移除）。
-             数据源仍同步进具体知识库，故先选目标知识库再复用现有数据源管理 UI。 -->
-        <div v-if="canOpsEdit" v-show="activeSection === 'datasource'" class="kb-defaults-block">
-          <div class="kb-defaults-ds-bar">
-            <label class="kb-defaults-ds-bar__label">{{ $t('kbDefaults.datasource.targetKb') }}</label>
-            <t-select
-              v-model="dsSelectedKbId"
-              class="kb-defaults-ds-bar__select"
-              filterable
-              :placeholder="$t('kbDefaults.datasource.selectKb')"
-            >
-              <t-option v-for="kb in kbList" :key="kb.id" :value="kb.id" :label="kb.name" />
-            </t-select>
-          </div>
-          <p class="kb-defaults-ds-hint">{{ $t('kbDefaults.datasource.hint') }}</p>
-          <DataSourceSettings v-if="dsSelectedKbId" :key="dsSelectedKbId" :kb-id="dsSelectedKbId" />
-          <p v-else class="kb-defaults-ds-empty">{{ $t('kbDefaults.datasource.selectKb') }}</p>
-        </div>
-        </div>
+      </div>
     </t-loading>
 
     <div v-if="canEdit && ready" class="kb-defaults-footer">
@@ -296,9 +278,7 @@ import KBAdvancedSettings from '@/views/knowledge/settings/KBAdvancedSettings.vu
 import KBVectorStoreSettings from '@/views/knowledge/settings/KBVectorStoreSettings.vue'
 import KBParserSettings from '@/views/knowledge/settings/KBParserSettings.vue'
 import KBStorageSettings from '@/views/knowledge/settings/KBStorageSettings.vue'
-import DataSourceSettings from '@/views/knowledge/settings/DataSourceSettings.vue'
 import { listModels, type ModelConfig } from '@/api/model'
-import { listKnowledgeBases } from '@/api/knowledge-base'
 import { getSystemSetting, updateSystemSetting } from '@/api/system'
 import { useAuthStore } from '@/stores/auth'
 
@@ -326,10 +306,6 @@ const autosaveState = ref<'idle' | 'saving' | 'saved'>('idle')
 // them against defaults first would drop the persisted values.
 const ready = ref(false)
 const allModels = ref<ModelConfig[]>([])
-
-// 数据源集中管理（仅运营管理员）：列出当前工作区的知识库供选择目标库。
-const kbList = ref<{ id: string; name: string }[]>([])
-const dsSelectedKbId = ref('')
 
 // camelCase UI model, mirroring the KB editor's formData subset so the very
 // same section components can be reused verbatim.
@@ -627,22 +603,6 @@ async function loadModels() {
   }
 }
 
-async function loadKBs() {
-  // 数据源块仅运营管理员可见，非运营管理员无需拉取知识库列表。
-  if (!canOpsEdit.value) return
-  try {
-    const res: any = await listKnowledgeBases()
-    const arr = res?.data && Array.isArray(res.data) ? res.data : []
-    kbList.value = arr.map((kb: any) => ({ id: kb.id, name: kb.name }))
-    if (!dsSelectedKbId.value && kbList.value.length) {
-      dsSelectedKbId.value = kbList.value[0].id
-    }
-  } catch (e) {
-    console.error('kbDefaults: failed to load knowledge bases', e)
-    kbList.value = []
-  }
-}
-
 async function load() {
   loading.value = true
   try {
@@ -708,7 +668,6 @@ watch(cfg, () => scheduleAutoSave(), { deep: true })
 
 onMounted(() => {
   void loadModels()
-  void loadKBs()
   void load()
 })
 
@@ -824,33 +783,6 @@ onUnmounted(() => {
   .section-header {
     margin-bottom: 16px;
   }
-}
-
-.kb-defaults-ds-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-
-  &__label {
-    font-size: var(--app-text-lg);
-    font-weight: 500;
-    color: var(--td-text-color-primary);
-    flex: 0 0 auto;
-  }
-
-  &__select {
-    flex: 0 0 320px;
-    max-width: 320px;
-  }
-}
-
-.kb-defaults-ds-hint,
-.kb-defaults-ds-empty {
-  font-size: var(--app-text-base);
-  color: var(--td-text-color-secondary);
-  margin: 0 0 12px 0;
-  line-height: 1.5;
 }
 
 .settings-group {

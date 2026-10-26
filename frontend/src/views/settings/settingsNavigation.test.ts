@@ -31,8 +31,14 @@ const compiled = ts.transpileModule(grouping, {
   compilerOptions: { target: ts.ScriptTarget.ES2022 },
 }).outputText
 
-function integrationMenu(visibleKeys: string[]): string[] {
-  const groups = runInNewContext(`${compiled}\nnavGroups.value`, {
+type SidebarGroup = {
+  key: string
+  scope: string
+  items: Array<{ key: string }>
+}
+
+function sidebarGroups(visibleKeys: string[]): SidebarGroup[] {
+  return runInNewContext(`${compiled}\nnavGroups.value`, {
     computed,
     navItems: { value: visibleKeys.map((key) => ({ key })) },
     t: (key: string) => key,
@@ -42,8 +48,11 @@ function integrationMenu(visibleKeys: string[]): string[] {
     // irrelevant here and only need to exist for the layout to evaluate.
     KB_DEFAULTS_SUBSECTIONS: [],
     AGENT_DEFAULTS_SUBSECTIONS: [],
-  }) as Array<{ key: string; items: Array<{ key: string }> }>
-  const integrationGroup = groups.find((group) => group.key === 'integrations')
+  }) as SidebarGroup[]
+}
+
+function integrationMenu(visibleKeys: string[]): string[] {
+  const integrationGroup = sidebarGroups(visibleKeys).find((group) => group.key === 'integrations')
   return Array.from(integrationGroup?.items ?? [], (item) => item.key)
 }
 
@@ -57,4 +66,16 @@ test('settings sidebar preserves visibility filtering without hiding CLI', () =>
   const visible = integrationKeys.filter((key) => key !== 'integration-api' && key !== 'integration-im')
   assert.deepEqual(integrationMenu(visible), visible)
   assert.deepEqual(integrationMenu(['general']), [])
+})
+
+test('integrations belong to the personal settings scope, ahead of the platform block', () => {
+  // API / MCP server / Chrome extension are workspace- or member-level entries, so
+  // the group is stamped with the personal scope and rendered before the platform
+  // groups (role visibility still comes from canSeeSection, not from the scope).
+  const groups = sidebarGroups(['general', 'models', ...integrationKeys])
+  const integrationIndex = groups.findIndex((group) => group.key === 'integrations')
+  assert.ok(integrationIndex >= 0, 'integrations group must be present')
+  assert.equal(groups[integrationIndex]!.scope, 'personal')
+  const platformIndex = groups.findIndex((group) => group.scope === 'platform')
+  assert.ok(platformIndex > integrationIndex, 'platform groups must follow integrations')
 })

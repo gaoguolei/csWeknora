@@ -45,11 +45,6 @@ func TestAgentDefaultsApplyToFillsEmptyFields(t *testing.T) {
 		VectorThreshold:    0.7,
 		WebSearchEnabled:   &on,
 		ImageUploadEnabled: &on,
-		AllowedTools:       []string{"search_knowledge"},
-		MCPSelectionMode:   "selected",
-		MCPServices:        []string{"mcp-1"},
-		SandboxConfigID:    "sandbox-1",
-		SelectedSkills:     []string{"skill-1"},
 		VLMModelID:         "vllm-1",
 	}
 	target := &CustomAgentConfig{}
@@ -62,12 +57,34 @@ func TestAgentDefaultsApplyToFillsEmptyFields(t *testing.T) {
 	assert.InDelta(t, 0.7, target.VectorThreshold, 1e-9)
 	assert.True(t, target.WebSearchEnabled)
 	assert.True(t, target.ImageUploadEnabled)
-	assert.Equal(t, []string{"search_knowledge"}, target.AllowedTools)
-	assert.Equal(t, "selected", target.MCPSelectionMode)
-	assert.Equal(t, []string{"mcp-1"}, target.MCPServices)
-	assert.Equal(t, "sandbox-1", target.SandboxConfigID)
-	assert.Equal(t, []string{"skill-1"}, target.SelectedSkills)
 	assert.Equal(t, "vllm-1", target.VLMModelID)
+}
+
+// Tools (H), MCP services (I) and skills (J) are user-level configuration:
+// the user picks them when creating the agent. Legacy rows that still carry
+// those keys must not leak into newly created agents.
+func TestAgentDefaultsIgnoreToolsMcpSkills(t *testing.T) {
+	cfg := ParseAgentDefaultsConfig(`{
+		"allowed_tools": ["search_knowledge"],
+		"mcp_selection_mode": "all",
+		"mcp_services": ["mcp-1"],
+		"mcp_auth_wait_timeout": 300,
+		"skills_selection_mode": "all",
+		"selected_skills": ["skill-1"],
+		"sandbox_config_id": "sandbox-1"
+	}`)
+	require.NotNil(t, cfg)
+
+	target := &CustomAgentConfig{}
+	cfg.ApplyTo(target)
+
+	assert.Empty(t, target.AllowedTools)
+	assert.Empty(t, target.MCPSelectionMode)
+	assert.Empty(t, target.MCPServices)
+	assert.Zero(t, target.MCPAuthWaitTimeout)
+	assert.Empty(t, target.SkillsSelectionMode)
+	assert.Empty(t, target.SelectedSkills)
+	assert.Empty(t, target.SandboxConfigID)
 }
 
 // The user's own choices must survive: ApplyTo only fills zero values, so an
@@ -79,8 +96,6 @@ func TestAgentDefaultsApplyToKeepsExplicitValues(t *testing.T) {
 		ModelID:          "platform-llm",
 		HistoryTurns:     8,
 		WebSearchEnabled: &on,
-		AllowedTools:     []string{"platform-tool"},
-		MCPServices:      []string{"platform-mcp"},
 		// Pointer-typed target field: the default must not flip an explicit false.
 		CitationEnabled: &on,
 	}
@@ -88,8 +103,6 @@ func TestAgentDefaultsApplyToKeepsExplicitValues(t *testing.T) {
 		ModelID:          "user-llm",
 		HistoryTurns:     3,
 		WebSearchEnabled: false, // explicitly off — must not be flipped on
-		AllowedTools:     []string{"user-tool"},
-		MCPServices:      []string{"user-mcp"},
 		CitationEnabled:  &off,
 	}
 	cfg.ApplyTo(target)
@@ -97,8 +110,6 @@ func TestAgentDefaultsApplyToKeepsExplicitValues(t *testing.T) {
 	assert.Equal(t, "user-llm", target.ModelID)
 	assert.Equal(t, 3, target.HistoryTurns)
 	assert.False(t, target.WebSearchEnabled)
-	assert.Equal(t, []string{"user-tool"}, target.AllowedTools)
-	assert.Equal(t, []string{"user-mcp"}, target.MCPServices)
 	require.NotNil(t, target.CitationEnabled)
 	assert.False(t, *target.CitationEnabled)
 }

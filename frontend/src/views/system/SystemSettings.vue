@@ -253,10 +253,12 @@ import {
 } from '@/api/system'
 import UserManagement from './UserManagement.vue'
 import { useDeploymentCapabilitiesStore } from '@/stores/deploymentCapabilities'
+import { useAuthStore } from '@/stores/auth'
 import { PASSWORD_SPECIAL_CHARS } from '@/utils/passwordPolicy'
 import { isSettingValueDirty, resolveCurrentSetting } from './systemSettingsEdit'
 
 const deploymentCapabilities = useDeploymentCapabilitiesStore()
+const authStore = useAuthStore()
 
 const { t, tm, te, locale } = useI18n()
 
@@ -406,6 +408,20 @@ const SETTINGS_SECTION_KEYS: Record<Exclude<SettingsSection, 'other' | 'users'>,
   security: ['ssrf.whitelist', 'sandbox.docker_enabled'],
 }
 
+// 平台级配置项（注册与访问 / 空间默认值 / 运行与并发 / 网络安全 / 其他配置）
+// 收归运营管理员专属：只有 isOperationsAdmin 可以查看并修改，超级管理员等
+// 其他角色进入本页只保留「用户管理」Tab。与 ollama 等运营管理员专属设置
+// 一致，这里只收紧前端可见性，后端路由仍保持 SystemAdmin 门控。
+const CONFIGURATION_SECTIONS = new Set<SettingsSection>([
+  'access',
+  'tenant',
+  'runtime',
+  'security',
+  'other',
+])
+const canConfigureSettings = computed(() => authStore.isOperationsAdmin)
+
+// 默认落在「注册与访问」；非运营管理员由下方 watcher 回落到「用户管理」。
 const activeSettingsSection = ref<SettingsSection>('access')
 // Keys managed on their own dedicated page instead of 全局设置:
 // chat_history.indexing_enabled and chat_history.embedding_model_id are both
@@ -433,7 +449,13 @@ const sectionTabs = computed(() => {
     { key: 'runtime', icon: 'server', label: t('system.globalSettings.sections.runtime.title') },
     { key: 'security', icon: 'secured', label: t('system.globalSettings.sections.security.title') },
   ]
-  if (hasUnknownSettings.value) tabs.push({ key: 'other', icon: 'ellipsis', label: t('system.globalSettings.sections.other.title') })
+  if (hasUnknownSettings.value && canConfigureSettings.value) {
+    tabs.push({ key: 'other', icon: 'ellipsis', label: t('system.globalSettings.sections.other.title') })
+  }
+  // 非运营管理员只保留「用户管理」，配置类 Tab 一律不渲染。
+  if (!canConfigureSettings.value) {
+    return tabs.filter((tab) => !CONFIGURATION_SECTIONS.has(tab.key))
+  }
   return tabs
 })
 
@@ -457,9 +479,23 @@ function onTabKeydown(event: KeyboardEvent, key: SettingsSection) {
 
 watch(hasUnknownSettings, (hasUnknown) => {
   if (!hasUnknown && activeSettingsSection.value === 'other') {
-    activeSettingsSection.value = 'access'
+    activeSettingsSection.value = canConfigureSettings.value ? 'access' : 'users'
   }
 })
+
+// 角色信息可能晚于组件挂载返回（user 为 null 时不能判断）：一旦确认调用者
+// 不是运营管理员，把当前选中的配置类 Tab 回落到「用户管理」，避免配置类 Tab
+// 被隐藏后仍有可编辑内容渲染。
+watch(
+  () => authStore.user,
+  (user) => {
+    if (!user) return
+    if (!authStore.isOperationsAdmin && CONFIGURATION_SECTIONS.has(activeSettingsSection.value)) {
+      activeSettingsSection.value = 'users'
+    }
+  },
+  { immediate: true },
+)
 
 const activeSectionSettings = computed(() => {
   if (activeSettingsSection.value === 'users') return []

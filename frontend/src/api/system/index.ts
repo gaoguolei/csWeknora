@@ -334,6 +334,35 @@ export async function revokeSystemAdmin(userId: string): Promise<SystemAdminUser
   return response as unknown as SystemAdminUser
 }
 
+/**
+ * Platform roles rendered by the user-management role selector.
+ *
+ *  - `user`         → 普通用户
+ *  - `super_admin`  → 超级管理员 (is_system_admin)
+ *  - `system_admin` → 系统管理员 (is_operations_admin, highest)
+ */
+export type PlatformUserRole = 'user' | 'super_admin' | 'system_admin'
+
+export interface SetUserRoleRequest {
+  user_id: string
+  role: PlatformUserRole
+}
+
+/**
+ * Change another user's platform role (SystemAdmin only).
+ *
+ * The server rejects changing your own role, and only a system administrator
+ * may grant or revoke the system-administrator role. Same unwrapping
+ * convention as promoteUserToSystemAdmin.
+ */
+export async function setUserRole(
+  userId: string,
+  role: PlatformUserRole,
+): Promise<SystemAdminUser> {
+  const response = await post('/api/v1/system/admin/users/role', { user_id: userId, role })
+  return response as unknown as SystemAdminUser
+}
+
 export interface SetUserStatusRequest {
   user_id: string
   is_active: boolean

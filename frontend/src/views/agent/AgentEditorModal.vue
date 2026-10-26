@@ -595,8 +595,8 @@
         />
       </div>
 
-      <!-- 工具配置（仅 Agent 模式） -->
-      <div v-if="canEditPlatform" v-show="currentSection === 'tools' && isAgentMode" class="section">
+      <!-- 工具配置（仅 Agent 模式）。用户级配置：建智能体时自己选，不再走平台默认。 -->
+      <div v-show="currentSection === 'tools' && isAgentMode" class="section">
         <div class="section-header">
           <h2>{{ $t('agent.editor.toolsConfig') }}</h2>
           <p class="section-description">{{ $t('agent.editor.toolsConfigDesc') }}</p>
@@ -724,8 +724,8 @@
         </div>
       </div>
 
-      <!-- MCP 服务配置（仅 Agent 模式） -->
-      <div v-if="canEditPlatform" v-show="currentSection === 'mcp' && isAgentMode" class="section">
+      <!-- MCP 服务配置（仅 Agent 模式）。同上，用户级配置。 -->
+      <div v-show="currentSection === 'mcp' && isAgentMode" class="section">
         <AgentMcpSettings
           v-if="formData"
           v-model:selection-mode="mcpSelectionMode"
@@ -735,8 +735,8 @@
         />
       </div>
 
-      <!-- 技能：脚本跑在所选沙箱里，可用列表也来自这份配置 -->
-      <div v-if="canEditPlatform" v-show="currentSection === 'skills' && isAgentMode" class="section">
+      <!-- 技能：脚本跑在所选沙箱里，可用列表也来自这份配置（用户级配置） -->
+      <div v-show="currentSection === 'skills' && isAgentMode" class="section">
         <div class="section-header">
           <h2>{{ $t('agent.editor.skillsConfig') }}</h2>
           <p class="section-description">{{ hostOnly ? $t('agent.editor.hostSkillsConfigDesc') : $t('agent.editor.skillsConfigDesc') }}</p>
@@ -1132,7 +1132,7 @@ import {
   type KBCapabilities,
 } from '@/api/agent';
 import { type ModelConfig } from '@/api/model';
-import { type AgentNotReadyReasonKey, agentRequiresRerankModel } from '@/utils/agent-readiness';
+import { type AgentNotReadyReasonKey } from '@/utils/agent-readiness';
 import { normalizeLegacyToolNames } from '@/utils/legacy-tool-names';
 import { installSkillCatalog, type SkillCatalogItem } from '@/api/skill';
 import { installUpgradable, servedPreviousText, upgradeVersions } from '@/utils/skillUpgrade';
@@ -1158,10 +1158,10 @@ import SandboxSkillsPanel from '@/components/SandboxSkillsPanel.vue';
 import SettingDrawer from '@/components/settings/SettingDrawer.vue';
 import KBParserSettings, { type ParserEngineRule } from '@/views/knowledge/settings/KBParserSettings.vue';
 import AgentShareSettings from '@/components/AgentShareSettings.vue';
-// 抽出来的 7 个配置分区组件 —— 编辑器与「设置 → 智能体配置」共用同一套表单，
-// 避免平台默认页和编辑器各维护一份。技能 / 工具两个分区仍内联在本文件里：
-// 它们与编辑器多处状态（沙箱列表、技能目录、安装进度）耦合，且平台默认页
-// 不需要其中的沙箱安装操作。
+// 抽出来的 6 个配置分区组件 —— 编辑器与「设置 → 智能体配置」共用同一套表单，
+// 避免平台默认页和编辑器各维护一份。工具 / 技能两个分区内联在本文件里：
+// 它们与编辑器多处状态（沙箱列表、技能目录、安装进度）耦合，且属于用户级配置，
+// 只在创建 / 编辑智能体时出现，不进平台默认页。
 import AgentModelSettings from './settings/AgentModelSettings.vue';
 import AgentConversationSettings from './settings/AgentConversationSettings.vue';
 import AgentSuggestionsSettings from './settings/AgentSuggestionsSettings.vue';
@@ -1791,11 +1791,6 @@ const hasKnowledgeBase = computed(() => {
   return kbSelectionMode.value !== 'none';
 });
 
-const showRerankModelField = computed(() => {
-  if (!isAgentMode.value) return hasKnowledgeBase.value;
-  return hasKnowledgeBase.value || agentRequiresRerankModel(formData.value.config);
-});
-
 // 当前配置下进入到智能体作用域的知识库列表
 // 注意：用户可能选了 knowledge_bases（按库级），也可能选了 knowledge_ids（按文档级）
 // 这里仅用于 UI 上的工具可用性判定，按库级来计算
@@ -1810,6 +1805,11 @@ const kbsInScope = computed(() => {
 const hasRagKnowledgeBase = computed(() => {
   return kbsInScope.value.some(kb => kb.ragEnabled);
 });
+
+// ReRank 只作用于 RAG 知识库的召回结果：作用域内没有 RAG 知识库时不展示、
+// 也不加载这份配置。后续加入 RAG 知识库时字段才出现，留空则由后端回退到
+// 平台已配置的重排模型。
+const showRerankModelField = computed(() => hasRagKnowledgeBase.value);
 
 // 是否存在至少一个启用了 Wiki 能力的知识库
 const hasWikiKnowledgeBase = computed(() => {
@@ -2047,10 +2047,11 @@ const rewriteSystemTextareaRef = ref<any>(null);
 const rewriteUserTextareaRef = ref<any>(null);
 const fallbackPromptTextareaRef = ref<any>(null);
 
-// 平台级配置（模型 / 多轮 / 推荐 / 检索 / 网络搜索 / 附件 / 工具 / MCP / 技能）
+// 平台级配置（模型 / 多轮 / 推荐 / 检索 / 网络搜索 / 附件）
 // 已收归「设置 → 智能体配置」由超级管理员统一维护（需求第 23 项之二），
 // 编辑器只在编辑态对超管放行，用于个别智能体的偏离配置。运营管理员继承
-// isSystemAdmin，因此同样可见。
+// isSystemAdmin，因此同样可见。工具 / MCP / 技能不在此列：它们是用户级配置，
+// 建智能体时由用户自己设置。
 const canEditPlatform = computed(() => authStore.isSystemAdmin);
 
 const navItems = computed(() => {
@@ -2062,9 +2063,16 @@ const navItems = computed(() => {
   // 知识库检索（需求 D）留给用户：建库时就该自己决定这个智能体看哪些知识库。
   items.push({ key: 'knowledge', icon: 'folder', label: t('agent.editor.knowledgeConfig') });
 
-  // 其余配置分区（A 模型 / B 多轮 / C 推荐 / E 检索 / F 网络搜索 / G 附件 /
-  // H 工具 / I MCP / J 技能）统一在「设置 → 智能体配置」由超级管理员维护，
-  // 新建时后端套用平台默认值。所以：
+  // 工具 / MCP / 技能是用户级配置：建智能体时就该由用户自己决定这个智能体能用
+  // 哪些工具、MCP 服务和技能，不跟随平台默认值（需求 H/I/J）。
+  if (isAgentMode.value) {
+    items.push({ key: 'tools', icon: 'tools', label: t('agent.editor.toolsConfig') });
+    items.push({ key: 'mcp', icon: 'server', label: t('agentEditor.mcp.label') });
+    items.push({ key: 'skills', icon: SKILL_ICON, label: t('agent.editor.skillsConfig') });
+  }
+
+  // 其余配置分区（A 模型 / B 多轮 / C 推荐 / E 检索 / F 网络搜索 / G 附件）
+  // 统一在「设置 → 智能体配置」由超级管理员维护，新建时后端套用平台默认值。所以：
   //   · 新建模式：不展示这些分区（用户只填基本信息 + 提示词 + 知识库检索）；
   //   · 编辑模式：仅超级管理员可见，用于个别智能体的偏离配置。
   if (editorMode.value !== 'edit' || !canEditPlatform.value) {
@@ -2085,12 +2093,6 @@ const navItems = computed(() => {
   }
   items.push({ key: 'websearch', icon: 'internet', label: t('agent.editor.webSearchConfig') });
   items.push({ key: 'multimodal', icon: 'attach', label: t('agentEditor.imageUpload.navLabel') });
-  // Agent 模式能力
-  if (isAgentMode.value) {
-    items.push({ key: 'tools', icon: 'tools', label: t('agent.editor.toolsConfig') });
-    items.push({ key: 'mcp', icon: 'server', label: t('agentEditor.mcp.label') });
-    items.push({ key: 'skills', icon: SKILL_ICON, label: t('agent.editor.skillsConfig') });
-  }
   // 发布（仅编辑模式）
   if (editorMode.value === 'edit' && editorAgent.value?.id && !editorAgent.value?.is_builtin && !authStore.isLiteMode) {
     items.push({ key: 'share', icon: 'share', label: t('knowledgeEditor.sidebar.share') });
@@ -2253,19 +2255,28 @@ const defaultFormData = {
 
 const formData = ref(JSON.parse(JSON.stringify(defaultFormData)));
 
-// 对话模型 / ReRank 模型为空时预选平台默认模型（同类型 is_default 优先，
-// 否则取第一个可用模型）。新建和编辑都适用：编辑时智能体若从未配过模型，
-// 下拉框会一直显示「请选择模型」并卡住「未就绪」提示，这里补齐与知识库、
+// ReRank 是「用到才加载」的配置：只有作用域内已经有 RAG 知识库时才预选平台
+// 默认重排模型（同类型 is_default 优先，否则取第一个可用模型），避免给完全
+// 不用 RAG 的智能体写进一份用不到的配置。
+const applyDefaultRerankModelIfEmpty = () => {
+  if (!formData.value || formData.value.config.rerank_model_id) return
+  const rerankModelId = selectInitialModelId(allModels.value, 'Rerank')
+  if (rerankModelId) {
+    formData.value.config.rerank_model_id = rerankModelId
+  }
+}
+
+// 对话模型为空时预选平台默认模型。新建和编辑都适用：编辑时智能体若从未配过
+// 模型，下拉框会一直显示「请选择模型」并卡住「未就绪」提示，这里补齐与知识库、
 // 长记忆库创建一致的默认预选行为。已保存过模型的智能体不受影响。
 const applyDefaultModelsIfEmpty = () => {
   if (!formData.value) return
   const chatModelId = selectInitialModelId(allModels.value, 'KnowledgeQA')
-  const rerankModelId = selectInitialModelId(allModels.value, 'Rerank')
   if (!formData.value.config.model_id && chatModelId) {
     formData.value.config.model_id = chatModelId
   }
-  if (!formData.value.config.rerank_model_id && rerankModelId) {
-    formData.value.config.rerank_model_id = rerankModelId
+  if (hasRagKnowledgeBase.value) {
+    applyDefaultRerankModelIfEmpty()
   }
 }
 
@@ -2805,19 +2816,14 @@ const contextTemplatePlaceholder = computed(() => {
   return t('agent.editor.contextTemplatePlaceholder');
 });
 
-// 是否需要配置 ReRank 模型（仅当关联的知识库中有 RAG 类型时需要）
-const needsRerankModel = computed(() => {
-  if (!hasKnowledgeBase.value) return false;
-  const mode = kbSelectionMode.value;
-  if (mode === 'all') {
-    // "全部"模式下，只要存在任何一个 RAG 知识库就需要
-    return kbOptions.value.some(kb => kb.ragEnabled);
-  }
-  if (mode === 'selected') {
-    const selectedIds = formData.value.config.knowledge_bases || [];
-    return kbOptions.value.some(kb => selectedIds.includes(kb.value) && kb.ragEnabled);
-  }
-  return false;
+// 是否需要配置 ReRank 模型（也是该字段的展示条件）：仅当作用域内有 RAG 知识库时需要
+const needsRerankModel = computed(() => hasRagKnowledgeBase.value);
+
+// 作用域内新加入 RAG 知识库时才加载重排模型配置：此时补上平台默认 ReRank，
+// 与「加入 RAG 知识库后自动使用已配置的重排模型」保持一致。
+watch(hasRagKnowledgeBase, (needsRerank) => {
+  if (!needsRerank) return;
+  applyDefaultRerankModelIfEmpty();
 });
 
 let editorInitializationGeneration = 0;

@@ -20,15 +20,13 @@ import { useI18n } from 'vue-i18n'
 import { useTheme } from '@/composables/useTheme'
 
 const { t } = useI18n()
-const { currentTheme, setTheme } = useTheme()
+const { effectiveTheme, setTheme } = useTheme()
 
 // 只有浅/深两态。历史遗留的 “system” 选择在点击时按当前生效值
 // 归一化为 light/dark，之后不再回到 system。
-const isDark = computed(() => {
-  if (currentTheme.value === 'dark') return true
-  if (currentTheme.value === 'light') return false
-  return document.documentElement.getAttribute('theme-mode') === 'dark'
-})
+// 图标必须读 effectiveTheme（响应式）：切到“跟随系统”或系统换主题时
+// theme-mode 属性变化不会触发重算，读 DOM 会让图标停在旧状态。
+const isDark = computed(() => effectiveTheme.value === 'dark')
 
 function toggleTheme() {
   setTheme(isDark.value ? 'light' : 'dark')

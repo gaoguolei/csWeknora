@@ -1558,7 +1558,7 @@ export default {
         "Used to rerank knowledge base retrieval results for better accuracy",
       rerankModelPlaceholder: "Select ReRank Model",
       rerankModelOptionalHint:
-        "No RAG knowledge base in current scope, so this is optional. If a RAG knowledge base is added later, the workspace default rerank model will be used as a fallback. Configuring it explicitly is still recommended.",
+        "Optional when the agent's scope has no RAG knowledge base. If a RAG knowledge base is added later, the configured rerank model is used automatically.",
       maxIterations: "Max Iterations",
       maxIterationsLimit: "Limit",
       maxIterationsUnlimited: "Unlimited",
@@ -2301,6 +2301,7 @@ export default {
       account: "Account",
       workspace: "Workspace",
       modelsRuntime: "Models",
+      memory: "Memory",
       dataExtensions: "Data & Extensions",
       systemAdministration: "System Administration",
       platform: "Platform",
@@ -3765,23 +3766,12 @@ export default {
   agentDefaults: {
     title: "Agent defaults",
     description:
-      "Platform-wide default agent configuration. When ordinary members create an agent they only fill in the basic info and prompt; everything else is inherited from the defaults set here, shared by every workspace.",
+      "Platform-wide default agent configuration. When creating an agent, users fill in the basic info, prompt, and their own tools / MCP services / skills; every other platform-level setting is inherited from the defaults set here, shared by all workspaces.",
     navGroup: "Agent Configuration",
     readonlyBanner: "Only a super administrator can edit the platform agent defaults.",
     autoSaved: "Platform agent defaults saved",
     saveFailed: "Failed to save platform agent defaults",
     goModelSettings: "Add models under Settings → Models",
-    sections: {
-      toolsDesc: "Tools enabled by default on a newly created agent.",
-      toolsLabel: "Default tools",
-      toolsHint: "Leave empty to use the built-in default tool set.",
-      toolsPlaceholder: "Pick the default tools",
-      skillsDesc: "Sandbox and skills a newly created agent uses by default.",
-      skillsHint: "Skill scripts run inside the selected sandbox.",
-      skillsPickLabel: "Default skills",
-      skillsPickHint: "Choosing “selected” requires picking the specific skills.",
-      skillsPlaceholder: "Pick the default skills",
-    },
   },
   knowledgeEditor: {
     activity: {
@@ -5570,7 +5560,7 @@ export default {
         title: "Platform users",
         rowLabel: "User management",
         rowDesc:
-          "View every registered user across workspaces, with pagination and username/email filtering.",
+          "View registered users across workspaces. System admins see every user and can assign any role; super admins only see super admins and regular users, and can assign those two roles.",
         searchPlaceholder: "Filter by username or email (current page)",
         refresh: "Refresh",
         active: "Active",
@@ -5594,13 +5584,11 @@ export default {
         actionFailed: "Action failed",
         loadFailed: "Failed to load users",
         roleAdmin: "System admin",
+        roleSuperAdmin: "Super admin",
         roleUser: "Regular user",
-        confirmRevoke: "Revoke system-admin privileges from {name}?",
-        confirmPromote: "Promote {name} to system administrator?",
-        revokeBtn: "Revoke",
-        promoteBtn: "Promote",
-        revokedMsg: "Revoked admin privileges from {name}",
-        promotedMsg: "Promoted {name} to system administrator",
+        confirmRoleChange: "Change the role of {name} to {role}?",
+        changeRoleBtn: "Change",
+        roleChangedMsg: "Changed the role of {name} to {role}",
         roleFailed: "Failed to change role",
       },
       passwordReset: {
