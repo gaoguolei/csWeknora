@@ -80,7 +80,7 @@ INSERT INTO custom_agents (id, name, description, avatar, is_builtin, tenant_id,
 SELECT 
     'builtin-quick-answer',
     '快速问答',
-    '基于知识库的 RAG 问答，快速准确地回答问题',
+    '基于认知库的 RAG 问答，快速准确地回答问题',
     '💬',
     true,
     t.id,

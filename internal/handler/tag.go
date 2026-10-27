@@ -71,11 +71,11 @@ func (h *TagHandler) getChunksBySeqIDs(ctx context.Context, tenantID uint64, seq
 
 // ListTags godoc
 // @Summary      获取标签列表
-// @Description  获取知识库下的所有标签及统计信息
+// @Description  获取认知库下的所有标签及统计信息
 // @Tags         标签管理
 // @Accept       json
 // @Produce      json
-// @Param        id         path      string  true   "知识库ID"
+// @Param        id         path      string  true   "认知库ID"
 // @Param        page       query     int     false  "页码"
 // @Param        page_size  query     int     false  "每页数量"
 // @Param        keyword    query     string  false  "关键词搜索"
@@ -118,11 +118,11 @@ type createTagRequest struct {
 
 // CreateTag godoc
 // @Summary      创建标签
-// @Description  在知识库下创建新标签
+// @Description  在认知库下创建新标签
 // @Tags         标签管理
 // @Accept       json
 // @Produce      json
-// @Param        id       path      string  true  "知识库ID"
+// @Param        id       path      string  true  "认知库ID"
 // @Param        request  body      object{name=string,color=string,sort_order=int}  true  "标签信息"
 // @Success      200      {object}  map[string]interface{}  "创建的标签"
 // @Failure      400      {object}  errors.AppError         "请求参数错误"
@@ -168,7 +168,7 @@ type updateTagRequest struct {
 // @Tags         标签管理
 // @Accept       json
 // @Produce      json
-// @Param        id       path      string  true  "知识库ID"
+// @Param        id       path      string  true  "认知库ID"
 // @Param        tag_id   path      string  true  "标签ID (UUID或seq_id)"
 // @Param        request  body      object  true  "标签更新信息"
 // @Success      200      {object}  map[string]interface{}  "更新后的标签"
@@ -213,7 +213,7 @@ func (h *TagHandler) UpdateTag(c *gin.Context) {
 // @Tags         标签管理
 // @Accept       json
 // @Produce      json
-// @Param        id            path      string              true   "知识库ID"
+// @Param        id            path      string              true   "认知库ID"
 // @Param        tag_id        path      string              true   "标签ID (UUID或seq_id)"
 // @Param        force         query     bool                false  "强制删除"
 // @Param        content_only  query     bool                false  "仅删除内容，保留标签"
@@ -263,7 +263,7 @@ func (h *TagHandler) DeleteTag(c *gin.Context) {
 			}
 			if chunk.TenantID != tenantID || chunk.KnowledgeBaseID != c.Param("id") ||
 				chunk.ChunkType != types.ChunkTypeFAQ {
-				_ = c.Error(errors.NewForbiddenError("排除条目不属于当前知识库"))
+				_ = c.Error(errors.NewForbiddenError("排除条目不属于当前认知库"))
 				return
 			}
 			excludeUUIDs = append(excludeUUIDs, chunk.ID)

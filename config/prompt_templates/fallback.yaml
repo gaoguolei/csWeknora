@@ -123,7 +123,7 @@ templates:
     i18n:
       zh-CN:
         name: "标准兜底 Prompt"
-        description: "知识库无相关结果时引导模型回答的默认提示词"
+        description: "认知库无相关结果时引导模型回答的默认提示词"
       en-US:
         name: "Standard Fallback Prompt"
         description: "Default prompt that delegates to the model when KB has no relevant results"

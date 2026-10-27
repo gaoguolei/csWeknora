@@ -52,13 +52,13 @@ func (c *InfoCommand) Execute(ctx context.Context, cmdCtx *CommandContext, _ []s
 		sb.WriteString("支持多步思考、工具调用（ReAct）\n")
 	} else {
 		sb.WriteString("\n🧠 **Agent模式**\n")
-		sb.WriteString("基于知识库检索直接回答（RAG）\n")
+		sb.WriteString("基于认知库检索直接回答（RAG）\n")
 	}
 
 	// ── Knowledge bases ──
 	// KBSelectionMode: "all" uses every KB under the tenant (IDs list is empty),
 	// "selected" uses the explicit KnowledgeBases list, "none"/empty means disabled.
-	sb.WriteString("\n📚 **知识库**\n")
+	sb.WriteString("\n📚 **认知库**\n")
 	if cfg.KBSelectionMode == "all" {
 		kbs, err := c.kbService.ListKnowledgeBasesByTenantID(ctx, cmdCtx.TenantID)
 		if err == nil && len(kbs) > 0 {

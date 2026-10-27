@@ -60,7 +60,7 @@ func (e *AgentEngine) approveBuiltinTool(ctx context.Context, name string, args 
 		TenantID: tenantID, UserID: meta.UserID,
 		SessionID: meta.SessionID, AssistantMessageID: meta.AssistantMessageID,
 		RequestID: meta.RequestID, EventBus: meta.EventBus,
-		ServiceName: "WeKnora", MCPToolName: name, RegisteredToolName: name,
+		ServiceName: "ThinkerFlow", MCPToolName: name, RegisteredToolName: name,
 		Description: tool.Description(), Args: args, ToolCallID: meta.ToolCallID,
 	})
 	if err != nil {

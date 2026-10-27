@@ -66,9 +66,9 @@ func (s *imStreamDisplayState) final() string {
 func TestIMStreamLifecycle_agentToolRetract(t *testing.T) {
 	state := newIMStreamDisplayState(true)
 
-	state.agentLiveAnswer.WriteString("好的，让我先搜索知识库。")
+	state.agentLiveAnswer.WriteString("好的，让我先搜索认知库。")
 	liveOnly := state.intermediate()
-	if liveOnly != "好的，让我先搜索知识库。" {
+	if liveOnly != "好的，让我先搜索认知库。" {
 		t.Fatalf("live answer phase = %q", liveOnly)
 	}
 	if strings.Contains(liveOnly, "思考过程") {
@@ -84,7 +84,7 @@ func TestIMStreamLifecycle_agentToolRetract(t *testing.T) {
 	if !strings.Contains(duringTools, "思考过程") {
 		t.Fatalf("after retract should show think block, got: %q", duringTools)
 	}
-	if !strings.Contains(duringTools, "好的，让我先搜索知识库") {
+	if !strings.Contains(duringTools, "好的，让我先搜索认知库") {
 		t.Fatalf("retracted preamble missing, got: %q", duringTools)
 	}
 

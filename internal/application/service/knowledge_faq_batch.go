@@ -45,7 +45,7 @@ func (s *knowledgeService) loadFAQWriteChunks(
 			continue
 		}
 		if chunk.TenantID != kb.TenantID || chunk.KnowledgeBaseID != kb.ID || chunk.ChunkType != types.ChunkTypeFAQ {
-			return nil, apperrors.NewForbiddenError("FAQ 条目不属于当前知识库")
+			return nil, apperrors.NewForbiddenError("FAQ 条目不属于当前认知库")
 		}
 		snapshot := *chunk
 		result[chunk.SeqID] = &snapshot
@@ -126,7 +126,7 @@ func validateFAQTagScope(tag *types.KnowledgeTag, tenantID uint64, kbID string) 
 		return apperrors.NewNotFoundError("标签不存在")
 	}
 	if tag.TenantID != tenantID || tag.KnowledgeBaseID != kbID {
-		return apperrors.NewForbiddenError("标签不属于当前知识库")
+		return apperrors.NewForbiddenError("标签不属于当前认知库")
 	}
 	return nil
 }

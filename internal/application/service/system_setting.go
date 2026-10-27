@@ -180,7 +180,7 @@ var registry = map[string]settingSpec{
 			"留空 = 完全使用来源端声明。修改后立即生效，刷新图库页可见。",
 	},
 	// knowledge_base.default_config is the platform-wide default knowledge-base
-	// configuration a super admin manages under Settings -> 知识库设置. It holds
+	// configuration a super admin manages under Settings -> 认知库设置. It holds
 	// the fields reclaimed from the per-KB editor: default models (B),
 	// chunking (E), image (F), audio (G), knowledge graph (H) and advanced (I),
 	// plus the FAQ index strategy shown under the advanced block.
@@ -194,9 +194,9 @@ var registry = map[string]settingSpec{
 		EnvName:  "",
 		Default:  "",
 		Category: "knowledgebase",
-		Description: "知识库平台默认配置（JSON，可选）。由超级管理员在「设置 → 知识库设置」统一维护，" +
+		Description: "认知库平台默认配置（JSON，可选）。由超级管理员在「设置 → 认知库设置」统一维护，" +
 			"包含默认模型（summary/embedding）、分块、图像处理、音频处理、知识图谱、高级设置等子块；" +
-			"创建知识库时用于填充界面不再暴露的配置项。留空 = 不套用平台默认。修改后对新建知识库立即生效。",
+			"创建认知库时用于填充界面不再暴露的配置项。留空 = 不套用平台默认。修改后对新建认知库立即生效。",
 	},
 	// agent.default_config is the platform-wide default agent configuration a
 	// super admin manages under Settings -> 智能体配置. It holds the fields
@@ -295,7 +295,7 @@ var registry = map[string]settingSpec{
 		EnvName:  "WEKNORA_CHAT_HISTORY_INDEXING_ENABLED",
 		Default:  false,
 		Category: "tenant",
-		Description: "全局开关：是否开启消息索引（将对话消息自动向量化索引到知识库，支持语义搜索）。" +
+		Description: "全局开关：是否开启消息索引（将对话消息自动向量化索引到认知库，支持语义搜索）。" +
 			"对所有工作空间生效：开启后需由超级管理员在「消息管理」中选择全局 Embedding 模型才会真正索引；" +
 			"关闭后所有空间停止索引与消息向量检索，页面显示「消息索引未使用」。修改后立即生效，无需重启。默认 false。",
 	},

@@ -1049,11 +1049,24 @@ const showAgentListEmpty = computed(() => {
 })
 
 const showAgentTenantModelsGuide = computed(
-  () => modelsReadyLoaded.value && showAgentListEmpty.value && !isReadyForAgent.value,
+  // 模型管理已收归平台超管（isSystemAdmin，运营管理员继承）：普通成员和空间
+  // 管理员没有该入口，深链打开只会看到 role-denied 空态，因此模型引导只对
+  // 超管/运营弹出。
+  () =>
+    modelsReadyLoaded.value &&
+    showAgentListEmpty.value &&
+    !isReadyForAgent.value &&
+    authStore.isSystemAdmin,
 )
 
 const showAgentListContextualGuide = computed(
-  () => showAgentListEmpty.value && isReadyForAgent.value && !editorVisible.value,
+  // 创建 CTA 仅 contributor 及以上可见（模板里 v-if="authStore.hasRole('contributor')"），
+  // viewer 空列表时引导会指向空气，直接不弹。
+  () =>
+    showAgentListEmpty.value &&
+    isReadyForAgent.value &&
+    !editorVisible.value &&
+    authStore.hasRole('contributor'),
 )
 
 const applyAgentListData = (res: { data: CustomAgent[]; disabled_own_agent_ids: string[] }) => {

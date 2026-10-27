@@ -143,7 +143,7 @@ export default {
     "searchInstructionsHint": "儲存後下次請求生效，留空使用預設指令。",
     "searchInstructionsReset": "復原預設",
     "searchInstructionsSaved": "已儲存",
-    "sourceHint": "本輪使用本機瀏覽器查詢和操作網頁，可與聯網搜尋、知識庫及其他工具配合使用。",
+    "sourceHint": "本輪使用本機瀏覽器查詢和操作網頁，可與聯網搜尋、認知庫及其他工具配合使用。",
     "pressKey": "按鍵",
     "hoverPage": "懸停元素",
     "scrollPage": "滾動頁面",
@@ -455,7 +455,7 @@ export default {
     },
     "leave": {
       "confirmTitle": "確認退出當前空間？",
-      "confirmBody": "退出後您將無法存取當前空間內的所有知識庫和智慧代理。後續可被再次邀請加入。",
+      "confirmBody": "退出後您將無法存取當前空間內的所有認知庫和智慧代理。後續可被再次邀請加入。",
       "confirm": "退出",
       "success": "已退出當前空間"
     },
@@ -491,7 +491,7 @@ export default {
       "manageMembers": "管理成員",
       "manageTenantConfig": "修改空間設定",
       "manageInfra": "設定模型 / 向量庫 / IM 通道",
-      "createOwnKB": "建立並編輯自己的知識庫和智慧代理",
+      "createOwnKB": "建立並編輯自己的認知庫和智慧代理",
       "readAll": "查看空間內容"
     }
   },
@@ -533,8 +533,8 @@ export default {
   },
   "integrations": {
     "cli": {
-      "title": "WeKnora CLI",
-      "subtitle": "在終端中管理知識庫和文件、檢索內容併發起問答，也可透過指令碼或 MCP 接入 AI 工具。",
+      "title": "ThinkerFlow CLI",
+      "subtitle": "在終端中管理認知庫和文件、檢索內容併發起問答，也可透過指令碼或 MCP 接入 AI 工具。",
       "docs": "查看 CLI 文件",
       "docsHint": "安裝說明與完整命令參考",
       "quickstart": "快速開始",
@@ -543,9 +543,9 @@ export default {
       "connectTitle": "連結當前服務",
       "connectDesc": "建立並啟用名為 weknora 的連結設定，然後使用電子信箱和密碼登入。如果已有同名設定，請更換名稱，並同步修改 MCP 示例中的設定名。",
       "verifyTitle": "驗證連結",
-      "verifyDesc": "檢查服務與認證狀態，並列出當前帳號可存取的知識庫。",
+      "verifyDesc": "檢查服務與認證狀態，並列出當前帳號可存取的認知庫。",
       "commandsTitle": "常用命令",
-      "commandsDesc": "將 KB_ID 取代為知識庫 ID，按需取代檔案路徑、檢索詞和問題。上傳後的文件需解析完成才能檢索。",
+      "commandsDesc": "將 KB_ID 取代為認知庫 ID，按需取代檔案路徑、檢索詞和問題。上傳後的文件需解析完成才能檢索。",
       "mcpTitle": "接入 MCP 用戶端",
       "mcpDesc": "完成登入後，將以下設定新增到支持 stdio 的 MCP 用戶端。若用戶端無法找到 weknora，請將 command 改為二進位的絕對路徑。",
       "copy": "複製",
@@ -559,8 +559,8 @@ export default {
     "filterByAgentWithName": "按智慧代理篩選：{name}",
     "filterAllAgents": "全部智慧代理",
     "claw": {
-      "title": "WeKnora Skill",
-      "subtitle": "透過 WeKnora REST API 匯入文件並執行混合檢索（向量 + 關鍵字）。適用於上傳檔案/URL/Markdown 到知識庫、跨庫檢索與瀏覽知識內容。",
+      "title": "ThinkerFlow Skill",
+      "subtitle": "透過 ThinkerFlow REST API 匯入文件並執行混合檢索（向量 + 關鍵字）。適用於上傳檔案/URL/Markdown 到認知庫、跨庫檢索與瀏覽知識內容。",
       "capabilitiesTitle": "Skill 能力",
       "stepsTitle": "設定步驟",
       "openApiSettings": "打開 API 資訊",
@@ -569,12 +569,12 @@ export default {
       "copyCmdSuccess": "已複製安裝命令",
       "ecosystemNote": "Skill 託管於 ClawHub（{'@'}lyingbug/weknora），完整 API 說明與版本歷史請參見 ClawHub 頁面。",
       "installCta": "前往 ClawHub",
-      "installCtaHint": "安裝 WeKnora Skill · 將在新分頁打開",
+      "installCtaHint": "安裝 ThinkerFlow Skill · 將在新分頁打開",
       "hubMeta": "ClawHub · {'@'}lyingbug/weknora · MIT-0",
       "steps": {
         "verify": {
           "title": "驗證連結",
-          "desc": "安裝後讓 Agent 列出知識庫或執行一次檢索，確認 API 憑證與網路可達。"
+          "desc": "安裝後讓 Agent 列出認知庫或執行一次檢索，確認 API 憑證與網路可達。"
         },
         "install": {
           "title": "安裝 Skill",
@@ -591,8 +591,8 @@ export default {
       },
       "capabilities": {
         "browse": {
-          "title": "瀏覽知識庫",
-          "desc": "列出知識庫與條目、查看詳情，管理已匯入的知識內容。"
+          "title": "瀏覽認知庫",
+          "desc": "列出認知庫與條目、查看詳情，管理已匯入的知識內容。"
         },
         "search": {
           "title": "混合檢索",
@@ -604,17 +604,17 @@ export default {
         },
         "url": {
           "title": "匯入網頁",
-          "desc": "透過 URL 抓取網頁內容並寫入知識庫，支持解析狀態輪詢。"
+          "desc": "透過 URL 抓取網頁內容並寫入認知庫，支持解析狀態輪詢。"
         },
         "upload": {
           "title": "上傳檔案",
-          "desc": "將 PDF、Word、Excel 等文件上傳至知識庫，自動解析與向量化。"
+          "desc": "將 PDF、Word、Excel 等文件上傳至認知庫，自動解析與向量化。"
         }
       }
     },
     "chrome": {
       "title": "知識管理助手",
-      "subtitle": "配合 WeKnora 自建服務使用：在任意網頁側邊欄提問、剪藏內容、Markdown 速記，將瀏覽中的知識沉澱到你的知識庫。",
+      "subtitle": "配合 ThinkerFlow 自建服務使用：在任意網頁側邊欄提問、剪藏內容、Markdown 速記，將瀏覽中的知識沉澱到你的認知庫。",
       "capabilitiesTitle": "核心能力",
       "stepsTitle": "設定步驟",
       "openApiSettings": "打開 API 資訊",
@@ -634,7 +634,7 @@ export default {
         },
         "port": {
           "title": "桌面版設定固定連接埠（推薦）",
-          "desc": "使用 WeKnora 桌面版時，在 API 資訊中設定固定連接埠（如 37841），避免每次啟動後地址變化導致外掛斷連。"
+          "desc": "使用 ThinkerFlow 桌面版時，在 API 資訊中設定固定連接埠（如 37841），避免每次啟動後地址變化導致外掛斷連。"
         },
         "api": {
           "title": "獲取 API 憑證",
@@ -654,15 +654,15 @@ export default {
         },
         "notes": {
           "title": "Markdown 速記",
-          "desc": "內建 Markdown 編輯器，隨時記錄靈感與筆記，一鍵儲存到知識庫。"
+          "desc": "內建 Markdown 編輯器，隨時記錄靈感與筆記，一鍵儲存到認知庫。"
         },
         "clip": {
           "title": "網頁內容一鍵採集",
-          "desc": "儲存頁面 URL、AI 智慧剪藏正文，或手動框選區域，精準寫入指定知識庫。"
+          "desc": "儲存頁面 URL、AI 智慧剪藏正文，或手動框選區域，精準寫入指定認知庫。"
         },
         "qa": {
-          "title": "知識庫智慧問答",
-          "desc": "側邊欄對話面板，支持多知識庫切換與快速/深度/精確三種回答模式，邊瀏覽邊提問不打斷工作流程。"
+          "title": "認知庫智慧問答",
+          "desc": "側邊欄對話面板，支持多認知庫切換與快速/深度/精確三種回答模式，邊瀏覽邊提問不打斷工作流程。"
         }
       }
     },
@@ -686,9 +686,9 @@ export default {
       "baseUrl": "API 地址",
       "baseUrlDesc": "與 REST API 路徑串接使用。",
       "apiKeys": "API Keys",
-      "apiKeysDesc": "為不同集成建立獨立 Key，並限制操作權限與可存取知識庫範圍。",
+      "apiKeysDesc": "為不同集成建立獨立 Key，並限制操作權限與可存取認知庫範圍。",
       "createApiKey": "建立 API Key",
-      "createApiKeyDialogDesc": "選擇該 API Key 可用的能力和知識庫範圍。",
+      "createApiKeyDialogDesc": "選擇該 API Key 可用的能力和認知庫範圍。",
       "noApiKeys": "暫無 API Key",
       "apiKeyName": "名稱",
       "apiKeyValue": "API Key",
@@ -698,26 +698,26 @@ export default {
       "apiKeyAccessMode": "授權方式",
       "apiKeyScopedAccess": "能力授權",
       "apiKeyAccessType": "存取類型",
-      "apiKeyAccessTypeHint": "「知識庫」按下方權限級別在知識庫範圍內操作；「空間完全存取」額外開放模型、資料源等全部空間級介面。",
+      "apiKeyAccessTypeHint": "「認知庫」按下方權限級別在認知庫範圍內操作；「空間完全存取」額外開放模型、資料源等全部空間級介面。",
       "apiKeyCapabilities": "可用能力",
-      "apiKeyCapabilityGroupKnowledge": "知識庫資料",
+      "apiKeyCapabilityGroupKnowledge": "認知庫資料",
       "apiKeyCapabilityGroupAutomation": "智慧代理與集成",
       "apiKeyCapabilityGroupCollaboration": "成員與空間",
       "apiKeyCapabilityGroupTenant": "空間設定",
       "apiKeyCapabilitySelectGroup": "全選",
       "apiKeyCapabilityClearGroup": "清空",
       "capabilityTenantFull": "空間完全存取",
-      "capabilityTenantFullHint": "允許呼叫模型、向量庫、資料源、通路等全部空間級介面；知識庫範圍不再生效。",
-      "capabilityRetrieve": "檢索知識庫",
-      "capabilityRetrieveHint": "允許讀取、查詢和檢索所選知識庫範圍內的資料；不建立會話，也不修改內容。",
+      "capabilityTenantFullHint": "允許呼叫模型、向量庫、資料源、通路等全部空間級介面；認知庫範圍不再生效。",
+      "capabilityRetrieve": "檢索認知庫",
+      "capabilityRetrieveHint": "允許讀取、查詢和檢索所選認知庫範圍內的資料；不建立會話，也不修改內容。",
       "capabilityChat": "對話能力",
-      "capabilityChatHint": "允許該金鑰發起對話並管理自己的會話；不修改知識庫內容。",
+      "capabilityChatHint": "允許該金鑰發起對話並管理自己的會話；不修改認知庫內容。",
       "capabilityReadAgents": "讀取智慧代理",
       "capabilityReadAgentsHint": "允許列出智慧代理、查看智慧代理詳情、讀取智慧代理預設和建議問題；不允許發起對話或修改智慧代理。",
-      "capabilityIngest": "寫入知識庫內容",
-      "capabilityIngestHint": "允許向授權範圍內的知識庫寫入內容（上傳文件、編輯切塊/FAQ/標籤/wiki）；不能新建知識庫、不能新建智慧代理、不能清空知識庫，且僅限所選知識庫範圍。",
-      "capabilityManageKbs": "管理知識庫",
-      "capabilityManageKbsHint": "允許管理知識庫全生命週期：新建、複製、修改、刪除知識庫並調整初始化/設定資訊。針對已有知識庫的操作（複製/更新/刪除）仍受所選知識庫範圍限制；新建不受限（新知識庫歸本空間）。",
+      "capabilityIngest": "寫入認知庫內容",
+      "capabilityIngestHint": "允許向授權範圍內的認知庫寫入內容（上傳文件、編輯切塊/FAQ/標籤/wiki）；不能新建認知庫、不能新建智慧代理、不能清空認知庫，且僅限所選認知庫範圍。",
+      "capabilityManageKbs": "管理認知庫",
+      "capabilityManageKbsHint": "允許管理認知庫全生命週期：新建、複製、修改、刪除認知庫並調整初始化/設定資訊。針對已有認知庫的操作（複製/更新/刪除）仍受所選認知庫範圍限制；新建不受限（新認知庫歸本空間）。",
       "capabilityManageAgents": "管理智慧代理",
       "capabilityManageAgentsHint": "允許建立、修改、刪除、複製智慧代理。智慧代理設定可能含模型/MCP 等敏感綁定，預設關閉，按需開啟。",
       "capabilityMessageHistory": "訊息歷史",
@@ -727,7 +727,7 @@ export default {
       "capabilityManageMcpServices": "管理 MCP 服務",
       "capabilityManageMcpServicesHint": "允許管理 MCP 服務、憑據、工具審批策略和該主體的 OAuth 授權狀態。",
       "capabilityManageDatasources": "管理資料源",
-      "capabilityManageDatasourcesHint": "允許管理資料源連接器、憑據、資源選擇和同步任務；綁定知識庫時仍受知識庫範圍限制。",
+      "capabilityManageDatasourcesHint": "允許管理資料源連接器、憑據、資源選擇和同步任務；綁定認知庫時仍受認知庫範圍限制。",
       "capabilityManageChannels": "管理通路",
       "capabilityManageChannelsHint": "允許管理智慧代理的內嵌通路、IM 通路和微信掃碼綁定流程。",
       "capabilityManageVectorStores": "管理檢索基礎設施",
@@ -741,15 +741,15 @@ export default {
       "capabilityManageMembers": "管理成員",
       "capabilityManageMembersHint": "允許查看和管理空間成員、角色、邀請和邀請連結；不包含 API Key 管理、空間刪除或所有權轉移。",
       "capabilityManageSpaces": "管理空間",
-      "capabilityManageSpacesHint": "允許管理組織空間、加入流程、空間成員、邀請和共享空間可見性；不授予知識庫或智慧代理分享管理權限。",
+      "capabilityManageSpacesHint": "允許管理組織空間、加入流程、空間成員、邀請和共享空間可見性；不授予認知庫或智慧代理分享管理權限。",
       "capabilityManageTenantSettings": "管理空間設定",
       "capabilityManageTenantSettingsHint": "允許讀取和更新空間級集成設定，例如 API 終端使用者身份模式、請求頭設定、空間 KV 設定等；不包含 API Key 管理、成員管理、空間刪除或所有權轉移。",
-      "apiKeyKnowledgeScope": "知識庫範圍",
-      "apiKeyKnowledgeScopePlaceholder": "留空表示允許存取全部知識庫",
-      "allKnowledgeBases": "全部知識庫",
+      "apiKeyKnowledgeScope": "認知庫範圍",
+      "apiKeyKnowledgeScopePlaceholder": "留空表示允許存取全部認知庫",
+      "allKnowledgeBases": "全部認知庫",
       "editApiKeyScope": "編輯 API Key",
       "editApiKeyScopeDesc": "修改 API Key「{name}」的名稱和授權範圍。",
-      "editApiKeyScopeHint": "留空表示允許存取本空間的全部知識庫。所有修改儲存後立即生效。",
+      "editApiKeyScopeHint": "留空表示允許存取本空間的全部認知庫。所有修改儲存後立即生效。",
       "updateApiKeyScopeSuccess": "API Key 已更新",
       "updateApiKeyScopeFailed": "更新 API Key 失敗",
       "createdAt": "建立時間",
@@ -763,21 +763,21 @@ export default {
       "apiKeyCreated": "API Key 已建立",
       "principalMode": "使用者身份模式",
       "principalModeDesc": "設定 API 請求如何識別終端使用者。該身份會同時用於區分不同使用者的對話 Session 與 MCP 工具授權。",
-      "principalScope": "終端使用者身份負責隔離 Session 與 MCP OAuth；API Key 自身的操作權限和知識庫範圍由上方 API Keys 管理。",
+      "principalScope": "終端使用者身份負責隔離 Session 與 MCP OAuth；API Key 自身的操作權限和認知庫範圍由上方 API Keys 管理。",
       "modeTenant": "僅空間",
       "modeDirect": "直接傳使用者 ID",
       "modeSigned": "簽章 Token",
       "directWarning": "直接傳使用者 ID 會信任呼叫方請求頭，僅適用於可信伺服器端到伺服器端呼叫。",
       "directWarningDetail": "任何持有 API Key 的呼叫方都可以透過修改使用者 ID 請求頭冒充其他外部使用者，從而共用或劫持其 MCP OAuth 授權。請勿用於瀏覽器或不可信用戶端；面向終端使用者請使用「簽章 Token」。",
       "signedRecommended": "推薦給面向使用者的應用：由你的業務後端為外部使用者籤發短期 HS256 JWT。",
-      "signedFlowDetail": "HMAC 金鑰僅儲存在 WeKnora 與你的可信後端，切勿放入請求或下發給瀏覽器。請求頭裡傳的是用該金鑰籤出的 JWT 字符串（每次籤發或過期後會變），不是金鑰本身。JWT 須包含 sub（外部使用者 ID）、tenant_id、aud=weknora、exp（有效期不超過 24 小時）。",
+      "signedFlowDetail": "HMAC 金鑰僅儲存在 ThinkerFlow 與你的可信後端，切勿放入請求或下發給瀏覽器。請求頭裡傳的是用該金鑰籤出的 JWT 字符串（每次籤發或過期後會變），不是金鑰本身。JWT 須包含 sub（外部使用者 ID）、tenant_id、aud=weknora、exp（有效期不超過 24 小時）。",
       "directHeader": "使用者 ID 請求頭",
       "requireDirectHeader": "必須攜帶使用者 ID",
       "requireDirectHeaderDesc": "開啟後，缺少使用者 ID 請求頭的 API Key 請求將被拒絕；關閉則按整個空間統一處理，不區分具體終端使用者。",
       "tokenHeader": "Token 請求頭",
       "tokenHeaderDesc": "用戶端在該固定請求頭中攜帶後端籤發的 JWT。",
       "hmacSecret": "HMAC 金鑰",
-      "hmacSecretDesc": "與 WeKnora 儲存的同一份金鑰；僅用於後端籤發 JWT，不要作為請求頭髮送。",
+      "hmacSecretDesc": "與 ThinkerFlow 儲存的同一份金鑰；僅用於後端籤發 JWT，不要作為請求頭髮送。",
       "secretConfigured": "已設定金鑰（不可回看）；輸入新值可輪換",
       "secretSavedCopyHint": "金鑰已儲存，請立即複製到後端設定。離開本頁後將無法再次查看。",
       "generateSecret": "生成金鑰",
@@ -835,27 +835,27 @@ export default {
     },
     "mcpserver": {
       "title": "MCP Server",
-      "subtitle": "把當前空間發布為 MCP 服務，供 Claude Desktop、Cursor、Claude Code 等 MCP 用戶端直接連結。每個端點有獨立的權杖、知識庫範圍和工具清單。",
+      "subtitle": "把當前空間發布為 MCP 服務，供 Claude Desktop、Cursor、Claude Code 等 MCP 用戶端直接連結。每個端點有獨立的權杖、認知庫範圍和工具清單。",
       "listTitle": "已發布的端點",
       "empty": "暫無 MCP 端點",
       "disabled": "已停用",
       "cardSummary": "{tools} 個工具 · {scope}",
-      "scopeAll": "全部知識庫",
-      "scopeCount": "{count} 個知識庫",
+      "scopeAll": "全部認知庫",
+      "scopeCount": "{count} 個認知庫",
       "create": "新建端點",
       "editTitle": "編輯 MCP 端點",
       "createTitle": "新建 MCP 端點",
-      "drawerDesc": "端點決定外部用戶端能看到哪些知識庫、能呼叫哪些工具。權杖只在建立和輪換時展示一次。",
+      "drawerDesc": "端點決定外部用戶端能看到哪些認知庫、能呼叫哪些工具。權杖只在建立和輪換時展示一次。",
       "sectionBasic": "基本資訊",
       "nameLabel": "名稱",
       "namePlaceholder": "例如：產品文件助手",
       "descriptionLabel": "說明",
       "descriptionPlaceholder": "可選，說明這個端點給誰用、用於什麼情境",
       "enabledLabel": "啟用端點",
-      "sectionScope": "知識庫範圍",
-      "kbScopeLabel": "可存取的知識庫",
-      "kbScopePlaceholder": "留空表示空間內全部知識庫",
-      "kbScopeHint": "所有檢索、問答和寫入工具都只在這些知識庫內生效。留空時端點可存取空間內的全部知識庫。",
+      "sectionScope": "認知庫範圍",
+      "kbScopeLabel": "可存取的認知庫",
+      "kbScopePlaceholder": "留空表示空間內全部認知庫",
+      "kbScopeHint": "所有檢索、問答和寫入工具都只在這些認知庫內生效。留空時端點可存取空間內的全部認知庫。",
       "sectionTools": "暴露的工具",
       "toolsHint": "只有勾選的工具會出現在用戶端的工具清單中，未勾選的工具即使按名字呼叫也會被拒絕。寫入類工具預設關閉。",
       "clearGroup": "取消全選",
@@ -868,26 +868,26 @@ export default {
         "ingest": "寫入（謹慎開啟）"
       },
       "tools": {
-        "list_knowledge_bases": "列出知識庫",
-        "list_knowledge_basesDesc": "返回端點範圍內的知識庫及其支持的檢索方式",
+        "list_knowledge_bases": "列出認知庫",
+        "list_knowledge_basesDesc": "返回端點範圍內的認知庫及其支持的檢索方式",
         "search_knowledge": "語義搜尋",
-        "search_knowledgeDesc": "按自然語言問題在知識庫中檢索相關片段並附來源",
+        "search_knowledgeDesc": "按自然語言問題在認知庫中檢索相關片段並附來源",
         "grep_chunks": "關鍵字/正則搜尋",
         "grep_chunksDesc": "對原始切塊做大小寫不敏感的正則比對，適合精確詞、編號、程式碼",
         "list_documents": "列出文件",
-        "list_documentsDesc": "分頁列出某個知識庫下的文件",
+        "list_documentsDesc": "分頁列出某個認知庫下的文件",
         "read_document": "閱讀文件",
         "read_documentDesc": "按順序讀取文件的元資訊和切塊內容",
         "ask": "問答",
         "askDesc": "運行端點設定的預設 Agent，返回帶引用的完整回答，支持多輪續聊",
         "wiki_search": "搜尋 Wiki",
-        "wiki_searchDesc": "在知識庫生成的 Wiki 頁面中搜尋",
+        "wiki_searchDesc": "在認知庫生成的 Wiki 頁面中搜尋",
         "wiki_read_page": "讀取 Wiki 頁面",
         "wiki_read_pageDesc": "按 slug 讀取一篇 Wiki 頁面",
         "wiki_index": "瀏覽 Wiki 目錄",
-        "wiki_indexDesc": "查看某個知識庫 Wiki 的目錄結構",
+        "wiki_indexDesc": "查看某個認知庫 Wiki 的目錄結構",
         "add_document": "新增文件",
-        "add_documentDesc": "用 Markdown 文字或 URL 向知識庫新增文件",
+        "add_documentDesc": "用 Markdown 文字或 URL 向認知庫新增文件",
         "update_document": "更新文件",
         "update_documentDesc": "取代 Markdown 文件的內容或標題",
         "delete_document": "刪除文件",
@@ -949,7 +949,7 @@ export default {
   },
   "datasource": {
     "title": "資料源管理",
-    "description": "設定外部資料源，自動同步內容到知識庫",
+    "description": "設定外部資料源，自動同步內容到認知庫",
     "add": "新增資料源",
     "empty": "暫無資料源",
     "edit": "編輯",
@@ -1004,12 +1004,12 @@ export default {
     "resourceHint": "選擇要同步的內容空間/資料夾",
     "untitled": "無標題",
     "resourceLoadFailed": "載入資源清單失敗",
-    "noResources": "未找到可同步的知識庫空間",
-    "noResourcesDesc": "應用需要透過群聊獲得知識庫存取權限才能拉取內容",
+    "noResources": "未找到可同步的認知庫空間",
+    "noResourcesDesc": "應用需要透過群聊獲得認知庫存取權限才能拉取內容",
     "noResourcesDesc_notion": "應用需要獲得 Notion 頁面的存取權限才能拉取內容",
     "retryLoadResources": "重新載入",
     "guideStep1": "在飛書中建立一個群聊，在群設定「群機器人」中新增你的應用",
-    "guideStep2": "打開知識庫「設定」→「成員設定」→ 新增成員，搜尋該群聊名稱並新增",
+    "guideStep2": "打開認知庫「設定」→「成員設定」→ 新增成員，搜尋該群聊名稱並新增",
     "guideStep3": "確保群聊角色至少為「可閱讀」，然後回到這裡點重新載入",
     "guideStep1_notion": "在 Notion 中打開你想要同步的頁面或資料庫",
     "guideStep2_notion": "點擊右上角的「···」選單，選擇「Connect to」或「Add connections」",
@@ -1018,10 +1018,10 @@ export default {
     "guideStep1_seafile": "登入 Seafile，確認帳號至少擁有一個未加密資料庫的讀取權限",
     "guideStep2_seafile": "在「設定 → Web API 權杖」中生成或重新生成權杖",
     "guideStep3_seafile": "回到這裡填入新權杖並點重新載入",
-    "permissionDocLink": "查看飛書知識庫權限設定文件",
+    "permissionDocLink": "查看飛書認知庫權限設定文件",
     "syncScheduleLabel": "同步頻率",
     "conflictLabel": "衝突策略",
-    "syncDeletions": "同步刪除（源端刪除時同步刪除知識庫中的條目）",
+    "syncDeletions": "同步刪除（源端刪除時同步刪除認知庫中的條目）",
     "createAndSync": "建立並立即同步",
     "createAndSyncSuccess": "資料源建立成功，同步任務已提交",
     "createButSyncFailed": "資料源已建立，但觸發同步失敗",
@@ -1038,34 +1038,34 @@ export default {
     "prereqStep1Brief_yuque": "建立語雀個人 Token",
     "prereqStep1Desc_yuque": "登入語雀 → 個人頭像 → 設定 → Token → 新建 Token",
     "prereqStep2Brief_yuque": "為 Token 勾選所需權限",
-    "prereqStep2Desc_yuque": "至少勾選 repo:read 和 doc:read（讀取知識庫和文件內容）",
+    "prereqStep2Desc_yuque": "至少勾選 repo:read 和 doc:read（讀取認知庫和文件內容）",
     "prereqStep3Brief_yuque": "（可選）企業版填寫 Base URL",
     "prereqStep3Desc_yuque": "公有雲使用者無需填寫；語雀企業版或私有部署請填寫企業域名",
     "prereqOpenConsole_yuque": "前往語雀 Token 設定",
     "yuqueFolderModeLabel": "目錄結構",
     "yuqueFolderModeToc": "按語雀目錄分層",
     "yuqueFolderModeNone": "平鋪在根目錄",
-    "yuqueFolderModeHint": "按語雀的目錄層級放置文件。注意：之後在知識庫裡手動調整的目錄，會在該文件下次同步時被覆蓋回語雀的結構。",
+    "yuqueFolderModeHint": "按語雀的目錄層級放置文件。注意：之後在認知庫裡手動調整的目錄，會在該文件下次同步時被覆蓋回語雀的結構。",
     "yuqueTOCOnly": "只同步語雀目錄中可見的文件",
-    "yuqueTOCOnlyHint": "需要先選擇「按語雀目錄分層」。已經同步進知識庫的文件不受影響──語雀中不在目錄裡的文件只是不再新增，不會被刪除。",
+    "yuqueTOCOnlyHint": "需要先選擇「按語雀目錄分層」。已經同步進認知庫的文件不受影響──語雀中不在目錄裡的文件只是不再新增，不會被刪除。",
     "dingtalkIngestLabel": "釘釘攝取範圍",
-    "dingtalkIncludeUploadedFiles": "攝取知識庫中的上傳檔案（docx / pptx / xlsx / pdf）",
-    "dingtalkIncludeUploadedFilesHint": "預設關閉。開啟後，所選範圍內的 Word / PowerPoint / Excel / PDF 上傳檔案會被下載並解析入庫，單一檔案上限 64 MiB；這些檔案的正文會計入儲存與向量化成本。關閉時它們只會被跳過，同步日誌會說明開關未開啟，不會刪除知識庫中已有的副本。",
+    "dingtalkIncludeUploadedFiles": "攝取認知庫中的上傳檔案（docx / pptx / xlsx / pdf）",
+    "dingtalkIncludeUploadedFilesHint": "預設關閉。開啟後，所選範圍內的 Word / PowerPoint / Excel / PDF 上傳檔案會被下載並解析入庫，單一檔案上限 64 MiB；這些檔案的正文會計入儲存與向量化成本。關閉時它們只會被跳過，同步日誌會說明開關未開啟，不會刪除認知庫中已有的副本。",
     "prereqBarText_dingtalk": "首次使用？點擊查看釘釘應用設定指引",
     "prereqStep1Brief_dingtalk": "建立企業內部應用",
     "prereqStep1Desc_dingtalk": "在釘釘開放平台建立企業內部應用，並獲取 Client ID 和 Client Secret",
-    "prereqStep2Brief_dingtalk": "開通知識庫讀取權限",
+    "prereqStep2Brief_dingtalk": "開通認知庫讀取權限",
     "prereqStep2Desc_dingtalk": "開通 Wiki.Workspace.Read、Wiki.Node.Read 和 Storage.File.Read",
     "prereqStep3Brief_dingtalk": "填寫操作人 Union ID",
-    "prereqStep3Desc_dingtalk": "填寫有權存取目標知識庫的釘釘使用者 Union ID",
+    "prereqStep3Desc_dingtalk": "填寫有權存取目標認知庫的釘釘使用者 Union ID",
     "prereqOpenConsole_dingtalk": "前往釘釘開放平台設定",
     "prereqBarText_ima": "首次使用？點擊查看騰訊 IMA OpenAPI 授權指引",
     "prereqStep1Brief_ima": "開通 IMA 智慧代理接入",
     "prereqStep1Desc_ima": "登入 https://ima.qq.com/agent-interface 並申請 OpenAPI 接入",
     "prereqStep2Brief_ima": "獲取 ClientID 與 APIKey",
     "prereqStep2Desc_ima": "在智慧代理接入頁複製 ima-openapi-clientid 與 ima-openapi-apikey 兩個憑證",
-    "prereqStep3Brief_ima": "授權目標知識庫",
-    "prereqStep3Desc_ima": "在 IMA 用戶端為該憑證授權需要同步的知識庫，未授權的知識庫不會出現在清單中",
+    "prereqStep3Brief_ima": "授權目標認知庫",
+    "prereqStep3Desc_ima": "在 IMA 用戶端為該憑證授權需要同步的認知庫，未授權的認知庫不會出現在清單中",
     "prereqOpenConsole_ima": "前往 IMA OpenAPI 控制台",
     "prereqStep1Brief_feishu": "建立飛書自建應用",
     "prereqStep1Desc_feishu": "登入飛書開放平台 → 建立企業自建應用",
@@ -1095,8 +1095,8 @@ export default {
     "prereqBotDesc": "開放平台 → 新增應用能力 → 機器人 → 建立版本併發布",
     "prereqPermBrief": "開通 API 權限",
     "prereqOpenConsole": "前往飛書開放平台設定",
-    "prereqMemberBrief": "透過群聊新增為知識庫成員",
-    "prereqMemberDesc": "建立群聊 → 新增應用為群機器人 → 將群聊新增為知識庫成員",
+    "prereqMemberBrief": "透過群聊新增為認知庫成員",
+    "prereqMemberDesc": "建立群聊 → 新增應用為群機器人 → 將群聊新增為認知庫成員",
     "back": "上一步",
     "next": "下一步",
     "save": "儲存",
@@ -1111,9 +1111,9 @@ export default {
     "hoursAgo": "{n} 小時前",
     "daysAgo": "{n} 天前",
     "resourceType": {
-      "wikiSpace": "知識庫空間",
+      "wikiSpace": "認知庫空間",
       "docCategory": "文件標籤",
-      "book": "語雀知識庫",
+      "book": "語雀認知庫",
       "library": "Seafile 資料庫"
     },
     "scheduleHuman": {
@@ -1138,7 +1138,7 @@ export default {
       "clientId": "Client ID",
       "clientSecret": "Client Secret",
       "operatorId": "操作人 Union ID",
-      "operatorIdHint": "用於按該使用者的權限讀取知識庫，可透過釘釘「查詢使用者詳情」介面獲取",
+      "operatorIdHint": "用於按該使用者的權限讀取認知庫，可透過釘釘「查詢使用者詳情」介面獲取",
       "imaClientId": "IMA ClientID",
       "imaApiKey": "IMA APIKey",
       "baseUrl": "Base URL（可選）",
@@ -1152,15 +1152,15 @@ export default {
       "cloudFolderLimitation": "Confluence Cloud 暫不支持在此列出空間頂層資料夾等容器下的頁面；選擇整個空間仍會同步它們。"
     },
     "connectorDesc": {
-      "feishu": "同步飛書知識庫中的文件、表格、檔案",
-      "lark": "同步 Lark 知識庫中的文件、表格、檔案（飛書國際版）",
+      "feishu": "同步飛書認知庫中的文件、表格、檔案",
+      "lark": "同步 Lark 認知庫中的文件、表格、檔案（飛書國際版）",
       "feishu_drive": "同步飛書雲盤資料夾中的文件、表格、檔案",
       "lark_drive": "同步 Lark 雲盤資料夾中的文件、表格、檔案（飛書國際版）",
       "notion": "同步 Notion 中的頁面和資料庫",
       "confluence": "將 Confluence 空間和頁面同步為 Markdown",
-      "yuque": "同步語雀知識庫中的文件",
-      "dingtalk": "同步釘釘知識庫中的線上文件",
-      "ima": "同步騰訊 IMA 知識庫中的文件、筆記與檔案（暫不支持 AI 會話與影片解析）",
+      "yuque": "同步語雀認知庫中的文件",
+      "dingtalk": "同步釘釘認知庫中的線上文件",
+      "ima": "同步騰訊 IMA 認知庫中的文件、筆記與檔案（暫不支持 AI 會話與影片解析）",
       "rss": "同步 RSS / Atom 訂閱源中的文章",
       "gitlab": "同步 GitLab 專案中的檔案",
       "seafile": "同步 Seafile 資料庫中的目錄與檔案"
@@ -1377,9 +1377,9 @@ export default {
     },
     "agentType": {
       "label": "智慧代理類型",
-      "desc": "選擇一個預設會自動填充系統提示語、工具清單和推薦的知識庫範圍。",
+      "desc": "選擇一個預設會自動填充系統提示語、工具清單和推薦的認知庫範圍。",
       "defaultNamePattern": "我的{label}",
-      "kbIncompatibleWarn": "已選的 {count} 個知識庫不適用於當前類型，請手動調整",
+      "kbIncompatibleWarn": "已選的 {count} 個認知庫不適用於當前類型，請手動調整",
       "kbMismatch": {
         "ragQa": "未啟用 RAG 檢索",
         "wikiQa": "未啟用 Wiki",
@@ -1458,9 +1458,9 @@ export default {
       "wecomWSEndpointHint": "可選，私有化部署時填寫自定義 WebSocket 地址，留空則使用預設公有雲地址。內網地址需將域名加入 SSRF_WHITELIST 環境變數",
       "wecomAPIBaseURLHint": "可選，私有化部署時填寫自定義 API 地址，留空則使用預設公有雲地址。內網地址需將域名加入 SSRF_WHITELIST 環境變數",
       "feishuAPIBaseURLHint": "可選。若伺服器能直連外網則留空；若需透過代理才能存取飛書，填寫反向代理地址（如 nginx，http://host:port）。內網地址需將域名加入 SSRF_WHITELIST 環境變數",
-      "fileKnowledgeBase": "檔案儲存知識庫",
-      "fileKnowledgeBasePlaceholder": "選擇知識庫（可選）",
-      "fileKnowledgeBaseHint": "設定後，使用者傳送的檔案將自動儲存到該知識庫中",
+      "fileKnowledgeBase": "檔案儲存認知庫",
+      "fileKnowledgeBasePlaceholder": "選擇認知庫（可選）",
+      "fileKnowledgeBaseHint": "設定後，使用者傳送的檔案將自動儲存到該認知庫中",
       "sessionMode": "會話模式",
       "sessionModeUser": "按使用者（預設）",
       "sessionModeThread": "按話題",
@@ -1493,21 +1493,21 @@ export default {
     },
     "embed": {
       "title": "網頁內嵌",
-      "description": "將智慧代理內嵌到您的網頁，訪客可透過頁面內聊天視窗或右下角浮窗發起對話，知識庫範圍跟隨本智慧代理設定。"
+      "description": "將智慧代理內嵌到您的網頁，訪客可透過頁面內聊天視窗或右下角浮窗發起對話，認知庫範圍跟隨本智慧代理設定。"
     },
     "tools": {
       "thinking": "思考",
       "thinkingDesc": "動態和反思性的問題解決思考工具",
       "todoWrite": "制定計劃",
       "todoWriteDesc": "建立結構化的研究計劃",
-      "searchKnowledge": "檢索知識庫",
-      "searchKnowledgeDesc": "語義、關鍵字或混合檢索知識庫切塊",
+      "searchKnowledge": "檢索認知庫",
+      "searchKnowledgeDesc": "語義、關鍵字或混合檢索認知庫切塊",
       "readDocument": "閱讀文件",
-      "editKnowledgeFile": "編輯知識庫檔案",
+      "editKnowledgeFile": "編輯認知庫檔案",
       "editKnowledgeFileDesc": "透過對話修改 Excel 儲存格或文字，或將沙箱檔案寫回原文件；儲存後更新索引",
       "readDocumentDesc": "讀取文件元資料與切塊內容，支持分頁和文內尋找",
       "listDocuments": "瀏覽文件清單",
-      "listDocumentsDesc": "分頁列出知識庫中的文件",
+      "listDocumentsDesc": "分頁列出認知庫中的文件",
       "grepChunks": "關鍵字搜尋",
       "grepChunksDesc": "快速定位包含特定關鍵字的文件和切塊",
       "knowledgeSearch": "語義搜尋",
@@ -1524,11 +1524,11 @@ export default {
       "dataAnalysisDesc": "理解資料檔案並進行資料分析",
       "dataSchema": "查看資料元資訊",
       "dataSchemaDesc": "獲取表格檔案的元資訊",
-      "requiresKb": "（需要設定知識庫）",
-      "requiresRagKb": "（需要關聯啟用向量/關鍵字索引的知識庫）",
-      "requiresWikiKb": "（需要關聯啟用 Wiki 能力的知識庫）",
+      "requiresKb": "（需要設定認知庫）",
+      "requiresRagKb": "（需要關聯啟用向量/關鍵字索引的認知庫）",
+      "requiresWikiKb": "（需要關聯啟用 Wiki 能力的認知庫）",
       "wikiSearch": "搜尋 Wiki",
-      "wikiSearchDesc": "在 Wiki 知識庫中按關鍵字/語義搜尋頁面",
+      "wikiSearchDesc": "在 Wiki 認知庫中按關鍵字/語義搜尋頁面",
       "wikiReadPage": "閱讀 Wiki 頁面",
       "wikiReadPageDesc": "讀取指定 Wiki 頁面的完整內容",
       "wikiReadSourceDoc": "精讀源文件",
@@ -1550,16 +1550,16 @@ export default {
       "webSearch": "網路搜尋",
       "webFetch": "網頁抓取",
       "groupBase": "基礎",
-      "groupRag": "知識庫檢索（RAG）",
+      "groupRag": "認知庫檢索（RAG）",
       "groupWikiRead": "Wiki 讀取",
       "groupWikiEdit": "Wiki 編輯",
       "groupWikiIssue": "Wiki 巡檢",
       "groupData": "資料分析",
       "writeWarning": "會修改 Wiki 內容",
       "dangerTag": "可寫",
-      "statusNoKb": "當前未關聯任何知識庫",
-      "kbMetricRag": "RAG 知識庫",
-      "kbMetricWiki": "Wiki 知識庫",
+      "statusNoKb": "當前未關聯任何認知庫",
+      "kbMetricRag": "RAG 認知庫",
+      "kbMetricWiki": "Wiki 認知庫",
       "statusInactive": "有 {count} 個已勾選工具在當前設定下無法生效",
       "searchConversations": "回顧歷史對話",
       "searchConversationsDesc": "在使用者自己的歷史會話中查找之前聊過的內容",
@@ -1588,7 +1588,7 @@ export default {
       "conversationSectionAgent": "智慧推論始終為多輪模式：按模型脈絡視窗保留歷史對話，超出時自動把較早的內容壓縮成摘要。",
       "multiTurn": "開啟後將保留歷史對話脈絡",
       "historyRounds": "保留最近幾輪對話作為脈絡",
-      "retainRetrievalHistory": "保留此前輪次的知識庫檢索結果。關閉時每輪重新檢索",
+      "retainRetrievalHistory": "保留此前輪次的認知庫檢索結果。關閉時每輪重新檢索",
       "rewrite": "多輪對話時自動改寫使用者問題，消解指代和補全省略",
       "memoryEnabled": "允許該智慧代理讀取並補充你的長期記憶。關閉後，與它的對話既不會讀取記憶，也不會新增記憶。空間或個人設定關閉時，這裡開啟也不會生效",
       "queryUnderstandModel": "用於問題理解（改寫與意圖識別）的模型，留空則復用主對話模型",
@@ -1596,22 +1596,22 @@ export default {
       "rewriteUserPrompt": "用於問題改寫的使用者提示語模板（留空使用預設）",
       "selectTools": "選擇 Agent 可以使用的工具",
       "maxIterations": "限制 Agent 單次任務的推論步數。選「不限制」時會一直跑到模型自然結束或你手動停止。",
-      "kbScope": "選擇智慧代理可存取的知識庫範圍",
+      "kbScope": "選擇智慧代理可存取的認知庫範圍",
       "webSearch": "啟用後智慧代理可以搜尋網際網路獲取資訊",
       "webSearchProvider": "為此智慧代理指定搜尋引擎，留空則使用預設搜尋引擎",
       "webSearchMaxResults": "每次搜尋返回的最大結果數量",
       "webFetchEnabled": "Rerank 後自動抓取排名靠前的網頁完整內容，提升回答品質",
       "webFetchTopN": "Rerank 後最多抓取幾個網頁的完整內容",
-      "retrievalSection": "設定知識庫檢索召回、排序與 FAQ 優先策略（ReRank 模型見「模型設定」）",
+      "retrievalSection": "設定認知庫檢索召回、排序與 FAQ 優先策略（ReRank 模型見「模型設定」）",
       "queryExpansion": "自動擴展查詢詞以提高召回率",
       "embeddingTopK": "向量檢索返回的最大結果數量",
       "keywordThreshold": "關鍵字檢索的最低相關性分數",
       "vectorThreshold": "向量檢索的最低相似度分數",
       "rerankTopK": "重排序後保留的最大結果數量",
       "rerankThreshold": "重排序的最低相關性分數",
-      "fallbackStrategy": "當無法從知識庫找到相關內容時的處理方式",
+      "fallbackStrategy": "當無法從認知庫找到相關內容時的處理方式",
       "fallbackResponse": "當無法回答時返回的固定文字",
-      "fallbackPrompt": "當無法從知識庫找到答案時，引導模型生成回覆的提示語"
+      "fallbackPrompt": "當無法從認知庫找到答案時，引導模型生成回覆的提示語"
     },
     "selection": {
       "all": "全部",
@@ -1647,7 +1647,7 @@ export default {
       "startersTitle": "開場推薦",
       "followUpsTitle": "回答後推薦",
       "enableStarters": "展示開場問題",
-      "enableStartersDesc": "在使用者首次提問前展示，可使用營運設定、知識庫或混合來源。",
+      "enableStartersDesc": "在使用者首次提問前展示，可使用營運設定、認知庫或混合來源。",
       "enableFollowUps": "生成回答後推薦",
       "enableFollowUpsDesc": "每次完整回答結束後異步生成，不阻塞主回答。啟用後會產生額外模型呼叫。",
       "sourceMode": "內容來源",
@@ -1665,10 +1665,10 @@ export default {
       "instructionPlaceholder": "例如：優先推薦能幫助使用者落實執行的問題，避免寬泛問題或重複當前回答…",
       "suppressFallback": "兜底回答後不展示",
       "suppressQuestion": "回答本身以提問結尾時不展示",
-      "knowledgeFallback": "模型生成失敗時使用知識庫候選",
+      "knowledgeFallback": "模型生成失敗時使用認知庫候選",
       "allowRegenerate": "允許使用者換一批",
       "modeCurated": "營運設定",
-      "modeKnowledge": "知識庫",
+      "modeKnowledge": "認知庫",
       "modeGenerated": "模型生成",
       "modeHybrid": "混合",
       "categoryClarify": "澄清",
@@ -1684,8 +1684,8 @@ export default {
   },
   "agentStream": {
     "saveToKb": {
-      "emptyContent": "當前回答為空，無法儲存到知識庫",
-      "editorOpened": "已打開編輯器，請選擇知識庫後儲存"
+      "emptyContent": "當前回答為空，無法儲存到認知庫",
+      "editorOpened": "已打開編輯器，請選擇認知庫後儲存"
     },
     "copy": {
       "emptyContent": "當前回答為空，無法複製",
@@ -1721,9 +1721,9 @@ export default {
     },
     "toolStatus": {
       "calling": "正在呼叫 {name}...",
-      "searchKb": "檢索知識庫",
-      "searchKbFailed": "檢索知識庫失敗",
-      "searchMixed": "檢索知識庫和網路",
+      "searchKb": "檢索認知庫",
+      "searchKbFailed": "檢索認知庫失敗",
+      "searchMixed": "檢索認知庫和網路",
       "searchMixedFailed": "檢索失敗",
       "webSearch": "網路搜尋",
       "webSearchFailed": "網路搜尋失敗",
@@ -1749,12 +1749,12 @@ export default {
       "shellExecRunning": "正在執行沙箱命令..."
     },
     "ragPipeline": {
-      "searching": "正在檢索知識庫...",
-      "searchingWithQuery": "正在檢索知識庫：「{query}」",
+      "searching": "正在檢索認知庫...",
+      "searchingWithQuery": "正在檢索認知庫：「{query}」",
       "searchingWeb": "正在檢索網路...",
       "searchingWebWithQuery": "正在檢索網路：「{query}」",
-      "searchingMixed": "正在檢索知識庫和網路...",
-      "searchingMixedWithQuery": "正在檢索知識庫和網路：「{query}」",
+      "searchingMixed": "正在檢索認知庫和網路...",
+      "searchingMixedWithQuery": "正在檢索認知庫和網路：「{query}」",
       "searchDone": "檢索完成"
     },
     "attachmentParsing": {
@@ -1799,10 +1799,10 @@ export default {
     "citation": {
       "notFound": "未找到內容",
       "loadFailed": "載入失敗",
-      "noKbForWiki": "無法識別關聯的知識庫，無法打開 Wiki"
+      "noKbForWiki": "無法識別關聯的認知庫，無法打開 Wiki"
     },
     "tools": {
-      "searchKnowledge": "知識庫檢索",
+      "searchKnowledge": "認知庫檢索",
       "grepChunks": "搜尋關鍵字",
       "webSearch": "網路搜尋",
       "webFetch": "網頁抓取",
@@ -2000,18 +2000,18 @@ export default {
     },
     "storage": {
       "title": "存儲引擎",
-      "selectDescription": "選擇此知識庫綁定的具體存儲實例。",
+      "selectDescription": "選擇此認知庫綁定的具體存儲實例。",
       "defaultTag": "預設",
       "instanceLabel": "存儲實例",
       "instanceDesc": "同一種存儲類型可以設定多個不同 Endpoint、Bucket 或憑據的實例。",
-      "migrateHint": "知識庫中已有檔案，需透過存儲遷移流程才能更換實例。",
+      "migrateHint": "認知庫中已有檔案，需透過存儲遷移流程才能更換實例。",
       "manageInstances": "管理存儲實例",
       "localStorage": "本地存儲",
       "loading": "載入中..."
     },
     "vectorStore": {
       "title": "向量存儲",
-      "description": "選擇此知識庫要寫入的向量存儲。綁定不可更改 — 如需將現有 KB 遷移到其他存儲，請建立新 KB 並重新索引。",
+      "description": "選擇此認知庫要寫入的向量存儲。綁定不可更改 — 如需將現有 KB 遷移到其他存儲，請建立新 KB 並重新索引。",
       "loading": "正在載入向量存儲清單...",
       "engineLabel": "向量存儲",
       "engineDesc": "從全局向量存儲設定中選擇，或保持系統預設以使用空間的 RETRIEVE_DRIVER 引擎。",
@@ -2031,21 +2031,21 @@ export default {
   },
   "tools": {
     "multiKbSearch": "跨庫搜尋",
-    "searchKnowledge": "檢索知識庫",
+    "searchKnowledge": "檢索認知庫",
     "readDocument": "閱讀文件",
     "listDocuments": "瀏覽文件清單",
-    "knowledgeSearch": "知識庫搜尋",
+    "knowledgeSearch": "認知庫搜尋",
     "grepChunks": "搜尋關鍵字",
     "getChunkDetail": "獲取片段詳情",
     "listKnowledgeChunks": "查看知識切塊",
-    "listKnowledgeBases": "列出知識庫",
+    "listKnowledgeBases": "列出認知庫",
     "getDocumentInfo": "獲取文件資訊",
     "queryKnowledgeGraph": "查詢知識圖譜",
     "think": "深度思考",
     "todoWrite": "制定計劃"
   },
   "commandPalette": {
-    "placeholder": "搜尋知識庫、檔案、對話…",
+    "placeholder": "搜尋認知庫、檔案、對話…",
     "clearRecent": "清除",
     "retrieval": "檢索參數",
     "untitledSession": "未命名對話",
@@ -2063,7 +2063,7 @@ export default {
     },
     "quick": {
       "newChat": "新建對話",
-      "knowledgeBases": "打開知識庫",
+      "knowledgeBases": "打開認知庫",
       "agents": "打開智慧代理",
       "organizations": "打開共享空間",
       "settings": "打開設定",
@@ -2074,9 +2074,9 @@ export default {
       "keyword": "關鍵字"
     },
     "group": {
-      "chunks": "知識庫檔案",
+      "chunks": "認知庫檔案",
       "messages": "對話訊息",
-      "kbs": "知識庫",
+      "kbs": "認知庫",
       "agents": "智慧代理",
       "sessionsByTitle": "對話（按標題）",
       "commands": "命令",
@@ -2084,7 +2084,7 @@ export default {
       "quickActions": "快捷操作"
     },
     "scope": {
-      "placeholder": "在本知識庫中搜尋…",
+      "placeholder": "在本認知庫中搜尋…",
       "remove": "移除範圍篩選（Backspace）"
     }
   },
@@ -2107,7 +2107,7 @@ export default {
   },
   "organization": {
     "title": "共享空間",
-    "subtitle": "建立或加入共享空間，讓多個空間互相協作，共享知識庫與智慧代理",
+    "subtitle": "建立或加入共享空間，讓多個空間互相協作，共享認知庫與智慧代理",
     "createOrg": "建立共享空間",
     "joinOrg": "加入共享空間",
     "name": "共享空間名稱",
@@ -2129,7 +2129,7 @@ export default {
     "inviteCodeRefreshFailed": "重新整理邀請碼失敗",
     "leave": "退出共享空間",
     "leaveConfirmTitle": "退出共享空間",
-    "leaveConfirmMessage": "確定要退出共享空間「{name}」嗎？退出後將無法存取該共享空間共享的知識庫。",
+    "leaveConfirmMessage": "確定要退出共享空間「{name}」嗎？退出後將無法存取該共享空間共享的認知庫。",
     "leaveSuccess": "已退出共享空間",
     "leaveFailed": "退出共享空間失敗",
     "deleteConfirmTitle": "刪除共享空間",
@@ -2159,7 +2159,7 @@ export default {
       "selectOrg": "選擇共享空間",
       "selectOrgPlaceholder": "請選擇要共享的共享空間",
       "permission": "權限",
-      "permissionTip": "可編輯權限允許成員修改知識庫內容，唯讀權限僅允許檢索和問答",
+      "permissionTip": "可編輯權限允許成員修改認知庫內容，唯讀權限僅允許檢索和問答",
       "shareSuccess": "已共享",
       "shareFailed": "共享失敗",
       "unshareSuccess": "已取消共享",
@@ -2171,7 +2171,7 @@ export default {
       "emptySearch": "未找到比對「{q}」的共享空間",
       "addShareDialogTitle": "共享到共享空間",
       "unshareAction": "取消共享",
-      "sharedKnowledgeBase": "共享知識庫",
+      "sharedKnowledgeBase": "共享認知庫",
       "agentShareDesc": "將智慧代理共享到共享空間，共享空間成員可使用該智慧代理",
       "sharedFrom": "來自",
       "permissionReadonly": "唯讀",
@@ -2217,26 +2217,26 @@ export default {
       "nameTip": "建議使用團隊或專案名稱，便於成員識別",
       "descriptionTip": "描述共享空間的用途和目標，幫助成員了解共享空間",
       "permissionsTitle": "成員權限",
-      "permissionsDesc": "了解共享空間中不同角色對知識庫與智慧代理的權限範圍",
+      "permissionsDesc": "了解共享空間中不同角色對認知庫與智慧代理的權限範圍",
       "permissionFeature": "權限功能",
       "fullAccess": "完整權限",
       "editAccess": "編輯權限",
       "viewAccess": "唯讀權限",
-      "adminPerm1": "管理共享空間設定、成員及知識庫與智慧代理共享",
-      "adminPerm2": "共享和管理知識庫與智慧代理",
-      "adminPerm3": "編輯共享知識庫內容",
-      "adminPerm4": "查看和檢索知識庫",
+      "adminPerm1": "管理共享空間設定、成員及認知庫與智慧代理共享",
+      "adminPerm2": "共享和管理認知庫與智慧代理",
+      "adminPerm3": "編輯共享認知庫內容",
+      "adminPerm4": "查看和檢索認知庫",
       "useSharedAgentsPerm": "使用共享智慧代理",
-      "shareKBPerm": "共享知識庫到共享空間",
-      "editorPerm1": "編輯共享知識庫內容",
-      "editorPerm2": "查看和檢索知識庫",
+      "shareKBPerm": "共享認知庫到共享空間",
+      "editorPerm1": "編輯共享認知庫內容",
+      "editorPerm2": "查看和檢索認知庫",
       "editorPerm3": "管理共享空間設定和成員",
-      "viewerPerm1": "查看和檢索知識庫",
-      "viewerPerm2": "編輯知識庫內容",
+      "viewerPerm1": "查看和檢索認知庫",
+      "viewerPerm2": "編輯認知庫內容",
       "viewerPerm3": "管理共享空間設定",
       "ownerNote": "作為共享空間建立者，您將自動成為共享空間的管理員，擁有完整權限。",
       "joinTitle": "加入共享空間",
-      "joinDesc": "透過邀請碼加入現有共享空間，獲得知識庫與智慧代理存取權限",
+      "joinDesc": "透過邀請碼加入現有共享空間，獲得認知庫與智慧代理存取權限",
       "joinIllustration": "輸入共享空間管理員提供的邀請碼即可加入",
       "inviteCodeTip": "邀請碼由共享空間管理員生成，請向他們索取",
       "howToGetCode": "如何獲取邀請碼？",
@@ -2253,14 +2253,14 @@ export default {
       "editTitle": "共享空間設定",
       "membersDesc": "查看和管理共享空間成員、調整成員角色。成員的最小單位是空間──加入後該空間下的所有使用者都將獲得存取權限。",
       "permissionsIconHint": "查看各角色權限說明",
-      "sharedDesc": "查看共享到此共享空間的所有知識庫",
-      "noSharedKB": "暫無共享的知識庫",
-      "noSharedKBTip": "知識庫擁有者可以在知識庫設定中將其共享到此共享空間",
+      "sharedDesc": "查看共享到此共享空間的所有認知庫",
+      "noSharedKB": "暫無共享的認知庫",
+      "noSharedKBTip": "認知庫擁有者可以在認知庫設定中將其共享到此共享空間",
       "sharedAgents": "共享智慧代理",
       "noSharedAgents": "暫無共享的智慧代理",
       "sharedAgentsDesc": "已共享到本共享空間的智慧代理，成員可在對話中使用",
-      "sharedAgentsKbHint": "智慧代理綁定的知識庫僅在成員使用該智慧代理對話時可 {'@'} 使用（唯讀），不會出現在「知識庫清單」中。若需成員在清單中看到或編輯知識庫，請單獨將知識庫共享到本共享空間。",
-      "sharedAgentsKbHintShort": "智慧代理綁定知識僅對話內唯讀；需在清單看到或編輯請單獨共享知識庫",
+      "sharedAgentsKbHint": "智慧代理綁定的認知庫僅在成員使用該智慧代理對話時可 {'@'} 使用（唯讀），不會出現在「認知庫清單」中。若需成員在清單中看到或編輯認知庫，請單獨將認知庫共享到本共享空間。",
+      "sharedAgentsKbHintShort": "智慧代理綁定知識僅對話內唯讀；需在清單看到或編輯請單獨共享認知庫",
       "noSharedAgentsTip": "管理員可將智慧代理從智慧代理設定中共享到本共享空間",
       "sharePermissionLabel": "共享空間權限",
       "myPermissionLabel": "生效權限",
@@ -2279,7 +2279,7 @@ export default {
       "remainingValidityNever": "永不過期",
       "remainingValidityExpired": "已過期",
       "removeShareFromOrg": "從共享空間中移除",
-      "removeShareConfirm": "確定將「{name}」從本共享空間中移除？移除後共享空間成員將無法再存取該知識庫。",
+      "removeShareConfirm": "確定將「{name}」從本共享空間中移除？移除後共享空間成員將無法再存取該認知庫。",
       "removeAgentShareConfirm": "確定將「{name}」從本共享空間中移除？移除後共享空間成員將無法再存取該智慧代理。",
       "removeShareSuccess": "已從共享空間中移除",
       "removeShareFailed": "移除失敗，請重試",
@@ -2313,7 +2313,7 @@ export default {
       "viewer": "唯讀"
     },
     "sharedResources": {
-      "kbListTitle": "共享知識庫",
+      "kbListTitle": "共享認知庫",
       "agentListTitle": "共享智慧代理",
       "loading": "載入中…",
       "columns": {
@@ -2361,7 +2361,7 @@ export default {
       "primaryJoin": "加入",
       "invalidCode": "邀請碼無效或已過期",
       "previewFailed": "預覽失敗，請稍後重試",
-      "knowledgeBases": "知識庫",
+      "knowledgeBases": "認知庫",
       "agents": "智慧代理",
       "alreadyMember": "您已經是該共享空間的成員",
       "submitRequest": "申請加入",
@@ -2391,7 +2391,7 @@ export default {
       "confirm": "確認加入",
       "preview": "預覽並加入",
       "memberCount": "{count} 個成員",
-      "shareCount": "{count} 個共享知識庫",
+      "shareCount": "{count} 個共享認知庫",
       "agentShareCount": "{count} 個智慧代理",
       "alreadyMember": "您已經是該共享空間的成員",
       "invalidCode": "無效的邀請碼",
@@ -2418,7 +2418,7 @@ export default {
     "useTemplate": "使用模板",
     "resetDefault": "復原預設",
     "default": "預設",
-    "withKnowledgeBase": "知識庫",
+    "withKnowledgeBase": "認知庫",
     "withWebSearch": "網路搜尋"
   },
   "mcpMetadata": {
@@ -2609,7 +2609,7 @@ export default {
     "usage": {
       "title": "模型無法刪除",
       "description": "模型「{name}」仍被以下設定引用。請先打開對應設定並更換模型，再重新刪除。",
-      "knowledgeBases": "知識庫（{count}）",
+      "knowledgeBases": "認知庫（{count}）",
       "agents": "智慧代理（{count}）",
       "longTermMemory": "長期記憶",
       "openConfiguration": "打開設定",
@@ -2881,7 +2881,7 @@ export default {
     "titleDoneWithIssues": "{ok} 個完成，{bad} 個未成功",
     "titleCancelled": "上傳已取消",
     "destination": "上傳至「{name}」",
-    "destinationMany": "上傳至 {count} 個知識庫",
+    "destinationMany": "上傳至 {count} 個認知庫",
     "remaining": "剩餘約 {time}",
     "eta": {
       "seconds": "{n} 秒",
@@ -2907,7 +2907,7 @@ export default {
     "phaseReady": "已完成",
     "phaseUploadFailed": "上傳失敗",
     "phaseParseFailed": "解析失敗",
-    "phaseDuplicate": "知識庫中已有相同檔案",
+    "phaseDuplicate": "認知庫中已有相同檔案",
     "phaseCancelled": "已取消",
     "phaseDeleted": "已刪除",
     "cancel": "取消",
@@ -2941,20 +2941,20 @@ export default {
     "valueTrust": "安全可信",
     "rag": "RAG 增強生成",
     "agent": "ReAct 智慧代理",
-    "wiki": "Wiki 知識庫",
+    "wiki": "Wiki 認知庫",
     "hybridSearch": "混合檢索",
     "multimodalParsing": "多模態文件解析",
     "hybridSearchEngine": "混合檢索 + 知識圖譜",
     "ragQandA": "ReAct 智慧代理問答",
     "independentTenant": "獨立空間",
     "fullApiAccess": "完整 API 存取",
-    "knowledgeBaseManagement": "知識庫管理",
+    "knowledgeBaseManagement": "認知庫管理",
     "carousel": {
       "agenticRagTitle": "Agentic RAG",
       "agenticRagDesc": "ReAct 推論 + 工具呼叫 + 多步思考",
       "hybridSearchTitle": "混合檢索策略",
       "hybridSearchDesc": "BM25 + 向量 + 知識圖譜",
-      "wikiTitle": "Wiki 知識庫",
+      "wikiTitle": "Wiki 認知庫",
       "wikiDesc": "文件蒸餾為結構化互聯知識",
       "smartDocRetrievalTitle": "智慧文件檢索",
       "smartDocRetrievalDesc": "PDF/Word/圖片多格式解析"
@@ -3200,7 +3200,7 @@ export default {
         "default": "設定模型資訊"
       },
       "isDefaultLabel": "設為默認",
-      "isDefaultDesc": "創建知識庫/長記憶庫時預選該模型；同類型僅有一個默認模型。"
+      "isDefaultDesc": "創建認知庫/長記憶庫時預選該模型；同類型僅有一個默認模型。"
     }
   },
   "error": {
@@ -3213,7 +3213,7 @@ export default {
     "unsupportedFileType": "不支持的檔案類型！",
     "invalidFileType": "檔案類型錯誤！",
     "invalidImageLink": "無效的圖片連結",
-    "missingKbId": "缺少知識庫ID",
+    "missingKbId": "缺少認知庫ID",
     "tokenNotFound": "未找到登入權杖，請重新登入",
     "streamFailed": "流式連結失敗",
     "initialization": {
@@ -3641,14 +3641,14 @@ export default {
           "loadingMore": "正在載入更多…",
           "attempts": "執行 {current}/{max}",
           "unknownTarget": "未識別到關聯物件",
-          "knowledgeBaseLabel": "知識庫 ID",
+          "knowledgeBaseLabel": "認知庫 ID",
           "knowledgeLabel": "文件 ID",
           "taskIDLabel": "業務任務 ID",
           "tenantLabel": "空間 ID",
           "sourceLabel": "來源 ID",
           "targetLabel": "目標 ID",
-          "sourceKBLabel": "來源知識庫",
-          "targetKBLabel": "目標知識庫",
+          "sourceKBLabel": "來源認知庫",
+          "targetKBLabel": "目標認知庫",
           "dataSourceLabel": "資料源 ID",
           "syncLogLabel": "同步記錄 ID",
           "knowledgeCountLabel": "文件數量",
@@ -3714,8 +3714,8 @@ export default {
             "batchDelete": "批次刪除",
             "move": "文件移動",
             "indexDelete": "索引刪除",
-            "kbClone": "知識庫複製",
-            "kbDelete": "知識庫刪除",
+            "kbClone": "認知庫複製",
+            "kbDelete": "認知庫刪除",
             "wikiIngest": "Wiki 內容生成",
             "wikiFinalize": "Wiki 收尾處理"
           }
@@ -3883,10 +3883,10 @@ export default {
     },
     "deleteDangerZone": {
       "title": "刪除當前空間",
-      "desc": "刪除整個空間及其設定。刪除後，空間成員將無法繼續存取其中的知識庫、智慧代理與 API Key。",
+      "desc": "刪除整個空間及其設定。刪除後，空間成員將無法繼續存取其中的認知庫、智慧代理與 API Key。",
       "button": "刪除空間",
       "confirmTitle": "刪除當前空間？",
-      "confirmBody": "此操作將刪除空間「{name}」，並使其中的知識庫、智慧代理、成員與 API Key 不再可用。此操作不可復原。",
+      "confirmBody": "此操作將刪除空間「{name}」，並使其中的認知庫、智慧代理、成員與 API Key 不再可用。此操作不可復原。",
       "confirmHint": "請輸入空間名稱「{name}」以確認刪除。",
       "confirm": "刪除",
       "nameMismatch": "空間名稱不比對",
@@ -3895,7 +3895,7 @@ export default {
     },
     "leaveDangerZone": {
       "title": "退出當前空間",
-      "desc": "終止您在本空間的成員身份。退出後將無法存取本空間的知識庫與智慧代理，之後可被再次邀請加入。",
+      "desc": "終止您在本空間的成員身份。退出後將無法存取本空間的認知庫與智慧代理，之後可被再次邀請加入。",
       "button": "退出空間"
     },
     "storage": {
@@ -3935,7 +3935,7 @@ export default {
     "create": {
       "action": "建立新空間",
       "dialogTitle": "建立新空間",
-      "dialogSubtitle": "空間擁有獨立的知識庫與成員，你將自動成為新空間的所有者。",
+      "dialogSubtitle": "空間擁有獨立的認知庫與成員，你將自動成為新空間的所有者。",
       "nameLabel": "空間名稱",
       "namePlaceholder": "例如：我的新專案",
       "nameRequired": "請輸入空間名稱",
@@ -3987,7 +3987,7 @@ export default {
     "referencesDrawerTitleTools": "工具結果",
     "referencesDrawerTitleMixed": "參考來源",
     "referencesDrawerWebSection": "網頁",
-    "referencesDrawerDocsSection": "知識庫文件",
+    "referencesDrawerDocsSection": "認知庫文件",
     "referencesDrawerToolsSection": "工具",
     "referencesDrawerEmpty": "暫無參考來源",
     "sandbox": {
@@ -4022,7 +4022,7 @@ export default {
     "questionMinimapAriaLabel": "提問目錄",
     "questionMinimapAttachmentPlaceholder": "（附件）",
     "referenceChunkCount": "{count}個片段",
-    "fallbackHint": "未從知識庫中檢索到相關內容，以上為模型直接回答",
+    "fallbackHint": "未從認知庫中檢索到相關內容，以上為模型直接回答",
     "truncatedHint": "回答在模型單次輸出上限處被截斷，以上為截斷前已生成的內容",
     "rewind": {
       "tooltip": "回滾到這裡",
@@ -4124,8 +4124,8 @@ export default {
     "contentLengthLabelSimple": "內容長度:",
     "fullContentLabel": "完整內容",
     "copyContent": "複製內容",
-    "knowledgeBaseCount": "共 {count} 個知識庫",
-    "noKnowledgeBases": "沒有可用的知識庫",
+    "knowledgeBaseCount": "共 {count} 個認知庫",
+    "noKnowledgeBases": "沒有可用的認知庫",
     "enterDescription": "輸入描述",
     "rawOutputLabel": "原始輸出",
     "wikiWritePageTitle": "Wiki 頁面寫入",
@@ -4169,22 +4169,22 @@ export default {
     "attachmentStillProcessing": "附件 {name} 仍在解析，請稍候"
   },
   "kbDefaults": {
-    "title": "知識庫設定",
-    "description": "統一配置知識庫的平台預設參數。普通使用者新建知識庫時只需填寫基本資訊，其餘設定自動引用此處設定的預設值，對全平台所有空間通用。",
-    "navGroup": "知識庫配置",
-    "readonlyBanner": "僅超級管理員可編輯平台知識庫預設配置。",
-    "modelDefaultDesc": "新建知識庫時預設選用的模型；留空則由使用者自行選擇。",
-    "appliesHint": "這些預設值將自動應用於此後新建的知識庫，已有知識庫不受影響。",
+    "title": "認知庫設定",
+    "description": "統一配置認知庫的平台預設參數。普通使用者新建認知庫時只需填寫基本資訊，其餘設定自動引用此處設定的預設值，對全平台所有空間通用。",
+    "navGroup": "認知庫配置",
+    "readonlyBanner": "僅超級管理員可編輯平台認知庫預設配置。",
+    "modelDefaultDesc": "新建認知庫時預設選用的模型；留空則由使用者自行選擇。",
+    "appliesHint": "這些預設值將自動應用於此後新建的認知庫，已有認知庫不受影響。",
     "save": "儲存預設配置",
     "saving": "儲存中…",
     "autoSaved": "已自動儲存",
-    "saved": "平台知識庫預設配置已儲存",
-    "saveFailed": "儲存平台知識庫預設配置失敗",
+    "saved": "平台認知庫預設配置已儲存",
+    "saveFailed": "儲存平台認知庫預設配置失敗",
     "faqTitle": "FAQ 設定",
-    "faqHint": "問答型知識庫的索引策略，僅對問答類型知識庫生效。",
+    "faqHint": "問答型認知庫的索引策略，僅對問答類型認知庫生效。",
     "sections": {
       "models": "預設模型",
-      "modelsDesc": "新建知識庫時自動引用的摘要與嵌入模型。",
+      "modelsDesc": "新建認知庫時自動引用的摘要與嵌入模型。",
       "chunking": "分塊設定",
       "chunkingDesc": "文件切分的預設參數，適用於大多數場景。",
       "image": "影像處理",
@@ -4194,17 +4194,17 @@ export default {
       "graph": "知識圖譜",
       "graphDesc": "預設是否啟用實體-關聯抽取建構知識圖譜。",
       "advanced": "進階設定",
-      "advancedDesc": "問題生成、自動標籤、知識庫描述等預設開關。"
+      "advancedDesc": "問題生成、自動標籤、認知庫描述等預設開關。"
     },
     "datasource": {
-      "targetKb": "目標知識庫",
-      "selectKb": "請選擇知識庫",
-      "hint": "數據源用於將外部內容自動同步到指定知識庫；此處集中管理本空間各知識庫的數據源，新建知識庫彈窗不再提供該配置。"
+      "targetKb": "目標認知庫",
+      "selectKb": "請選擇認知庫",
+      "hint": "數據源用於將外部內容自動同步到指定認知庫；此處集中管理本空間各認知庫的數據源，新建認知庫彈窗不再提供該配置。"
     }
   },
   "knowledgeEditor": {
-    "titleCreate": "新建知識庫",
-    "titleEdit": "知識庫設定",
+    "titleCreate": "新建認知庫",
+    "titleEdit": "認知庫設定",
     "platformManagedReadonly": "該設定已由平台統一管控，此處僅顯示目前生效值，不可修改。",
     "advanced": {
       "title": "進階設定",
@@ -4232,7 +4232,7 @@ export default {
         "imageAttrsOcrConditionsDesc": "當觀察到的屬性滿足以下條件時，對圖片進行 OCR",
         "imageAttrsOcrOnUnobserved": "圖片屬性觀察失敗時仍執行 OCR",
         "imageAttrsOcrOnUnobservedDesc": "當模型未能正確觀察到圖片屬性時，預設仍執行 OCR 兜底，以免漏掉正文文字；關閉則跳過。（採用 4B 等小參數視覺模型，或自定義的圖片解析提示語與系統提示語衝突時，可能造成觀察失敗；8B 及以上模型的失敗概率很低，不建議關閉）",
-        "imagePipelineKbNote": "預設跟隨知識庫設定，可針對本次任務調整"
+        "imagePipelineKbNote": "預設跟隨認知庫設定，可針對本次任務調整"
       },
       "tableMetadataInstructions": {
         "label": "表格元資料生成要求",
@@ -4249,10 +4249,10 @@ export default {
         "instructionsPlaceholder": "例如：生成客服使用者常問的自然語言問題，避免考試題式表達…"
       },
       "profile": {
-        "label": "自動生成知識庫描述",
-        "description": "文件新增、刪除或摘要更新後，從文件畫像聚合自動生成知識庫描述。聚合本身不呼叫模型，僅當聚合結果變化時才發起一次小模型呼叫。",
+        "label": "自動生成認知庫描述",
+        "description": "文件新增、刪除或摘要更新後，從文件畫像聚合自動生成認知庫描述。聚合本身不呼叫模型，僅當聚合結果變化時才發起一次小模型呼叫。",
         "modelLabel": "生成模型",
-        "modelDescription": "留空時使用知識庫摘要模型。",
+        "modelDescription": "留空時使用認知庫摘要模型。",
         "modelPlaceholder": "請選擇生成模型",
         "instructionsLabel": "描述生成要求",
         "instructionsDescription": "補充面向的讀者、需要保留的術語或表達風格，系統仍維護穩定的輸出格式。",
@@ -4260,9 +4260,9 @@ export default {
       },
       "autoTag": {
         "label": "自動關聯標籤",
-        "description": "文件解析完成後，從當前知識庫已有標籤中選擇合適標籤自動關聯。不會建立或刪除標籤，並會增加一次模型呼叫。",
+        "description": "文件解析完成後，從當前認知庫已有標籤中選擇合適標籤自動關聯。不會建立或刪除標籤，並會增加一次模型呼叫。",
         "modelLabel": "分類模型",
-        "modelDescription": "留空時使用知識庫摘要模型。",
+        "modelDescription": "留空時使用認知庫摘要模型。",
         "modelPlaceholder": "請選擇分類模型",
         "maxTagsLabel": "單篇文件最多標籤數",
         "maxTagsDescription": "每篇文件最多自動關聯 1-10 個已有標籤。",
@@ -4274,7 +4274,7 @@ export default {
       "title": "音訊語音辨識",
       "description": "設定語音辨識（ASR），啟用後可上傳音訊檔案並整段轉寫為文字（常見格式：mp3、wav、m4a、flac、ogg 等）。暫不支持影片上傳。",
       "label": "啟用音訊語音辨識",
-      "desc": "啟用後可上傳音訊到知識庫，系統自動將語音轉寫為文字並參與解析與檢索",
+      "desc": "啟用後可上傳音訊到認知庫，系統自動將語音轉寫為文字並參與解析與檢索",
       "modelLabel": "ASR 模型",
       "modelDescription": "用於音訊中語音轉文字的識別模型（如 OpenAI Whisper）",
       "modelPlaceholder": "請選擇 ASR 模型",
@@ -4381,14 +4381,14 @@ export default {
     },
     "models": {
       "title": "模型設定",
-      "description": "為知識庫選擇合適的 AI 模型",
+      "description": "為認知庫選擇合適的 AI 模型",
       "llmLabel": "LLM 大型語言模型",
       "llmDesc": "用於總結和摘要的大型語言模型",
       "llmPlaceholder": "請選擇 LLM 模型（可選）",
       "embeddingLabel": "Embedding 內嵌模型",
       "embeddingDesc": "用於文字向量化的內嵌模型",
       "embeddingPlaceholder": "請選擇 Embedding 模型",
-      "embeddingLocked": "知識庫中已有檔案，無法修改 Embedding 模型",
+      "embeddingLocked": "認知庫中已有檔案，無法修改 Embedding 模型",
       "embeddingOptional": "（可選）",
       "embeddingWikiOptionalDesc": "可選。設定後用於 Wiki 目錄歸類的相似度比對，讓新頁面更好地復用已有目錄；不設定則按完整目錄樹歸類。"
     },
@@ -4425,12 +4425,12 @@ export default {
     "faq": {
       "title": "問答",
       "subtitle": "結構化問答管理，支持標準問、相似問和反例，精準比對使用者查詢，提升問答準確率",
-      "description": "設定 FAQ 知識庫的索引策略和問答組織方式",
+      "description": "設定 FAQ 認知庫的索引策略和問答組織方式",
       "indexModeLabel": "索引方式",
       "indexModeDescription": "僅索引問題可提升精度，索引問答可提高召回率",
       "questionIndexModeLabel": "問題索引方式",
       "questionIndexModeDescription": "合併索引：標準問和相似問合併索引；分別索引：標準問和每個相似問獨立索引，檢索更精確但需要更多存儲",
-      "entryGuide": "FAQ 條目由標準問、相似問、反例和多個答案組成，可在知識庫詳情中批次匯入、編輯。",
+      "entryGuide": "FAQ 條目由標準問、相似問、反例和多個答案組成，可在認知庫詳情中批次匯入、編輯。",
       "tagDesc": "為 FAQ 條目選擇標籤",
       "tagPlaceholder": "請選擇標籤",
       "standardQuestion": "標準問",
@@ -4493,35 +4493,35 @@ export default {
     },
     "document": {
       "title": "文件",
-      "subtitle": "支持點擊或拖曳上傳，多格式文件自動解析並智慧切塊，快速建構可檢索的知識庫"
+      "subtitle": "支持點擊或拖曳上傳，多格式文件自動解析並智慧切塊，快速建構可檢索的認知庫"
     },
     "messages": {
       "loadModelsFailed": "載入模型清單失敗",
-      "loadDataFailed": "載入知識庫資料失敗",
-      "notFound": "知識庫不存在",
-      "nameRequired": "請輸入知識庫名稱",
+      "loadDataFailed": "載入認知庫資料失敗",
+      "notFound": "認知庫不存在",
+      "nameRequired": "請輸入認知庫名稱",
       "summaryRequired": "請選擇 Summary 模型",
       "multimodalInvalid": "多模態設定驗證失敗",
       "graphIncomplete":
         "知識圖譜已啟用，請補全提取要求、標籤、節點與關係，或關閉「啟用實體關係提取」",
-      "createSuccess": "已建立知識庫",
-      "createFailed": "建立知識庫失敗",
-      "missingId": "缺少知識庫 ID",
+      "createSuccess": "已建立認知庫",
+      "createFailed": "建立認知庫失敗",
+      "missingId": "缺少認知庫 ID",
       "buildDataFailed": "資料建構失敗",
       "updateSuccess": "設定已儲存",
       "indexModeRequired": "請選擇 FAQ 的索引方式",
-      "storageChangeConfirm": "知識庫中已有檔案，更改存儲引擎後舊檔案可能無法正常存取。是否確認更改？"
+      "storageChangeConfirm": "認知庫中已有檔案，更改存儲引擎後舊檔案可能無法正常存取。是否確認更改？"
     },
     "share": {
-      "description": "將知識庫共享給空間，讓空間成員可以存取和使用",
+      "description": "將認知庫共享給空間，讓空間成員可以存取和使用",
       "hintTitle": "共享說明",
       "addShare": "共享",
       "unshareConfirm": "確定要取消對「{name}」的共享嗎？",
-      "tip1": "共享後，空間成員將根據設定的權限存取此知識庫",
-      "tip2": "可編輯權限允許成員修改知識庫內容，唯讀權限僅允許檢索和問答"
+      "tip1": "共享後，空間成員將根據設定的權限存取此認知庫",
+      "tip2": "可編輯權限允許成員修改認知庫內容，唯讀權限僅允許檢索和問答"
     },
     "buttons": {
-      "create": "建立知識庫",
+      "create": "建立認知庫",
       "save": "儲存設定",
       "saveAndClose": "儲存並關閉"
     },
@@ -4604,7 +4604,7 @@ export default {
       "tabDocumentsTip": "上傳和管理原始文件",
       "tabWikiTip": "由文件自動整理生成的 Wiki 頁面",
       "tabGalleryTip": "瀏覽從文件中解析出的全部圖片",
-      "viewTabs": "知識庫檢視",
+      "viewTabs": "認知庫檢視",
       "gallery": {
         "title": "畫廊",
         "allImages": "全部圖片",
@@ -4680,7 +4680,7 @@ export default {
         }
       },
       "tabGraph": "圖譜",
-      "tabGraphTip": "Wiki 頁面之間的引用關係圖（即頁面連結圖譜），與「知識庫設定 → 知識圖譜」中基於 LLM 抽取的實體-關係圖譜不是同一個概念",
+      "tabGraphTip": "Wiki 頁面之間的引用關係圖（即頁面連結圖譜），與「認知庫設定 → 知識圖譜」中基於 LLM 抽取的實體-關係圖譜不是同一個概念",
       "searchPlaceholder": "搜尋 Wiki 頁面...",
       "searchNoResults": "沒有找到比對的頁面",
       "viewModeToggle": "切換目錄檢視",
@@ -4729,7 +4729,7 @@ export default {
       "loadMoreShort": "載入更多",
       "indexOverviewTag": "分類目錄",
       "indexEmpty": "暫無 Wiki 頁面，請先上傳文件",
-      "graphNoData": "暫無圖譜資料，請先上傳文件（這裡展示的是 Wiki 頁面之間的連結關係，與「知識庫設定 → 知識圖譜」中的實體-關係圖譜不同）",
+      "graphNoData": "暫無圖譜資料，請先上傳文件（這裡展示的是 Wiki 頁面之間的連結關係，與「認知庫設定 → 知識圖譜」中的實體-關係圖譜不同）",
       "showArrows": "顯示箭頭",
       "hideArrows": "隱藏箭頭",
       "expandNeighbors": "展開鄰居",
@@ -4740,7 +4740,7 @@ export default {
       "cardOverviewTitle": "全庫概覽",
       "cardOverviewPrimary": "{returned} / {total} 個節點",
       "cardOverviewHintTruncated": "按兩下任意節點聚焦到該節點的子圖",
-      "cardOverviewHintFull": "已展示知識庫全部節點",
+      "cardOverviewHintFull": "已展示認知庫全部節點",
       "cardRelatedNodes": "{count} 個相關節點",
       "helpButtonTitle": "操作幫助",
       "helpTitle": "畫布操作",
@@ -4801,13 +4801,13 @@ export default {
       "description": "設定文件上傳後的處理管道，可以獨立開啟或關閉每種索引方式",
       "searchTitle": "RAG 檢索",
       "searchDesc": "對文件進行切塊、向量化和關鍵字索引，支持混合檢索",
-      "wikiTitle": "Wiki 知識庫",
+      "wikiTitle": "Wiki 認知庫",
       "wikiDesc": "自動生成互相關聯的 Wiki 知識頁面，建構結構化知識體系",
       "graphTitle": "知識圖譜",
       "graphDesc": "提取實體和關係，建構知識圖譜支持圖譜檢索",
       "atLeastOne": "至少需要開啟一種索引策略",
       "embeddingRequired": "RAG 檢索需要設定 Embedding 模型",
-      "lockedTip": "知識庫已有內容，索引策略暫不支持調整。如需變更，請先清空知識庫。",
+      "lockedTip": "認知庫已有內容，索引策略暫不支持調整。如需變更，請先清空認知庫。",
       "rebuildConfirmTitle": "重建索引",
       "rebuildConfirmBody": "索引策略已變更，是否對已有的 {count} 篇文件重新處理？這可能需要一些時間。",
       "rebuildSuccess": "已提交重建任務，共 {count} 篇文件",
@@ -4831,33 +4831,33 @@ export default {
       "granularityExhaustive": "詳盡",
       "granularityFocusedHint": "只抽取文件的主角（如履歷 → 人物和專案）。最乾淨，但可能漏掉次要實體。",
       "granularityStandardHint": "抽取主角 + 被詳細描述的次要實體/概念。跳過一帶而過的通用名詞。適合大多數情境。",
-      "granularityExhaustiveHint": "抽取所有可識別的命名實體與概念，包括一帶而過的技術棧。適合將知識庫當作術語表使用。"
+      "granularityExhaustiveHint": "抽取所有可識別的命名實體與概念，包括一帶而過的技術棧。適合將認知庫當作術語表使用。"
     },
     "basic": {
       "title": "基本資訊",
-      "description": "設定知識庫的名稱和描述資訊",
-      "kbId": "知識庫 ID",
-      "kbIdDesc": "API 集成時可使用此 ID 指定知識庫",
-      "typeLabel": "知識庫類型",
+      "description": "設定認知庫的名稱和描述資訊",
+      "kbId": "認知庫 ID",
+      "kbIdDesc": "API 集成時可使用此 ID 指定認知庫",
+      "typeLabel": "認知庫類型",
       "typeDocument": "文件",
       "typeFAQ": "問答",
       "typeDescription": "FAQ 類型適合結構化問答資料；文件型支持檔案解析與切塊；Wiki 類型由 LLM 自動建構互鏈知識頁面。",
-      "nameLabel": "知識庫名稱",
-      "namePlaceholder": "請輸入知識庫名稱",
-      "descriptionLabel": "知識庫描述",
-      "descriptionPlaceholder": "請輸入知識庫描述（可選）",
+      "nameLabel": "認知庫名稱",
+      "namePlaceholder": "請輸入認知庫名稱",
+      "descriptionLabel": "認知庫描述",
+      "descriptionPlaceholder": "請輸入認知庫描述（可選）",
       "profile": {
         "title": "AI 生成描述",
-        "hint": "由文件畫像聚合生成，不會覆蓋上方手寫描述；智慧代理會同時讀取兩者來判斷問題是否該在本知識庫中檢索。",
+        "hint": "由文件畫像聚合生成，不會覆蓋上方手寫描述；智慧代理會同時讀取兩者來判斷問題是否該在本認知庫中檢索。",
         "empty": "尚未生成。上傳文件並生成摘要後，點擊下方按鈕即可生成。",
-        "noDocuments": "知識庫中還沒有已解析完成的文件。",
+        "noDocuments": "認知庫中還沒有已解析完成的文件。",
         "questions": "典型問題",
         "generate": "生成 AI 描述",
         "regenerate": "重新生成",
-        "adopt": "用作知識庫描述",
+        "adopt": "用作認知庫描述",
         "generated": "AI 描述已生成",
         "generateFailed": "AI 描述生成失敗",
-        "adopted": "已填入知識庫描述，儲存後生效",
+        "adopted": "已填入認知庫描述，儲存後生效",
         "failed": "上次生成失敗：{error}",
         "generatedAt": "生成於 {time} · 基於 {count} 篇文件"
       }
@@ -4890,7 +4890,7 @@ export default {
     },
     "activity": {
       "title": "活動記錄",
-      "description": "查看這個知識庫的重要變更與後台任務入口，記錄預設遵循稽核日誌保留策略。",
+      "description": "查看這個認知庫的重要變更與後台任務入口，記錄預設遵循稽核日誌保留策略。",
       "allOutcomes": "全部結果",
       "allActions": "全部操作",
       "refresh": "重新整理",
@@ -4904,7 +4904,7 @@ export default {
       "systemActor": "系統觸發",
       "actorWithAPIKey": "{actor} · API Key · {name}",
       "actorAPIKey": "API Key · {name}",
-      "knowledgeBase": "知識庫",
+      "knowledgeBase": "認知庫",
       "countItems": "共 {count} 項",
       "titleWithCount": "{title} 等 {count} 項",
       "importSummary": "成功 {success} / 失敗 {failed} / 跳過 {skipped}",
@@ -4936,10 +4936,10 @@ export default {
         "denied": "已拒絕"
       },
       "actions": {
-        "kb.created": "建立知識庫",
-        "kb.updated": "更新知識庫",
-        "kb.deleted": "刪除知識庫",
-        "kb.duplicated": "複製知識庫",
+        "kb.created": "建立認知庫",
+        "kb.updated": "更新認知庫",
+        "kb.deleted": "刪除認知庫",
+        "kb.duplicated": "複製認知庫",
         "kb.clone_started": "開始克隆",
         "kb.clone_completed": "完成克隆",
         "kb.clone_failed": "克隆失敗",
@@ -4975,8 +4975,8 @@ export default {
         "task_id": "任務 ID",
         "trigger": "觸發方式",
         "processing_status": "處理狀態",
-        "source_kb_id": "來源知識庫 ID",
-        "target_kb_id": "目標知識庫 ID",
+        "source_kb_id": "來源認知庫 ID",
+        "target_kb_id": "目標認知庫 ID",
         "sync_log_id": "同步記錄 ID",
         "mode": "執行模式",
         "attempt": "處理批次",
@@ -4988,7 +4988,7 @@ export default {
         "failure_stage": "失敗階段"
       },
       "targets": {
-        "knowledge_base": "知識庫",
+        "knowledge_base": "認知庫",
         "knowledge": "知識",
         "faq_entry": "FAQ 條目",
         "knowledge_tag": "標籤",
@@ -5053,8 +5053,8 @@ export default {
     "welcomePlaceholder": "你好，有什麼可以幫您？",
     "welcomeMessageDesc": "訪客打開內嵌聊天後、尚未發言時展示；留空則不顯示",
     "showSuggestedQuestions": "推薦問題",
-    "showSuggestedQuestionsDesc": "訪客未發言前展示快捷提問，內容來自智慧代理設定與關聯知識庫",
-    "originsHint": "填寫允許內嵌的宿主網站來源（A），不是 WeKnora 地址（B）。每行一個完整 Origin，如 https://shop.example.com；至少一項，支持 *.example.com 子域通配",
+    "showSuggestedQuestionsDesc": "訪客未發言前展示快捷提問，內容來自智慧代理設定與關聯認知庫",
+    "originsHint": "填寫允許內嵌的宿主網站來源（A），不是 ThinkerFlow 地址（B）。每行一個完整 Origin，如 https://shop.example.com；至少一項，支持 *.example.com 子域通配",
     "originsRequired": "請至少填寫一個域名白名單",
     "originsInvalid": "域名格式無效：{origin}",
     "originsWildcardProd": "生產環境不允許使用萬用字元 *",
@@ -5113,7 +5113,7 @@ export default {
     "allowFileUploadDesc": "開啟後，訪客可上傳圖片與文件附件。僅當綁定的智慧代理已啟用圖片上傳時才會生效。",
     "webhookUrl": "Webhook 地址",
     "webhookUrlPlaceholder": "https://your-server.example.com/weknora/embed-events",
-    "webhookUrlDesc": "可選。訪客發訊息與助手回覆完成時，WeKnora 會向該 HTTPS 地址 POST 事件（message_sent / message_received）。",
+    "webhookUrlDesc": "可選。訪客發訊息與助手回覆完成時，ThinkerFlow 會向該 HTTPS 地址 POST 事件（message_sent / message_received）。",
     "webhookSecret": "Webhook 簽章金鑰",
     "webhookSecretPlaceholder": "用於 HMAC-SHA256 簽章（X-WeKnora-Signature）",
     "webhookSecretKeep": "留空表示不修改已儲存的金鑰",
@@ -5148,10 +5148,10 @@ export default {
     "defaultLocaleBrowser": "跟隨瀏覽器 / 宿主"
   },
   "knowledgeList": {
-    "create": "新建知識庫",
-    "subtitle": "管理和組織您的知識庫，支持文件型和問答型知識庫",
+    "create": "新建認知庫",
+    "subtitle": "管理和組織您的認知庫，支持文件型和問答型認知庫",
     "sharedToOrgs": "已共享給 {count} 個空間",
-    "uninitializedBanner": "部分知識庫尚未初始化，需要先在設定中設定模型資訊才能新增知識文件",
+    "uninitializedBanner": "部分認知庫尚未初始化，需要先在設定中設定模型資訊才能新增知識文件",
     "features": {
       "knowledgeGraph": "知識圖譜",
       "multimodal": "多模態",
@@ -5159,25 +5159,25 @@ export default {
       "wiki": "Wiki"
     },
     "detail": {
-      "title": "共享知識庫",
+      "title": "共享認知庫",
       "sourceType": "來源方式",
-      "sourceTypeKbShare": "知識庫直接共享到本空間",
+      "sourceTypeKbShare": "認知庫直接共享到本空間",
       "sourceTypeAgent": "智慧代理可存取（透過共享智慧代理可見）",
       "sourceOrg": "來源空間",
       "sourceFromAgent": "智慧代理",
-      "agentKbStrategy": "智慧代理知識庫策略",
-      "agentKbStrategyAll": "全部知識庫",
-      "agentKbStrategySelected": "指定知識庫",
-      "agentKbStrategyNone": "不使用知識庫",
+      "agentKbStrategy": "智慧代理認知庫策略",
+      "agentKbStrategyAll": "全部認知庫",
+      "agentKbStrategySelected": "指定認知庫",
+      "agentKbStrategyNone": "不使用認知庫",
       "sharedAt": "共享時間",
       "myPermission": "我的權限",
-      "goToKb": "進入知識庫"
+      "goToKb": "進入認知庫"
     },
     "messages": {
       "deleted": "已刪除",
       "deleteFailed": "刪除失敗",
-      "duplicateSuccess": "知識庫副本已建立（不包含知識內容）",
-      "duplicateFailed": "建立知識庫副本失敗"
+      "duplicateSuccess": "認知庫副本已建立（不包含知識內容）",
+      "duplicateFailed": "建立認知庫副本失敗"
     },
     "sections": {
       "pinned": "置頂",
@@ -5201,22 +5201,22 @@ export default {
     },
     "delete": {
       "confirmTitle": "刪除確認",
-      "confirmMessage": "確認要刪除知識庫\"{name}\"？刪除後不可復原",
+      "confirmMessage": "確認要刪除認知庫\"{name}\"？刪除後不可復原",
       "confirmButton": "刪除"
     },
     "empty": {
-      "title": "暫無知識庫",
-      "description": "點擊左側快捷操作\"新建知識庫\"按鈕建立第一個知識庫",
-      "sharedTitle": "暫無共享知識庫",
-      "sharedDescription": "您可以加入共享空間或請求他人共享知識庫給您",
+      "title": "暫無認知庫",
+      "description": "點擊左側快捷操作\"新建認知庫\"按鈕建立第一個認知庫",
+      "sharedTitle": "暫無共享認知庫",
+      "sharedDescription": "您可以加入共享空間或請求他人共享認知庫給您",
       "favoritesTitle": "暫無收藏",
-      "favoritesDescription": "在知識庫卡片右上角點擊星標即可收藏",
+      "favoritesDescription": "在認知庫卡片右上角點擊星標即可收藏",
       "recentsTitle": "暫無最近存取",
-      "recentsDescription": "最近打開過的知識庫會出現在這裡"
+      "recentsDescription": "最近打開過的認知庫會出現在這裡"
     }
   },
   "createChat": {
-    "title": "Hi，我是 WeKnora，讓你的知識觸手可及",
+    "title": "Hi，我是 ThinkerFlow，讓你的知識觸手可及",
     "newSessionTitle": "新會話",
     "openProject": "選擇專案",
     "clearProject": "取消綁定",
@@ -5231,7 +5231,7 @@ export default {
     "placeholder": "輸入問題或描述任務…",
     "agentMode": "智慧推論",
     "normalMode": "快速問答",
-    "normalModeDesc": "基於知識庫的 RAG 問答",
+    "normalModeDesc": "基於認知庫的 RAG 問答",
     "agentModeDesc": "多步思考，深度分析",
     "agentMissingAllowedTools": "允許的工具",
     "agentMissingSummaryModel": "對話模型",
@@ -5241,8 +5241,8 @@ export default {
     "goToAgentEditor": "前往設定 →",
     "agentNotReadyDetail": "智慧代理「{agentName}」未就緒，需要設定以下內容：{reasons}",
     "sharedAgentNotReadyDetail": "共享智慧代理「{agentName}」尚未就緒（缺少：{reasons}），請聯絡分享方管理員完成設定。",
-    "knowledgeBase": "知識庫",
-    "knowledgeBaseWithCount": "知識庫({count})",
+    "knowledgeBase": "認知庫",
+    "knowledgeBaseWithCount": "認知庫({count})",
     "notConfigured": "未設定",
     "sharedAgentModelLabel": "共享智慧代理設定的模型",
     "noModel": "暫無可用模型",
@@ -5256,8 +5256,8 @@ export default {
     "steerQueueWaiting": "當前回答結束後傳送",
     "steerQueueInjecting": "等待接收補充",
     "webSearchDisabledByAgent": "當前智慧代理已停用網路搜尋",
-    "kbLockedByAgent": "當前智慧代理已鎖定知識庫設定",
-    "kbDisabledByAgent": "當前智慧代理已停用知識庫功能",
+    "kbLockedByAgent": "當前智慧代理已鎖定認知庫設定",
+    "kbDisabledByAgent": "當前智慧代理已停用認知庫功能",
     "modelLockedByAgent": "當前智慧代理已鎖定模型設定",
     "imageUploadDisabledByAgent": "當前智慧代理未啟用圖片上傳",
     "goToAgentSettings": "去設定智慧代理",
@@ -5291,7 +5291,7 @@ export default {
   },
   "manualEditor": {
     "defaultTitlePrefix": "新建文件",
-    "noDocumentKnowledgeBases": "暫無可用的文件型知識庫，請先建立一個文件型知識庫",
+    "noDocumentKnowledgeBases": "暫無可用的文件型認知庫，請先建立一個文件型認知庫",
     "actions": {
       "cancel": "取消",
       "saveDraft": "暫存草稿",
@@ -5308,9 +5308,9 @@ export default {
       "counter": "{chars} 字 · {lines} 行"
     },
     "form": {
-      "knowledgeBasePlaceholder": "請選擇知識庫",
+      "knowledgeBasePlaceholder": "請選擇認知庫",
       "titleLabel": "知識標題",
-      "knowledgeBaseLabel": "目標知識庫",
+      "knowledgeBaseLabel": "目標認知庫",
       "titlePlaceholder": "請輸入標題",
       "contentPlaceholder": "支持 Markdown 語法，可使用 # 標題、清單、程式碼塊等"
     },
@@ -5319,7 +5319,7 @@ export default {
       "published": "知識已發布並開始索引"
     },
     "warning": {
-      "selectKnowledgeBase": "請選擇目標知識庫",
+      "selectKnowledgeBase": "請選擇目標認知庫",
       "enterTitle": "請輸入知識標題",
       "enterContent": "請輸入知識內容",
       "contentTooShort": "內容過短，建議補充更多資訊後再發布"
@@ -5329,7 +5329,7 @@ export default {
       "saveFailed": "儲存失敗，請稍後重試"
     },
     "labels": {
-      "currentKnowledgeBase": "當前知識庫"
+      "currentKnowledgeBase": "當前認知庫"
     },
     "section": {
       "content": "知識內容"
@@ -5396,17 +5396,17 @@ export default {
     "upload": "上傳檔案"
   },
   "mentionDetail": {
-    "readOnlyFromAgent": "僅在此對話中唯讀，不顯示在知識庫清單中",
+    "readOnlyFromAgent": "僅在此對話中唯讀，不顯示在認知庫清單中",
     "faqCount": "共 {count} 條問答",
     "kbCount": "共 {count} 個文件",
     "mcpToolCount": "共 {count} 個工具",
     "mcpNotSynced": "尚未同步工具",
     "mcpStale": "需重新同步",
-    "belongsToKb": "所屬知識庫：",
+    "belongsToKb": "所屬認知庫：",
     "belongsToOrg": "所屬空間：",
-    "noCompatibleKbForAgent": "當前智慧代理的工具與作用域內知識庫的能力不比對，暫無可引用的知識庫。",
+    "noCompatibleKbForAgent": "當前智慧代理的工具與作用域內認知庫的能力不比對，暫無可引用的認知庫。",
     "tag": "標籤",
-    "searchPlaceholder": "搜尋知識庫、檔案、技能等",
+    "searchPlaceholder": "搜尋認知庫、檔案、技能等",
     "searchInGroup": "在{group}中搜尋…",
     "typeToSearch": "在 {'@'} 後繼續輸入以搜尋…",
     "viewAll": "檢視全部",
@@ -5468,7 +5468,7 @@ export default {
     "operationFailed": "操作失敗",
     "file": "檔案",
     "skill": "技能",
-    "knowledgeBase": "知識庫",
+    "knowledgeBase": "認知庫",
     "noResult": "無結果",
     "remove": "移除",
     "avatar": "頭像",
@@ -5482,8 +5482,8 @@ export default {
     "errors": {
       "parseUserFailed": "解析使用者資訊失敗",
       "parseTenantFailed": "解析空間資訊失敗",
-      "parseKnowledgeBasesFailed": "解析知識庫清單失敗",
-      "parseCurrentKnowledgeBaseFailed": "解析當前知識庫失敗"
+      "parseKnowledgeBasesFailed": "解析認知庫清單失敗",
+      "parseCurrentKnowledgeBaseFailed": "解析當前認知庫失敗"
     }
   },
   "auth": {
@@ -5507,11 +5507,11 @@ export default {
     "haveAccount": "已有帳戶？",
     "backToLogin": "返回登入",
     "loginHint": "登入以繼續使用；首次使用請在下方建立帳戶。",
-    "firstTime": "首次使用 WeKnora？",
+    "firstTime": "首次使用 ThinkerFlow？",
     "registerSuccess": "註冊成功，請登入",
     "registerFailed": "註冊失敗",
     "subtitle": "面向 AI 原生軟體工程的智能研發運行系統",
-    "registerSubtitle": "建立帳戶並開始使用 WeKnora",
+    "registerSubtitle": "建立帳戶並開始使用 ThinkerFlow",
     "emailPlaceholder": "輸入電子信箱地址",
     "passwordPlaceholder": "輸入密碼",
     "confirmPasswordPlaceholder": "再次輸入密碼",
@@ -5584,7 +5584,7 @@ export default {
   },
   "graphSettings": {
     "title": "知識圖譜設定",
-    "description": "設定實體-關係提取功能，自動從文字中抽取實體和關係建構知識圖譜（注意：這與 Wiki 知識庫中的「頁面連結圖譜」是兩回事──前者是基於 LLM 的實體-關係圖，後者是 Wiki 頁面之間的引用關係圖）",
+    "description": "設定實體-關係提取功能，自動從文字中抽取實體和關係建構知識圖譜（注意：這與 Wiki 認知庫中的「頁面連結圖譜」是兩回事──前者是基於 LLM 的實體-關係圖，後者是 Wiki 頁面之間的引用關係圖）",
     "enableLabel": "啟用實體關係提取",
     "enableDescription": "開啟後將自動從文字中提取實體和關係",
     "tagsLabel": "關係類型",
@@ -5634,7 +5634,7 @@ export default {
   },
   "retrievalSettings": {
     "title": "搜尋設定",
-    "description": "設定知識庫搜尋和訊息搜尋的全局檢索參數",
+    "description": "設定認知庫搜尋和訊息搜尋的全局檢索參數",
     "embeddingTopKLabel": "向量檢索數量 (Top K)",
     "vectorThresholdLabel": "向量相似度閾值",
     "keywordThresholdLabel": "關鍵字比對閾值",
@@ -5718,7 +5718,7 @@ export default {
     "documentsHits": "已引用 {hits} 次",
     "untitledDocument": "未命名文件",
     "openDocument": "打開文件",
-    "openDocumentUnavailable": "無法打開：缺少知識庫資訊",
+    "openDocumentUnavailable": "無法打開：缺少認知庫資訊",
     "stopTrackingDocument": "停止跟蹤",
     "stopTrackingDocumentConfirm": "停止用這份文件做個性化檢索？之後再被引用兩次會重新出現。",
     "stopTrackingDocumentSuccess": "已停止跟蹤這份資料",
@@ -5793,7 +5793,7 @@ export default {
     "title": "沙箱金鑰",
     "host": {
       "title": "環境變數",
-      "description": "給本機技能用的個人金鑰，不是 WeKnora 的系統或部署設定。",
+      "description": "給本機技能用的個人金鑰，不是 ThinkerFlow 的系統或部署設定。",
       "helpAria": "環境變數說明",
       "introRuntimeBody": "技能在這台電腦上運行時才會注入；對話裡也可以當場提供。儲存後不再顯示明文。",
       "loadFailed": "環境變數載入失敗。",
@@ -5802,7 +5802,7 @@ export default {
       "nameInvalid": "這個名字不能用。保留名（例如 PATH，或以 WEKNORA_ 開頭的名字）不接受。",
       "deleteConfirm": "刪除 {name}？之後在這台電腦上運行的東西都不會再帶上它。"
     },
-    "description": "給技能和沙箱用的個人金鑰，不是 WeKnora 的系統或部署設定。",
+    "description": "給技能和沙箱用的個人金鑰，不是 ThinkerFlow 的系統或部署設定。",
     "helpAria": "沙箱金鑰說明",
     "introRuntimeTitle": "用的時候才帶上",
     "introRuntimeBody": "技能運行或在沙箱裡執行命令時才會注入；對話裡也可以當場提供。儲存後不再顯示明文。",
@@ -5880,9 +5880,9 @@ export default {
     "vectorRecallLabel": "按語義召回記憶",
     "vectorRecallDescription": "除了字面比對，再按含義比對。使用者換個說法之後，原來那條記憶仍然能被找到──而多數記憶遲早會被換說法。每輪問答多一次向量呼叫，超時會自動退回字面比對。",
     "embeddingModelLabel": "記憶 Embedding 模型",
-    "embeddingModelDescription": "語義召回只使用這一個模型，與各知識庫綁定的 Embedding 無關。不選則只按字面比對。換模型後，新寫入立刻用新模型；舊記憶在補上新向量之前，語義召回找不到它們，只靠字面比對。",
+    "embeddingModelDescription": "語義召回只使用這一個模型，與各認知庫綁定的 Embedding 無關。不選則只按字面比對。換模型後，新寫入立刻用新模型；舊記憶在補上新向量之前，語義召回找不到它們，只靠字面比對。",
     "conditioningLabel": "讓記憶參與檢索",
-    "conditioningDescription": "開啟後，記憶會參與查詢改寫和文件排序，而不只是附加到回答提示裡。這是記憶在知識庫產品裡真正起作用的地方。",
+    "conditioningDescription": "開啟後，記憶會參與查詢改寫和文件排序，而不只是附加到回答提示裡。這是記憶在認知庫產品裡真正起作用的地方。",
     "interestThresholdLabel": "成為長期追蹤的次數",
     "interestThresholdDescription": "同一個主題被問到這麼多次後，才會作為長期關註記下來。設為 1 會把每個免洗問題都記下來，通常太吵。",
     "instructionsLabel": "自定義挖掘規則",
@@ -5898,9 +5898,9 @@ export default {
   },
   "chatHistorySettings": {
     "title": "訊息管理",
-    "description": "設定聊天歷史知識庫，將對話訊息自動向量化索引，實現語義搜尋",
+    "description": "設定聊天歷史認知庫，將對話訊息自動向量化索引，實現語義搜尋",
     "enableLabel": "啟用訊息索引",
-    "enableDescription": "開啟後，新的對話訊息將自動索引到知識庫，支持向量搜尋",
+    "enableDescription": "開啟後，新的對話訊息將自動索引到認知庫，支持向量搜尋",
     "embeddingModelLabel": "Embedding 模型",
     "embeddingModelDescription": "選擇用於訊息向量化的 Embedding 模型",
     "embeddingModelLocked": "已有訊息被索引，Embedding 模型不可修改（修改需清空索引資料）",
@@ -5918,7 +5918,7 @@ export default {
   },
   "vectorStoreSettings": {
     "title": "向量資料庫引擎",
-    "description": "註冊和管理用於知識庫搜尋的向量資料庫實例。",
+    "description": "註冊和管理用於認知庫搜尋的向量資料庫實例。",
     "basicSection": "基本資訊",
     "storesTitle": "向量資料庫",
     "addStore": "新增資料庫",
@@ -5953,7 +5953,7 @@ export default {
   },
   "webSearchSettings": {
     "title": "網路搜尋設定",
-    "description": "設定網路搜尋功能，在回答問題時可以從網際網路獲取實時資訊補充知識庫內容",
+    "description": "設定網路搜尋功能，在回答問題時可以從網際網路獲取實時資訊補充認知庫內容",
     "basicSection": "基本資訊",
     "credentialsSection": "連結設定",
     "optionsSection": "選項",
@@ -6032,7 +6032,7 @@ export default {
       "dockerDisabledAlert": "當前部署未啟用 Docker 沙箱",
       "dockerDisabledHint": "本機 docker.sock 等同宿主機 root。僅私有化單機需要時，由系統管理員在「設定 → 系統設定 → 網路安全」中打開。",
       "dockerDisabledCard": "部署未啟用 Docker 沙箱，此設定不會再建立容器",
-      "dockerHostRisk": "留空或 unix:// 會使用 WeKnora 所在機器的 Docker 守護行程，權限等同該機 root，只適合私有化單機。多套空間共用同一主機時請改用 Cube 或 E2B。遠程 tcp:// 必須填寫 TLS 證書目錄。",
+      "dockerHostRisk": "留空或 unix:// 會使用 ThinkerFlow 所在機器的 Docker 守護行程，權限等同該機 root，只適合私有化單機。多套空間共用同一主機時請改用 Cube 或 E2B。遠程 tcp:// 必須填寫 TLS 證書目錄。",
       "addConfig": "新增沙箱",
       "viewClusterGuide": "叢集搭建指南",
       "configName": "設定名稱",
@@ -6124,11 +6124,11 @@ export default {
       "policySaveFailed": "更新沙箱執行策略失敗",
       "legacyConfig": "已廢棄",
       "namedBackendHint": "空間設定是唯一運行時來源；智慧代理沒有選擇設定時不會執行技能指令碼。",
-      "weknoraTemplateTitle": "WeKnora 標準模板",
-      "weknoraDockerImage": "WeKnora 標準映像",
+      "weknoraTemplateTitle": "ThinkerFlow 標準模板",
+      "weknoraDockerImage": "ThinkerFlow 標準映像",
       "weknoraDockerImageHint": "每次會話獨佔一個長駐容器，指令碼、shell 命令與檔案都在同一個容器內，會話結束或空閒超時後回收。",
-      "weknoraTemplateOverview": "WeKnora 負責提供標準運行環境。連結叢集後會自動發現模板，缺少標準模板時自動建立。",
-      "weknoraTemplateDescription": "包含 WeKnora 技能所需的 Python、Node.js、CLI 工具、工作目錄和非 root 執行使用者。",
+      "weknoraTemplateOverview": "ThinkerFlow 負責提供標準運行環境。連結叢集後會自動發現模板，缺少標準模板時自動建立。",
+      "weknoraTemplateDescription": "包含 ThinkerFlow 技能所需的 Python、Node.js、CLI 工具、工作目錄和非 root 執行使用者。",
       "recommendedTag": "推薦",
       "templateNotConfigured": "未設定模板",
       "cardTemplateConfigured": "模板已設定",
@@ -6145,7 +6145,7 @@ export default {
       "templateSelectPlaceholder": "先連結叢集並載入模板",
       "templateLoadHint": "填寫叢集連結後重新整理模板。沒有官方標準模板時，會從 Docker Hub 映像自動建構。桌面模板體積更大，需在下方單獨點「建立」。改 DNS 或映像後在對應卡片上點「重建」。",
       "templateLoadFailed": "模板清單載入失敗",
-      "standardTemplateProvisioning": "已開始在叢集中建立 WeKnora 標準模板，請稍後重新整理查看狀態",
+      "standardTemplateProvisioning": "已開始在叢集中建立 ThinkerFlow 標準模板，請稍後重新整理查看狀態",
       "standardTemplateReplaced": "已刪除原標準模板並開始重建，請等待狀態就緒",
       "templateNotReady": "所選模板尚未建構完成，請重新整理並等待狀態就緒",
       "connectionPassed": "連結驗證透過，以下模板均從當前叢集實時載入。",
@@ -6153,14 +6153,14 @@ export default {
       "templateStepHint": "進入此步會列出叢集模板；若還沒有官方標準模板，會從 Docker Hub 映像自動建構。桌面模板（XFCE）體積較大，需單獨點「建立」。改 DNS 或映像後在對應卡片上點「重建」。選好並就緒後才能繼續。",
       "loadingTemplates": "正在從叢集載入模板…",
       "templateBuildingHint": "模板正在建構，清單會自動重新整理。",
-      "templateUntaggedHint": "建構已完成，但沒有建構帶 default 標籤，建立沙箱時無法解析。請在 E2B 刪除該模板，重新整理後 WeKnora 會重新建構。",
+      "templateUntaggedHint": "建構已完成，但沒有建構帶 default 標籤，建立沙箱時無法解析。請在 E2B 刪除該模板，重新整理後 ThinkerFlow 會重新建構。",
       "templateFailedReason": "建構失敗：{reason}",
       "noTemplates": "當前叢集未返回可用模板。",
-      "weknoraStandardTemplate": "WeKnora 標準模板",
+      "weknoraStandardTemplate": "ThinkerFlow 標準模板",
       "createStandardTemplate": "建立",
       "createStandardTemplateHint": "按當前連結設定建構，包含 DNS。之後改設定可在卡片上重建。",
       "replaceStandardTemplate": "重建",
-      "replaceStandardTemplateConfirm": "將用當前設定（含 DNS）重建 WeKnora 標準模板。新模板就緒前不會刪除仍可啟動的舊模板。",
+      "replaceStandardTemplateConfirm": "將用當前設定（含 DNS）重建 ThinkerFlow 標準模板。新模板就緒前不會刪除仍可啟動的舊模板。",
       "templateLockedBySkills": "該沙箱已安裝 Skill，技能環境綁在當前快照上，不能更換或重建運行模板。請新建一份沙箱，從新模板再裝 Skill。",
       "templateLockedByInFlight": "該沙箱正在安裝或移除 Skill，完成前不能更換或重建運行模板。",
       "templateUnnamed": "未命名模板",
@@ -6190,7 +6190,7 @@ export default {
       "cubeApiKeyOptional": "可留空 ── 自建 CubeSandbox 通常無鑑權",
       "cubeApiKeyWhere": "自建叢集如何開啟鑑權",
       "cubeDnsServers": "DNS 伺服器",
-      "cubeDnsServersHelp": "可選。寫入 WeKnora 標準模板的 nameserver（須為 IP）。留空則使用叢集預設（常見 119.29.29.29）。私網或雲上 UDP 53 出不去時，填 Cube 宿主機 /etc/resolv.conf 裡能用的地址，並避開 10/8、172.16/12、192.168/16。已有標準模板需在模板卡片上點「重建」才會生效。",
+      "cubeDnsServersHelp": "可選。寫入 ThinkerFlow 標準模板的 nameserver（須為 IP）。留空則使用叢集預設（常見 119.29.29.29）。私網或雲上 UDP 53 出不去時，填 Cube 宿主機 /etc/resolv.conf 裡能用的地址，並避開 10/8、172.16/12、192.168/16。已有標準模板需在模板卡片上點「重建」才會生效。",
       "cubeDnsServersPlaceholder": "例如 8.8.8.8，Enter新增",
       "e2bApiKeyHelp": "在 E2B 控制台的 API Keys 頁面建立，通常以 e2b_ 開頭。",
       "e2bApiKeyWhere": "前往 E2B 控制台獲取 API Key",
@@ -6220,9 +6220,9 @@ export default {
       "dockerHost": "Docker 守護行程地址",
       "dockerHostHelp": "留空跟隨本機 docker CLI（DOCKER_HOST 或當前 docker context），不必手填 /var/run/docker.sock。遠程守護行程填 tcp://host:2376，必須同時填寫 TLS 證書目錄，私網地址還要開啟「允許存取私網地址」。",
       "dockerTlsCertPath": "TLS 證書目錄",
-      "dockerTlsCertPathHelp": "WeKnora 所在主機上包含 ca.pem、cert.pem、key.pem 的目錄。遠程守護行程必填，證書不入庫，由部署方掛載。",
+      "dockerTlsCertPathHelp": "ThinkerFlow 所在主機上包含 ca.pem、cert.pem、key.pem 的目錄。遠程守護行程必填，證書不入庫，由部署方掛載。",
       "dockerIdleTtl": "空閒回收（秒）",
-      "dockerIdleTtlHelp": "Docker 守護行程本身沒有空閒超時。容器多久沒有執行任何命令就會被 WeKnora 回收，會話繼續時重建。留空按 1800 秒。",
+      "dockerIdleTtlHelp": "Docker 守護行程本身沒有空閒超時。容器多久沒有執行任何命令就會被 ThinkerFlow 回收，會話繼續時重建。留空按 1800 秒。",
       "dockerCpuLimit": "CPU 核數上限",
       "dockerCpuLimitHelp": "單個沙箱可用的 CPU 核數，0 使用內建預設。",
       "dockerMemoryLimit": "記憶體上限（MB）",
@@ -6497,7 +6497,7 @@ export default {
     "system": "系統設定",
     "storage": {
       "title": "存儲引擎",
-      "description": "設定文件與圖片的存儲方式。此處設定各引擎參數，知識庫中僅選擇使用哪個引擎。",
+      "description": "設定文件與圖片的存儲方式。此處設定各引擎參數，認知庫中僅選擇使用哪個引擎。",
       "basicSection": "基本設定",
       "modeSection": "部署模式",
       "credentialsSection": "憑證",
@@ -6506,7 +6506,7 @@ export default {
       "loading": "載入中...",
       "retry": "重試",
       "defaultEngine": "預設引擎",
-      "defaultEngineDesc": "新建知識庫時預設選用的存儲引擎",
+      "defaultEngineDesc": "新建認知庫時預設選用的存儲引擎",
       "engineLocal": "Local（本地）",
       "engineCos": "騰訊雲 COS",
       "engineTos": "火山引擎 TOS",
@@ -6692,7 +6692,7 @@ export default {
       "saveHint": "儲存後將驗證服務可達性並加密存儲憑證",
       "saveBtn": "儲存憑證",
       "usageTitle": "使用說明",
-      "usageSteps": "1. 填寫並儲存 APPID / APPSECRET\n2. 在下方「雲模型接入」中按行新增 chat、embedding、rerank、vlm\n3. 文件解析：知識庫設定 → 解析引擎，選擇 WeKnora Cloud 引擎",
+      "usageSteps": "1. 填寫並儲存 APPID / APPSECRET\n2. 在下方「雲模型接入」中按行新增 chat、embedding、rerank、vlm\n3. 文件解析：認知庫設定 → 解析引擎，選擇 WeKnora Cloud 引擎",
       "fillRequired": "請填寫 APPID 和 APPSECRET",
       "saveSuccess": "憑證已儲存",
       "saveFailed": "憑證儲存失敗",
@@ -6751,7 +6751,7 @@ export default {
     "taskLabel": "任務:",
     "think": "思考",
     "copy": "複製",
-    "addToKnowledgeBase": "新增到知識庫",
+    "addToKnowledgeBase": "新增到認知庫",
     "artifactDrawer": {
       "buttonTitle": "查看本次生成的檔案",
       "title": "生成的檔案",
@@ -6834,8 +6834,8 @@ export default {
       "modelConfigDesc": "設定對話模型、ReRank 等輔助模型及生成參數",
       "toolsConfig": "工具設定",
       "toolsConfigDesc": "設定 Agent 可以使用的工具",
-      "knowledgeConfig": "知識庫",
-      "knowledgeConfigDesc": "設定智慧代理可存取的知識庫範圍與 FAQ 策略",
+      "knowledgeConfig": "認知庫",
+      "knowledgeConfigDesc": "設定智慧代理可存取的認知庫範圍與 FAQ 策略",
       "webSearchConfig": "網路搜尋",
       "webSearchConfigDesc": "設定智慧代理的網路搜尋能力",
       "agentId": "智慧代理 ID",
@@ -6859,7 +6859,7 @@ export default {
       "temperature": "溫度",
       "thinking": "思考模式",
       "citationEnabled": "輸出來源引用",
-      "citationEnabledDesc": "在最終回答中展示知識庫和網頁來源；關閉後仍會正常檢索和使用證據",
+      "citationEnabledDesc": "在最終回答中展示認知庫和網頁來源；關閉後仍會正常檢索和使用證據",
       "mode": "運行模式",
       "webSearch": "網路搜尋",
       "webSearchProvider": "搜尋引擎",
@@ -6867,20 +6867,20 @@ export default {
       "webSearchMaxResults": "最大搜尋結果數",
       "webFetchEnabled": "自動抓取頁面內容",
       "webFetchTopN": "抓取頁面數",
-      "knowledgeBases": "關聯知識庫",
-      "allKnowledgeBases": "全部知識庫",
-      "selectedKnowledgeBases": "指定知識庫",
-      "noKnowledgeBase": "不使用知識庫",
-      "selectKnowledgeBases": "選擇知識庫",
-      "selectKnowledgeBasesDesc": "選擇要關聯的知識庫（包括協作知識庫）",
-      "myKnowledgeBases": "我的知識庫",
-      "sharedKnowledgeBases": "協作知識庫",
+      "knowledgeBases": "關聯認知庫",
+      "allKnowledgeBases": "全部認知庫",
+      "selectedKnowledgeBases": "指定認知庫",
+      "noKnowledgeBase": "不使用認知庫",
+      "selectKnowledgeBases": "選擇認知庫",
+      "selectKnowledgeBasesDesc": "選擇要關聯的認知庫（包括協作認知庫）",
+      "myKnowledgeBases": "我的認知庫",
+      "sharedKnowledgeBases": "協作認知庫",
       "retrieveKBOnlyWhenMentioned": "僅在 {'@'} 提及時檢索",
-      "retrieveKBOnlyWhenMentionedDesc": "關閉：自動檢索已設定的知識庫，開啟：僅當使用者 {'@'} 提及時才檢索",
+      "retrieveKBOnlyWhenMentionedDesc": "關閉：自動檢索已設定的認知庫，開啟：僅當使用者 {'@'} 提及時才檢索",
       "rerankModel": "ReRank 模型",
-      "rerankModelDesc": "用於對知識庫檢索結果進行重排序，提高回答準確性",
+      "rerankModelDesc": "用於對認知庫檢索結果進行重排序，提高回答準確性",
       "rerankModelPlaceholder": "請選擇 ReRank 模型",
-      "rerankModelOptionalHint": "智能體作用域內無 RAG 知識庫時，可不填；後續若加入 RAG 知識庫，將自動使用已配置的重排模型。",
+      "rerankModelOptionalHint": "智能體作用域內無 RAG 認知庫時，可不填；後續若加入 RAG 認知庫，將自動使用已配置的重排模型。",
       "maxIterations": "最大疊代次數",
       "maxIterationsLimit": "限制",
       "maxIterationsUnlimited": "不限制",
@@ -6970,15 +6970,15 @@ export default {
     },
     "shareScope": {
       "title": "共享範圍說明",
-      "desc": "空間成員以唯讀方式使用該智慧代理，將遵循您當前設定的能力與資源；您對智慧代理的修改會同步給已共享的空間。如需允許空間成員編輯知識庫內容，請將知識庫共享到空間。",
+      "desc": "空間成員以唯讀方式使用該智慧代理，將遵循您當前設定的能力與資源；您對智慧代理的修改會同步給已共享的空間。如需允許空間成員編輯認知庫內容，請將認知庫共享到空間。",
       "skillSecretsWarning": "該智慧代理啟用了技能：空間成員使用時，技能會在本空間的沙箱中運行，並帶上管理員為技能設定的環境變數（如 API Key），成員可以讓智慧代理讀出這些值。請在可以接受這一點時再共享。",
-      "knowledgeBase": "知識庫",
+      "knowledgeBase": "認知庫",
       "chatModel": "對話模型",
       "rerankModel": "重排模型",
       "webSearch": "網路搜尋",
       "mcp": "MCP 服務",
-      "kbAll": "全部知識庫",
-      "kbSelected": "指定 {count} 個知識庫",
+      "kbAll": "全部認知庫",
+      "kbSelected": "指定 {count} 個認知庫",
       "kbNone": "不使用",
       "modelConfigured": "已設定",
       "modelNotSet": "未設定",
@@ -7016,7 +7016,7 @@ export default {
     },
     "features": {
       "webSearch": "支持網路搜尋",
-      "knowledgeBase": "關聯知識庫",
+      "knowledgeBase": "關聯認知庫",
       "mcp": "支持MCP服務",
       "multiTurn": "多輪對話"
     },
@@ -7029,8 +7029,8 @@ export default {
       "agent": "智慧推論"
     },
     "capabilities": {
-      "kbCount": "指定 {count} 個知識庫",
-      "kbAll": "可存取全部知識庫",
+      "kbCount": "指定 {count} 個認知庫",
+      "kbAll": "可存取全部認知庫",
       "mcpEnabled": "啟用 MCP 服務",
       "multiTurn": "多輪對話"
     }
@@ -7143,16 +7143,16 @@ export default {
     },
     "processConfig": {
       "title": "本次解析設定",
-      "kbDefault": "使用知識庫預設設定",
+      "kbDefault": "使用認知庫預設設定",
       "graph": "知識圖譜"
     }
   },
   "uploadConfirm": {
     "imageEmbeddingModel": "圖像索引 Embedding 模型",
-    "imageIndexInherited": "圖像索引使用知識庫綁定的 Embedding 模型；如需更換，請前往知識庫設定。",
+    "imageIndexInherited": "圖像索引使用認知庫綁定的 Embedding 模型；如需更換，請前往認知庫設定。",
     "imageVectorIndex": "本次圖片向量索引",
-    "imageVectorIndexHint": "為本次上傳或重新解析的圖片產生向量，不改變知識庫預設設定。是否參與檢索仍由知識庫的「圖片向量檢索」開關決定。",
-    "imageVectorRequiresIndex": "請先在知識庫設定中開啟向量索引。",
+    "imageVectorIndexHint": "為本次上傳或重新解析的圖片產生向量，不改變認知庫預設設定。是否參與檢索仍由認知庫的「圖片向量檢索」開關決定。",
+    "imageVectorRequiresIndex": "請先在認知庫設定中開啟向量索引。",
     "documentSummary": "文件摘要",
     "documentSummaryDescription": "為本次匯入的文件選擇是否自動生成摘要。",
     "generateSummary": "生成文件摘要",
@@ -7178,7 +7178,7 @@ export default {
     "tabTags": "文件標籤",
     "tagsDescription": "為本批次匯入的所有文件選擇標籤，可多選",
     "tagsPlaceholder": "請選擇標籤（可多選）",
-    "tagsEmpty": "當前知識庫暫無標籤，可上傳後在標籤管理中建立",
+    "tagsEmpty": "當前認知庫暫無標籤，可上傳後在標籤管理中建立",
     "tagsLoadFailed": "標籤載入失敗，可稍後在文件清單中設定",
     "noItems": "請至少新增一個檔案或 URL",
     "urlItemLabel": "URL",
@@ -7216,7 +7216,7 @@ export default {
     "documentCount": "{count} 個文件",
     "filters": "篩選",
     "clearFilters": "清除篩選",
-    "title": "知識庫",
+    "title": "認知庫",
     "fileContent": "檔案內容",
     "name": "名稱",
     "description": "描述",
@@ -7244,7 +7244,7 @@ export default {
       "filteredCount": "比對 {count} 個文件",
       "title": "目錄",
       "rootRow": "根目錄",
-      "rootRowTip": "知識庫根目錄，未歸入子資料夾的文件在此",
+      "rootRowTip": "認知庫根目錄，未歸入子資料夾的文件在此",
       "folderCardCount": "{count} 個文件",
       "searchingSubtree": "（含子目錄）",
       "emptyFolder": "這個資料夾裡還沒有文件",
@@ -7277,7 +7277,7 @@ export default {
     "tagFilterPlaceholder": "標籤",
     "tagFilterMulti": "{count} 個標籤",
     "tagManageTitle": "管理標籤",
-    "tagManageDescription": "新建、重新命名或刪除知識庫標籤",
+    "tagManageDescription": "新建、重新命名或刪除認知庫標籤",
     "tagManageLink": "管理標籤…",
     "tagManageListSection": "標籤清單",
     "tagManageDocCount": "{count} 個文件",
@@ -7404,12 +7404,12 @@ export default {
     "questionsRegenerated": "輔助召回問題已更新",
     "staleGeneratedQuestions": "問題基於編輯前內容生成，可按需重新生成",
     "noGeneratedQuestions": "暫無輔助召回問題",
-    "notInitialized": "該知識庫尚未完成初始化設定，請先前往設定頁面設定模型資訊後再上傳檔案",
-    "missingStorageEngine": "該知識庫尚未選擇存儲引擎，請先前往設定頁面設定存儲引擎後再上傳內容。",
+    "notInitialized": "該認知庫尚未完成初始化設定，請先前往設定頁面設定模型資訊後再上傳檔案",
+    "missingStorageEngine": "該認知庫尚未選擇存儲引擎，請先前往設定頁面設定存儲引擎後再上傳內容。",
     "missingStorageEngineUpload": "請先設定存儲引擎後再上傳內容",
     "goToStorageSettings": "前往設定",
-    "getInfoFailed": "獲取知識庫資訊失敗，無法上傳檔案",
-    "missingId": "缺少知識庫ID",
+    "getInfoFailed": "獲取認知庫資訊失敗，無法上傳檔案",
+    "missingId": "缺少認知庫ID",
     "deleteFailed": "刪除失敗，請稍後再試！",
     "uploadTime": "上傳時間",
     "newSession": "新會話",
@@ -7428,12 +7428,12 @@ export default {
     "untitledDocument": "未命名文件",
     "deleteDocument": "刪除文件",
     "moveDocument": "移動到...",
-    "moveToKnowledgeBase": "移動到知識庫",
-    "moveNoTargets": "沒有相容的目標知識庫（需要相同類型和 Embedding 模型）",
+    "moveToKnowledgeBase": "移動到認知庫",
+    "moveNoTargets": "沒有相容的目標認知庫（需要相同類型和 Embedding 模型）",
     "moveModeReuseVectors": "復用向量（快速）",
     "moveModeReuseVectorsDesc": "直接移動切塊和向量索引，適用於分片設定相同的情況",
     "moveModeReparse": "重新解析",
-    "moveModeReparseDesc": "使用目標知識庫的分片設定重新解析文件",
+    "moveModeReparseDesc": "使用目標認知庫的分片設定重新解析文件",
     "moveConfirm": "確認移動",
     "moveConfirmTitle": "確認移動設定",
     "moveStarted": "移動任務已提交",
@@ -7463,7 +7463,7 @@ export default {
     "batchDelete": "批次刪除",
     "batchDownload": "批次下載",
     "batchDownloading": "正在打包下載…",
-    "batchDownloadHint": "下載所選檔案為 ZIP，每批最多 200 項、原始檔案合計 512 MiB。全選僅包含已載入的文件；沒有原始檔案的網頁條目會自動跳過。ZIP 會保留知識庫資料夾。",
+    "batchDownloadHint": "下載所選檔案為 ZIP，每批最多 200 項、原始檔案合計 512 MiB。全選僅包含已載入的文件；沒有原始檔案的網頁條目會自動跳過。ZIP 會保留認知庫資料夾。",
     "batchDownloadStarted": "已開始儲存 ZIP，解壓縮後即可按資料夾批次上傳檔案",
     "batchDownloadFailed": "批次下載失敗，請稍後重試",
     "batchDownloadSkipped": "已跳過 {count} 個沒有原始檔案的文件",
@@ -7502,7 +7502,7 @@ export default {
     "pdfDocFormat": "pdf、doc 格式檔案，不超過{size}M",
     "textMarkdownFormat": "text、markdown格式檔案，不超過{size}M",
     "dragFileNotText": "請拖曳檔案而不是文字或連結",
-    "searchPlaceholder": "搜尋知識庫...",
+    "searchPlaceholder": "搜尋認知庫...",
     "docSearchPlaceholder": "搜尋檔案名稱...",
     "fileTypeFilter": "檔案類型",
     "allFileTypes": "全部類型",
@@ -7525,17 +7525,17 @@ export default {
     "sourceManual": "手動建立",
     "updatedTimeFrom": "起始時間",
     "updatedTimeTo": "結束時間",
-    "noMatch": "未找到比對的知識庫",
-    "noKnowledge": "暫無可用知識庫",
-    "loadingFailed": "載入知識庫失敗",
-    "operationNotSupportedForType": "當前知識庫類型不支持該操作",
+    "noMatch": "未找到比對的認知庫",
+    "noKnowledge": "暫無可用認知庫",
+    "loadingFailed": "載入認知庫失敗",
+    "operationNotSupportedForType": "當前認知庫類型不支持該操作",
     "allFilesSkippedNoEngine": "所選檔案類型暫無可用解析引擎，已全部跳過",
     "filesSkippedNoEngine": "{count} 個檔案因無可用解析引擎被跳過",
     "deleteSuccess": "已刪除知識",
     "chunkLoadFailed": "切塊載入失敗",
     "infoCard": {
-      "tooltip": "查看知識庫資訊",
-      "title": "知識庫資訊",
+      "tooltip": "查看認知庫資訊",
+      "title": "認知庫資訊",
       "basic": "基礎",
       "access": "存取",
       "binding": "存儲綁定",
@@ -7558,7 +7558,7 @@ export default {
     "accessInfo": {
       "myRole": "我的身份",
       "roleOwner": "建立者",
-      "permissionOwner": "可編輯、管理設定、刪除知識庫",
+      "permissionOwner": "可編輯、管理設定、刪除認知庫",
       "permissionAdmin": "可編輯、管理共享設定",
       "permissionEditor": "可編輯文件與標籤",
       "permissionViewer": "僅查看與檢索",
@@ -7611,7 +7611,7 @@ export default {
         },
         "send": {
           "title": "傳送開始對話",
-          "desc": "傳送後將建立新會話，AI 會結合知識庫內容作答，並標註引用片段。"
+          "desc": "傳送後將建立新會話，AI 會結合認知庫內容作答，並標註引用片段。"
         },
         "input": {
           "title": "輸入你的問題",
@@ -7619,7 +7619,7 @@ export default {
         },
         "kb": {
           "title": "選擇知識範圍",
-          "desc": "點擊 {'@'} 可指定一個或多個知識庫/檔案，僅基於選中內容回答；不選則按當前智慧代理設定檢索。"
+          "desc": "點擊 {'@'} 可指定一個或多個認知庫/檔案，僅基於選中內容回答；不選則按當前智慧代理設定檢索。"
         }
       }
     },
@@ -7627,14 +7627,14 @@ export default {
       "steps": {
         "done": {
           "title": "解析完成後即可使用",
-          "desc": "文件解析入庫後，可在對話中 {'@'} 本知識庫提問，回答會附帶引用來源。"
+          "desc": "文件解析入庫後，可在對話中 {'@'} 本認知庫提問，回答會附帶引用來源。"
         },
         "upload": {
           "title": "新增文件",
           "desc": "點擊此處上傳檔案、資料夾，或匯入網頁與線上編輯內容。"
         },
         "intro": {
-          "title": "知識庫還是空的",
+          "title": "認知庫還是空的",
           "desc": "新增第一份資料後，才能基於它進行檢索與對話。支持拖曳上傳多種文件格式。"
         }
       }
@@ -7662,12 +7662,12 @@ export default {
           "desc": "設定是否允許智慧代理呼叫外部搜尋引擎補充實時資訊。"
         },
         "knowledge": {
-          "title": "知識庫範圍",
+          "title": "認知庫範圍",
           "desc": "「全部」適合通用助手；「指定」可限定專業領域；「不關聯」則僅依賴模型自身能力或聯網搜尋。"
         },
         "navKnowledge": {
-          "title": "關聯知識庫",
-          "desc": "決定智慧代理可檢索哪些知識。預設「全部知識庫」，也可改為指定庫或暫不關聯。"
+          "title": "關聯認知庫",
+          "desc": "決定智慧代理可檢索哪些知識。預設「全部認知庫」，也可改為指定庫或暫不關聯。"
         },
         "model": {
           "title": "選擇模型",
@@ -7683,7 +7683,7 @@ export default {
         },
         "agentType": {
           "title": "選擇智慧代理類型",
-          "desc": "預設類型會自動填充系統提示語、推薦工具與知識庫範圍（如 Wiki 建構、資料分析等）。可按情境切換，名稱與描述會隨之更新。"
+          "desc": "預設類型會自動填充系統提示語、推薦工具與認知庫範圍（如 Wiki 建構、資料分析等）。可按情境切換，名稱與描述會隨之更新。"
         },
         "mode": {
           "title": "選擇運行模式",
@@ -7695,15 +7695,15 @@ export default {
       "steps": {
         "create": {
           "title": "建立你的智慧代理",
-          "desc": "智慧代理把模型、知識庫、工具與提示語組合成可復用的對話助手。點擊下方標示的「建立智慧代理」開始設定。"
+          "desc": "智慧代理把模型、認知庫、工具與提示語組合成可復用的對話助手。點擊下方標示的「建立智慧代理」開始設定。"
         }
       }
     },
     "kbCreate": {
       "steps": {
         "submit": {
-          "title": "建立知識庫",
-          "desc": "點擊「知道了」結束引導，無需現在建立知識庫。準備好後，填寫名稱、確認類型與模型，再點擊「建立」。"
+          "title": "建立認知庫",
+          "desc": "點擊「知道了」結束引導，無需現在建立認知庫。準備好後，填寫名稱、確認類型與模型，再點擊「建立」。"
         },
         "faq": {
           "title": "FAQ 索引方式",
@@ -7743,7 +7743,7 @@ export default {
         },
         "navModels": {
           "title": "設定模型（必填）",
-          "desc": "知識庫必須綁定對話模型；開啟檢索時還需 Embedding 模型。點擊左側「模型設定」進入。"
+          "desc": "認知庫必須綁定對話模型；開啟檢索時還需 Embedding 模型。點擊左側「模型設定」進入。"
         },
         "indexing": {
           "title": "選擇索引能力",
@@ -7754,7 +7754,7 @@ export default {
           "desc": "取一個便於識別的名稱，例如「產品手冊」或「客服 FAQ」。描述可選填。"
         },
         "type": {
-          "title": "選擇知識庫類型",
+          "title": "選擇認知庫類型",
           "desc": "文件庫適合上傳 PDF、Word 等檔案；FAQ 庫適合問答對。建立後類型不可更改，請按需選擇。"
         }
       }
@@ -7764,7 +7764,7 @@ export default {
       "stepsAgent": {
         "done": {
           "title": "然後建立智慧代理",
-          "desc": "儲存並關閉設定後，點擊「建立智慧代理」，嚮導會帶你設定模式、知識庫與附件上傳等選項。"
+          "desc": "儲存並關閉設定後，點擊「建立智慧代理」，嚮導會帶你設定模式、認知庫與附件上傳等選項。"
         },
         "addModel": {
           "title": "新增對話模型",
@@ -7772,13 +7772,13 @@ export default {
         },
         "intro": {
           "title": "需要先設定對話模型",
-          "desc": "建立智慧代理至少需要一種 KnowledgeQA（對話）模型。請先在系統設定中新增；Embedding 模型僅建立知識庫時需要。"
+          "desc": "建立智慧代理至少需要一種 KnowledgeQA（對話）模型。請先在系統設定中新增；Embedding 模型僅建立認知庫時需要。"
         }
       },
       "steps": {
         "done": {
           "title": "新增完成後繼續",
-          "desc": "模型儲存後關閉設定頁，即可點擊「新建知識庫」；建立嚮導會引導你完成類型、索引與模型綁定。"
+          "desc": "模型儲存後關閉設定頁，即可點擊「新建認知庫」；建立嚮導會引導你完成類型、索引與模型綁定。"
         },
         "addModel": {
           "title": "新增模型",
@@ -7786,15 +7786,15 @@ export default {
         },
         "intro": {
           "title": "需要先設定模型",
-          "desc": "建立文件知識庫至少需要：一個對話模型（用於摘要與問答）和一個 Embedding 模型（用於向量檢索）。請先在系統設定中新增。"
+          "desc": "建立文件認知庫至少需要：一個對話模型（用於摘要與問答）和一個 Embedding 模型（用於向量檢索）。請先在系統設定中新增。"
         }
       }
     },
     "kbList": {
       "steps": {
         "create": {
-          "title": "建立第一個知識庫",
-          "desc": "知識庫用來存放文件與 FAQ。點擊下方標示的「新建知識庫」按鈕，我們會帶你完成表單填寫。"
+          "title": "建立第一個認知庫",
+          "desc": "認知庫用來存放文件與 FAQ。點擊下方標示的「新建認知庫」按鈕，我們會帶你完成表單填寫。"
         }
       }
     }
@@ -7813,27 +7813,35 @@ export default {
       },
       "models": {
         "title": "設定你的模型",
-        "desc": "這是關鍵一步：在模型管理中新增對話、向量等模型，知識庫與對話功能才能正常工作。點擊「新增模型」即可開始設定。"
+        "desc": "這是關鍵一步：在模型管理中新增對話、向量等模型，認知庫與對話功能才能正常工作。點擊「新增模型」即可開始設定。"
       },
-      "settings": {
-        "title": "帳戶與設定入口",
-        "desc": "點開這裡可以管理帳戶、成員與系統設定。需要再次查看本引導時，可點擊選單頂部暱稱旁的幫助按鈕重新打開。"
+      "settingsMember": {
+        "title": "個人帳戶與偏好",
+        "desc": "點開這裡可以進入設定：管理個人資料、語言與偏好。需要再次查看本引導時，可點擊選單頂部暱稱旁的幫助按鈕重新打開。"
+      },
+      "settingsWorkspaceAdmin": {
+        "title": "帳戶與空間設定",
+        "desc": "點開這裡可以進入設定：除了個人資料與偏好，作為空間管理員你還可以管理空間資訊、成員與資料來源。需要再次查看本引導時，可點擊選單頂部暱稱旁的幫助按鈕重新打開。"
+      },
+      "settingsSuper": {
+        "title": "帳戶、空間與平台設定",
+        "desc": "點開這裡可以進入設定：除了個人帳戶與空間管理，超管與營運管理員還能進入「系統管理」設定模型、全域設定、任務佇列與稽核日誌。需要再次查看本引導時，可點擊選單頂部暱稱旁的幫助按鈕重新打開。"
       },
       "agents": {
         "title": "打造專屬智慧代理",
-        "desc": "把知識庫、提示語與工具組合成可復用的智慧代理，沉澱你的專業能力。"
+        "desc": "把認知庫、提示語與工具組合成可復用的智慧代理，沉澱你的專業能力。"
       },
       "chat": {
         "title": "發起智慧對話",
-        "desc": "基於知識庫內容向 AI 提問，獲得帶引用來源的精準回答。點擊這裡開始新對話。"
+        "desc": "基於認知庫內容向 AI 提問，獲得帶引用來源的精準回答。點擊這裡開始新對話。"
       },
       "knowledge": {
-        "title": "建立你的知識庫",
-        "desc": "知識庫是一切的起點：上傳文件、網頁或 FAQ，WeKnora 會自動解析並建立索引。點擊這裡進入知識庫。"
+        "title": "建立你的認知庫",
+        "desc": "認知庫是一切的起點：上傳文件、網頁或 FAQ，ThinkerFlow 會自動解析並建立索引。點擊這裡進入認知庫。"
       },
       "welcome": {
-        "title": "歡迎使用 WeKnora",
-        "desc": "只需幾步，帶你快速了解知識庫、對話與智慧代理的核心用法。點擊「下一步」開始。"
+        "title": "歡迎使用 ThinkerFlow",
+        "desc": "只需幾步，帶你快速了解認知庫、對話與智慧代理的核心用法。點擊「下一步」開始。"
       }
     }
   },
@@ -7917,7 +7925,7 @@ export default {
   "menu": {
     "sessionInProgress": "會話進行中",
     "sessionUnread": "有新回覆",
-    "knowledgeBase": "知識庫",
+    "knowledgeBase": "認知庫",
     "agents": "智慧代理",
     "artifacts": "產物",
     "organizations": "共享空間",
@@ -8150,9 +8158,9 @@ export default {
     "build": "創建網站",
     "code": "編寫代碼",
     "test": "運行測試",
-    "knowledge": "知識庫問答",
+    "knowledge": "認知庫問答",
     "hint": "在同一段對話中查資料、寫代碼、驗證結果。",
-    "knowledgeLink": "管理知識庫",
+    "knowledgeLink": "管理認知庫",
     "source": "代碼",
     "diff": "變更",
     "viewFullSource": "查看完整代碼",
@@ -8290,18 +8298,18 @@ export default {
     "caseSheetRows": "{count} 個用例",
     "caseSheetParsing": "正在解析測試用例…",
     "caseSheetUnparsedFiles": "以下檔案無法解析，已按檔案顯示。",
-    "caseSaveToKnowledge": "儲存到知識庫",
-    "caseOpenKnowledge": "開啟知識庫",
-    "caseSelectKnowledge": "選擇知識庫",
-    "caseNoKnowledge": "尚無可寫入的文件知識庫，請先建立知識庫或申請編輯權限。",
-    "caseSaved": "檔案已儲存到知識庫。",
+    "caseSaveToKnowledge": "儲存到認知庫",
+    "caseOpenKnowledge": "開啟認知庫",
+    "caseSelectKnowledge": "選擇認知庫",
+    "caseNoKnowledge": "尚無可寫入的文件認知庫，請先建立認知庫或申請編輯權限。",
+    "caseSaved": "檔案已儲存到認知庫。",
     "caseSaveFailed": "儲存失敗，請重試。",
     "caseLinkExisting": "關聯現有文件（選填）",
     "caseLinkExistingHint": "選擇已儲存的文件，留空則建立文件",
-    "caseLinkListFailed": "無法讀取現有文件，請重新選擇知識庫後重試。",
-    "caseSyncFailed": "無法更新用例，請檢查知識庫文件的存取權限後重試。",
+    "caseLinkListFailed": "無法讀取現有文件，請重新選擇認知庫後重試。",
+    "caseSyncFailed": "無法更新用例，請檢查認知庫文件的存取權限後重試。",
     "caseLoadFailed": "無法讀取測試用例，請返回後重試。",
-    "caseEditHint": "點擊列末「編輯」即可修改，儲存後同步到知識庫。",
+    "caseEditHint": "點擊列末「編輯」即可修改，儲存後同步到認知庫。",
     "caseEditorTitle": "測試用例",
     "caseCurrentSet": "當前用例集",
     "caseListTab": "用例列表",
@@ -8319,8 +8327,8 @@ export default {
     "caseNoResults": "目前檔案未記錄執行結果。",
     "caseNoNotes": "當前用例集沒有附加說明。",
     "caseNoStructuredCases": "沒有符合的用例，可在「來源檔案」中預覽原始文件。",
-    "caseLinkedKnowledge": "已關聯知識庫",
-    "caseEditInKnowledge": "到知識庫編輯",
+    "caseLinkedKnowledge": "已關聯認知庫",
+    "caseEditInKnowledge": "到認知庫編輯",
     "caseSourceSnapshot": "對話產生的來源檔案",
     "caseBackToSources": "返回來源檔案",
     "caseState_passed": "通過",
@@ -8336,7 +8344,7 @@ export default {
     "caseInfoField": "項目",
     "caseInfoValue": "內容",
     "caseAddRow": "新增用例",
-    "caseEditSaved": "測試用例已儲存，正在更新知識庫索引。",
+    "caseEditSaved": "測試用例已儲存，正在更新認知庫索引。",
     "caseActions": "操作",
     "caseApplyRow": "完成編輯",
     "caseField": "欄位 {index}",
@@ -8344,7 +8352,7 @@ export default {
     "caseRowRequired": "請至少填寫一個用例欄位。",
     "caseDiscardTitle": "捨棄未儲存的修改？",
     "caseDiscardBody": "返回後，未儲存的用例修改將遺失。",
-    "caseBackToKnowledge": "返回知識庫",
+    "caseBackToKnowledge": "返回認知庫",
     "reportFilesEmpty": "尚無測試報告。執行測試後，測試助手產生的報告會顯示在這裡。",
     "sandboxTab": "沙箱",
     "openPanel": "打開工作面板",
@@ -8357,7 +8365,7 @@ export default {
     "buildPrompt": "請幫我創建一個網頁：\n\n請先梳理需求，再在當前會話工作區生成可運行的 index.html，優先使用原生 HTML、CSS、JavaScript 和本地資源，方便右側直接預覽。完成後運行可用測試並說明結果。",
     "codePrompt": "請幫我實現以下功能：\n\n請先閱讀相關文件，再在當前會話工作區編寫代碼，並運行適合的測試。說明修改的文件和驗證結果。",
     "testPrompt": "請根據我提供的需求編寫測試用例，包含用例編號、模組、優先級、前置條件、操作步驟和預期結果，優先匯出 Excel 到 /workspace/output/test-cases/。執行測試後，將實際結果和測試報告儲存到 /workspace/output/test-reports/，未執行的用例請明確標註。",
-    "knowledgePrompt": "請根據我在輸入框中選擇的知識庫或文檔回答以下問題，並標明引用來源：\n",
+    "knowledgePrompt": "請根據我在輸入框中選擇的認知庫或文檔回答以下問題，並標明引用來源：\n",
     "chooseFile": "選擇文件",
     "refresh": "刷新文件",
     "root": "工作區",

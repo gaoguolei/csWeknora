@@ -6,7 +6,7 @@
     }"
   >
     <aside class="fixture-nav">
-      <div class="fixture-brand">WeKnora<span>Workspace</span></div>
+      <div class="fixture-brand">ThinkerFlow<span>Workspace</span></div>
       <button
         type="button"
         class="new-task"
@@ -17,10 +17,10 @@
       >
         <t-icon name="add" />新建对话</button
       ><button type="button" @click="knowledgeOpen = !knowledgeOpen">
-        <t-icon name="folder" />知识库
+        <t-icon name="folder" />认知库
       </button>
       <div v-if="knowledgeOpen" class="fixture-knowledge">
-        开发验收页使用示例数据。正式知识库入口位于登录后的侧栏，支持上传、选择和引用。
+        开发验收页使用示例数据。正式认知库入口位于登录后的侧栏，支持上传、选择和引用。
       </div>
       <span class="nav-caption">开发验收</span
       ><button type="button" @click="showConversation">对话与工作面板</button
@@ -64,12 +64,12 @@
           <textarea
             v-model="prompt"
             aria-label="描述任务"
-            placeholder="把任务交给 WeKnora，或者从一个问题开始…"
+            placeholder="把任务交给 ThinkerFlow，或者从一个问题开始…"
           ></textarea>
           <div>
             <button
               type="button"
-              aria-label="查看知识库说明"
+              aria-label="查看认知库说明"
               @click="knowledgeOpen = !knowledgeOpen"
             >
               <t-icon name="add" /></button

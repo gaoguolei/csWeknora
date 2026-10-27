@@ -32,7 +32,7 @@ func newSearchCommand(sessionService interfaces.SessionService, kbService interf
 
 func (c *SearchCommand) Name() string { return "search" }
 func (c *SearchCommand) Description() string {
-	return "直接检索知识库原文（不经 AI 总结），例如：/search 退款政策"
+	return "直接检索认知库原文（不经 AI 总结），例如：/search 退款政策"
 }
 
 func (c *SearchCommand) Execute(ctx context.Context, cmdCtx *CommandContext, args []string) (*CommandResult, error) {
@@ -92,7 +92,7 @@ func (c *SearchCommand) Execute(ctx context.Context, cmdCtx *CommandContext, arg
 
 	if len(results) == 0 {
 		return &CommandResult{
-			Content: fmt.Sprintf("未在知识库中找到与「%s」相关的内容。", query),
+			Content: fmt.Sprintf("未在认知库中找到与「%s」相关的内容。", query),
 		}, nil
 	}
 

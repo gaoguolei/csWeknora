@@ -29,8 +29,8 @@ func imLocalizedToolName(toolName string) string {
 }
 
 var imToolNameLabels = map[string]string{
-	"search_knowledge":        "知识库检索",
-	"knowledge_search":        "知识库检索",
+	"search_knowledge":        "认知库检索",
+	"knowledge_search":        "认知库检索",
 	"grep_chunks":             "搜索关键词",
 	"read_document":           "阅读文档",
 	"list_documents":          "浏览文档列表",
@@ -287,14 +287,14 @@ func FormatIMRagPipelineLine(step IMToolStep) string {
 				return "正在检索网络..."
 			case imRetrievalSourceMixed:
 				if query != "" {
-					return fmt.Sprintf("正在检索知识库和网络：「%s」", query)
+					return fmt.Sprintf("正在检索认知库和网络：「%s」", query)
 				}
-				return "正在检索知识库和网络..."
+				return "正在检索认知库和网络..."
 			default:
 				if query != "" {
-					return fmt.Sprintf("正在检索知识库：「%s」", query)
+					return fmt.Sprintf("正在检索认知库：「%s」", query)
 				}
-				return "正在检索知识库..."
+				return "正在检索认知库..."
 			}
 		}
 		base := imRetrievalDoneTitle(source, step.Success)
@@ -430,9 +430,9 @@ func imToolStatusDescription(step IMToolStep) string {
 	switch toolName {
 	case "search_knowledge", "knowledge_search":
 		if success {
-			return "检索知识库"
+			return "检索认知库"
 		}
-		return "检索知识库失败"
+		return "检索认知库失败"
 	case "wiki_search", "wiki_read_page":
 		name := imLocalizedToolName(toolName)
 		if success {
@@ -585,14 +585,14 @@ func imRetrievalDoneTitle(source string, success bool) string {
 		return "网络检索失败"
 	case imRetrievalSourceMixed:
 		if success {
-			return "检索知识库和网络"
+			return "检索认知库和网络"
 		}
 		return "检索失败"
 	default:
 		if success {
-			return "检索知识库"
+			return "检索认知库"
 		}
-		return "检索知识库失败"
+		return "检索认知库失败"
 	}
 }
 
@@ -689,7 +689,7 @@ func imDocumentListSummary(data map[string]interface{}) string {
 		listed = len(docs)
 	}
 	if total == 0 && listed == 0 {
-		return "知识库中没有文档"
+		return "认知库中没有文档"
 	}
 	return fmt.Sprintf("列出 %d / %d 个文档", listed, total)
 }

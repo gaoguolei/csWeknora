@@ -167,7 +167,7 @@ var toolDisplayNames = map[string]string{
 	agenttools.ToolCallMCPTool:               "调用外部工具",
 	agenttools.ToolThinking:                  "深度思考",
 	agenttools.ToolTodoWrite:                 "制定计划",
-	agenttools.ToolSearchKnowledge:           "检索知识库",
+	agenttools.ToolSearchKnowledge:           "检索认知库",
 	agenttools.ToolReadDocument:              "阅读文档",
 	agenttools.ToolListDocuments:             "浏览文档列表",
 	agenttools.ToolQueryKnowledgeGraph:       "查询知识图谱",

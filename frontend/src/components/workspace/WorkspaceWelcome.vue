@@ -1,7 +1,7 @@
 <template>
   <section class="workspace-welcome">
     <!-- <header class="welcome-topbar">
-      <span class="workspace-wordmark">WeKnora <span>Workspace</span></span>
+      <span class="workspace-wordmark">ThinkerFlow <span>Workspace</span></span>
       <button type="button" class="knowledge-link" @click="$emit('knowledge')"><t-icon name="folder" />{{
         t('workspace.knowledgeLink') }}<t-icon name="arrow-right-up" /></button>
     </header> -->
@@ -35,7 +35,7 @@
         <slot name="suggestions" />
       </div>
     </main>
-    <!-- <footer class="welcome-footer">WeKnora <span>·</span> {{ t('workspace.panelHint') }}</footer> -->
+    <!-- <footer class="welcome-footer">ThinkerFlow <span>·</span> {{ t('workspace.panelHint') }}</footer> -->
   </section>
 </template>
 

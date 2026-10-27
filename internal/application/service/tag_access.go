@@ -19,7 +19,7 @@ func (s *knowledgeTagService) requireTagWrite(
 		return nil, ctx, err
 	}
 	if kb == nil || kb.ID != tag.KnowledgeBaseID || kb.TenantID != tag.TenantID {
-		return nil, ctx, apperrors.NewForbiddenError("标签不属于当前知识库")
+		return nil, ctx, apperrors.NewForbiddenError("标签不属于当前认知库")
 	}
 	ctx, err = requireKBWrite(ctx, kb)
 	return kb, ctx, err
@@ -49,7 +49,7 @@ func (s *knowledgeTagService) validateTagDeleteExclusions(
 			continue
 		}
 		if chunk.TenantID != kb.TenantID || chunk.KnowledgeBaseID != kb.ID || chunk.ChunkType != types.ChunkTypeFAQ {
-			return apperrors.NewForbiddenError("排除条目不属于当前知识库")
+			return apperrors.NewForbiddenError("排除条目不属于当前认知库")
 		}
 		delete(wanted, chunk.ID)
 	}

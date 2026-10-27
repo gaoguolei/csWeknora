@@ -624,7 +624,7 @@ export default {
   },
   integrations: {
     cli: {
-      title: "WeKnora CLI",
+      title: "ThinkerFlow CLI",
       subtitle:
         "Управляйте базами знаний и документами, ищите информацию и задавайте вопросы из терминала. Подключайте скрипты и инструменты ИИ через CLI или MCP.",
       docs: "Документация CLI",
@@ -656,9 +656,9 @@ export default {
     filterByAgentWithName: "Фильтр по агенту: {name}",
     filterAllAgents: "Все агенты",
     claw: {
-      title: "WeKnora Skill",
+      title: "ThinkerFlow Skill",
       subtitle:
-        "Импорт документов и гибридный поиск (вектор + ключевые слова) через REST API WeKnora — загрузки, URL, Markdown и поиск.",
+        "Импорт документов и гибридный поиск (вектор + ключевые слова) через REST API ThinkerFlow — загрузки, URL, Markdown и поиск.",
       capabilitiesTitle: "Возможности Skill",
       stepsTitle: "Шаги настройки",
       openApiSettings: "Открыть API-информацию",
@@ -668,7 +668,7 @@ export default {
       ecosystemNote:
         "Skill размещён на ClawHub ({'@'}lyingbug/weknora). Полная документация API — на странице ClawHub.",
       installCta: "Открыть ClawHub",
-      installCtaHint: "Установка WeKnora Skill · откроется в новой вкладке",
+      installCtaHint: "Установка ThinkerFlow Skill · откроется в новой вкладке",
       hubMeta: "ClawHub · {'@'}lyingbug/weknora · MIT-0",
       steps: {
         verify: {
@@ -714,7 +714,7 @@ export default {
     chrome: {
       title: "Помощник по знаниям",
       subtitle:
-        "Для self-hosted WeKnora: вопросы в боковой панели, клиппинг страниц и Markdown-заметки в базы знаний прямо при просмотре.",
+        "Для self-hosted ThinkerFlow: вопросы в боковой панели, клиппинг страниц и Markdown-заметки в базы знаний прямо при просмотре.",
       capabilitiesTitle: "Возможности",
       stepsTitle: "Шаги настройки",
       openApiSettings: "Открыть API-информацию",
@@ -734,7 +734,7 @@ export default {
         },
         port: {
           title: "Десктоп: фиксированный порт",
-          desc: "В WeKnora Desktop задайте фиксированный порт API (например 37841) в API-информации.",
+          desc: "В ThinkerFlow Desktop задайте фиксированный порт API (например 37841) в API-информации.",
         },
         api: {
           title: "Получите API-учётные данные",
@@ -903,7 +903,7 @@ export default {
       signedRecommended:
         "Рекомендуется для пользовательских приложений: ваш backend подписывает краткоживущий HS256 JWT для внешнего пользователя.",
       signedFlowDetail:
-        "HMAC secret храните только в WeKnora и на доверенном backend — не передавайте в запросах и не отдавайте браузеру. В заголовке запроса передаётся JWT, подписанный этим secret (меняется при каждой выдаче или после истечения), а не сам secret. JWT должен содержать sub (ID внешнего пользователя), tenant_id, aud=weknora и exp (не более 24 ч).",
+        "HMAC secret храните только в ThinkerFlow и на доверенном backend — не передавайте в запросах и не отдавайте браузеру. В заголовке запроса передаётся JWT, подписанный этим secret (меняется при каждой выдаче или после истечения), а не сам secret. JWT должен содержать sub (ID внешнего пользователя), tenant_id, aud=weknora и exp (не более 24 ч).",
       directHeader: "Заголовок ID пользователя",
       requireDirectHeader: "Требовать заголовок ID пользователя",
       requireDirectHeaderDesc:
@@ -913,7 +913,7 @@ export default {
         "Клиент передаёт JWT, подписанный backend, в этом фиксированном заголовке.",
       hmacSecret: "HMAC secret",
       hmacSecretDesc:
-        "Тот же secret, что в WeKnora; только для подписи JWT на backend — не отправляйте его в заголовке запроса.",
+        "Тот же secret, что в ThinkerFlow; только для подписи JWT на backend — не отправляйте его в заголовке запроса.",
       secretConfigured:
         "Secret настроен (повторно не показывается); введите новое значение для ротации",
       secretSavedCopyHint:
@@ -5785,7 +5785,7 @@ export default {
     showSuggestedQuestionsDesc:
       "Показывать быстрые вопросы до первого сообщения посетителя — из настроек агента и связанных баз знаний",
     originsHint:
-      "Укажите сайты, которым разрешено встраивание (A), а не адрес WeKnora (B). Один полный Origin на строку, например https://shop.example.com; минимум один. Поддерживается *.example.com.",
+      "Укажите сайты, которым разрешено встраивание (A), а не адрес ThinkerFlow (B). Один полный Origin на строку, например https://shop.example.com; минимум один. Поддерживается *.example.com.",
     originsRequired: "Укажите хотя бы один разрешённый домен",
     originsInvalid: "Неверный домен: {origin}",
     originsWildcardProd: "В production запрещён wildcard '*'",
@@ -5857,7 +5857,7 @@ export default {
     webhookUrlPlaceholder:
       "https://your-server.example.com/weknora/embed-events",
     webhookUrlDesc:
-      "Optional. WeKnora POSTs message_sent / message_received events to this HTTPS endpoint.",
+      "Optional. ThinkerFlow POSTs message_sent / message_received events to this HTTPS endpoint.",
     webhookSecret: "Webhook secret",
     webhookSecretPlaceholder: "HMAC-SHA256 secret (X-WeKnora-Signature header)",
     webhookSecretKeep: "Leave blank to keep the saved secret",
@@ -5979,7 +5979,7 @@ export default {
     },
   },
   createChat: {
-    title: "Привет, я WeKnora — ваши знания всегда под рукой",
+    title: "Привет, я ThinkerFlow — ваши знания всегда под рукой",
     newSessionTitle: "Новая сессия",
     openProject: "Выбрать проект",
     clearProject: "Снять привязку",
@@ -6288,12 +6288,12 @@ export default {
     backToLogin: "Вернуться ко входу",
     loginHint:
       "Войдите, чтобы продолжить, или создайте аккаунт ниже, если вы впервые здесь.",
-    firstTime: "Впервые в WeKnora?",
+    firstTime: "Впервые в ThinkerFlow?",
     registerSuccess: "Регистрация завершена. Войдите в систему",
     registerFailed: "Ошибка регистрации",
     subtitle:
       "Интеллектуальная операционная система для AI-нативной инженерии ПО",
-    registerSubtitle: "Создайте аккаунт и начните работу с WeKnora",
+    registerSubtitle: "Создайте аккаунт и начните работу с ThinkerFlow",
     emailPlaceholder: "Введите адрес электронной почты",
     passwordPlaceholder: "Введите пароль",
     confirmPasswordPlaceholder: "Введите пароль ещё раз",
@@ -6628,7 +6628,7 @@ export default {
     host: {
       title: "Переменные среды",
       description:
-        "Личные ключи для навыков на этом компьютере, а не системные или деплой-настройки WeKnora.",
+        "Личные ключи для навыков на этом компьютере, а не системные или деплой-настройки ThinkerFlow.",
       helpAria: "Справка по переменным среды",
       introRuntimeBody:
         "Подставляются, когда навык выполняется на этом компьютере. Значение можно передать и прямо в диалоге. После сохранения открытый текст больше не показывается.",
@@ -6921,7 +6921,7 @@ export default {
         cube: "Self-hosted MicroVM cluster for private or on-premises deployments",
         e2b: "Managed MicroVM service or an E2B-compatible deployment",
         docker:
-          "Держит долгоживущий контейнер на каждую сессию на этом хосте WeKnora; скрипты и файлы остаются в том же контейнере",
+          "Держит долгоживущий контейнер на каждую сессию на этом хосте ThinkerFlow; скрипты и файлы остаются в том же контейнере",
       },
       dockerDisabledAlert: "Песочница Docker на этом развёртывании не включена",
       dockerDisabledHint:
@@ -6929,7 +6929,7 @@ export default {
       dockerDisabledCard:
         "Песочница Docker отключена на этом развёртывании; эта конфигурация больше не создаёт контейнеры",
       dockerHostRisk:
-        "Пустое значение или unix:// использует демон Docker на машине WeKnora — это равносильно root на этой машине. Только для частной одноузловой установки. Если несколько пространств делят один хост, используйте Cube или E2B. Удалённый tcp:// требует каталог TLS-сертификатов.",
+        "Пустое значение или unix:// использует демон Docker на машине ThinkerFlow — это равносильно root на этой машине. Только для частной одноузловой установки. Если несколько пространств делят один хост, используйте Cube или E2B. Удалённый tcp:// требует каталог TLS-сертификатов.",
       addConfig: "Добавить песочницу",
       viewClusterGuide: "Cluster setup guide",
       configName: "Config name",
@@ -7043,14 +7043,14 @@ export default {
       legacyConfig: "Deprecated",
       namedBackendHint:
         "Workspace configuration is the only runtime source. Agents without one cannot execute skill scripts.",
-      weknoraTemplateTitle: "WeKnora standard template",
-      weknoraDockerImage: "WeKnora standard image",
+      weknoraTemplateTitle: "ThinkerFlow standard template",
+      weknoraDockerImage: "ThinkerFlow standard image",
       weknoraDockerImageHint:
         "Each session gets its own long-lived container. Scripts, shell commands and files all share it until the session ends or the idle timeout reclaims it.",
       weknoraTemplateOverview:
-        "WeKnora provides the standard runtime. Templates are discovered after connecting and the standard one is created when missing.",
+        "ThinkerFlow provides the standard runtime. Templates are discovered after connecting and the standard one is created when missing.",
       weknoraTemplateDescription:
-        "Includes the Python, Node.js, CLI tools, workspace path, and non-root execution user expected by WeKnora skills.",
+        "Includes the Python, Node.js, CLI tools, workspace path, and non-root execution user expected by ThinkerFlow skills.",
       recommendedTag: "Recommended",
       templateNotConfigured: "Template not configured",
       cardTemplateConfigured: "Шаблон настроен",
@@ -7070,7 +7070,7 @@ export default {
         "Refresh after connecting. Create the standard template if missing; rebuild it after changing DNS.",
       templateLoadFailed: "Failed to load templates",
       standardTemplateProvisioning:
-        "The WeKnora standard template is being created. Refresh shortly to see its status.",
+        "The ThinkerFlow standard template is being created. Refresh shortly to see its status.",
       standardTemplateReplaced:
         "Предыдущий стандартный шаблон удалён, начата пересборка. Дождитесь готовности.",
       templateNotReady:
@@ -7084,16 +7084,16 @@ export default {
       templateBuildingHint:
         "Шаблон собирается. Список обновится автоматически.",
       templateUntaggedHint:
-        "Сборки завершены, но ни одна не имеет тега default, поэтому при создании песочницы шаблон не находится. Удалите его в E2B и обновите список — WeKnora пересоберёт шаблон.",
+        "Сборки завершены, но ни одна не имеет тега default, поэтому при создании песочницы шаблон не находится. Удалите его в E2B и обновите список — ThinkerFlow пересоберёт шаблон.",
       templateFailedReason: "Сборка не удалась: {reason}",
       noTemplates: "No templates were returned by this cluster.",
-      weknoraStandardTemplate: "Стандартный шаблон WeKnora",
+      weknoraStandardTemplate: "Стандартный шаблон ThinkerFlow",
       createStandardTemplate: "Создать",
       createStandardTemplateHint:
         "Собирается с текущими настройками подключения, включая DNS. После их изменения пересоберите шаблон на карточке.",
       replaceStandardTemplate: "Пересобрать",
       replaceStandardTemplateConfirm:
-        "Стандартный шаблон WeKnora будет собран заново с текущими настройками, включая DNS. Предыдущий готовый шаблон не удаляется, пока замена не станет готовой к запуску.",
+        "Стандартный шаблон ThinkerFlow будет собран заново с текущими настройками, включая DNS. Предыдущий готовый шаблон не удаляется, пока замена не станет готовой к запуску.",
       templateLockedBySkills:
         "В этой песочнице уже установлены навыки. Среда навыков привязана к текущему снимку, поэтому шаблон нельзя сменить или пересобрать. Создайте новую песочницу и установите навыки с нового шаблона.",
       templateLockedByInFlight:
@@ -7129,7 +7129,7 @@ export default {
       cubeApiKeyWhere: "Как включить аутентификацию в собственном кластере",
       cubeDnsServers: "DNS-серверы",
       cubeDnsServersHelp:
-        "Необязательно. IP nameserver, которые записываются в стандартный шаблон WeKnora. Пустое значение оставляет значение кластера по умолчанию (обычно 119.29.29.29). Если UDP/53 до публичных резолверов недоступен, укажите достижимые адреса из /etc/resolv.conf хоста Cube, исключая 10/8, 172.16/12 и 192.168/16. Чтобы изменение вступило в силу, на карточке шаблона нажмите «Пересобрать».",
+        "Необязательно. IP nameserver, которые записываются в стандартный шаблон ThinkerFlow. Пустое значение оставляет значение кластера по умолчанию (обычно 119.29.29.29). Если UDP/53 до публичных резолверов недоступен, укажите достижимые адреса из /etc/resolv.conf хоста Cube, исключая 10/8, 172.16/12 и 192.168/16. Чтобы изменение вступило в силу, на карточке шаблона нажмите «Пересобрать».",
       cubeDnsServersPlaceholder: "например 8.8.8.8, Enter чтобы добавить",
       e2bApiKeyHelp:
         "Создайте ключ на странице API Keys в консоли E2B; обычно он начинается с e2b_.",
@@ -7165,10 +7165,10 @@ export default {
         'Empty follows the local docker CLI (DOCKER_HOST or the current docker context), so you do not have to type /var/run/docker.sock. For a remote daemon use tcp://host:2376, fill in the TLS certificate directory, and turn on "allow private endpoints" for RFC1918 addresses.',
       dockerTlsCertPath: "TLS certificate directory",
       dockerTlsCertPathHelp:
-        "Directory on the WeKnora host holding ca.pem, cert.pem and key.pem. Required for a remote daemon; certificates are mounted by the deployment, never stored here.",
+        "Directory on the ThinkerFlow host holding ca.pem, cert.pem and key.pem. Required for a remote daemon; certificates are mounted by the deployment, never stored here.",
       dockerIdleTtl: "Idle reclaim (seconds)",
       dockerIdleTtlHelp:
-        "The Docker daemon has no idle timeout of its own. A container that runs no command for this long is reclaimed by WeKnora and rebuilt when the session continues. Empty means 1800 seconds.",
+        "The Docker daemon has no idle timeout of its own. A container that runs no command for this long is reclaimed by ThinkerFlow and rebuilt when the session continues. Empty means 1800 seconds.",
       dockerCpuLimit: "CPU cores",
       dockerCpuLimitHelp:
         "CPU cores available to one sandbox; 0 uses the built-in default.",
@@ -8980,9 +8980,17 @@ export default {
         title: "Настройте модели",
         desc: "Ключевой шаг: добавьте модели чата, эмбеддингов и другие в управлении моделями, чтобы базы знаний и чат работали. Нажмите «Добавить модель», чтобы начать.",
       },
-      settings: {
-        title: "Аккаунт и настройки",
-        desc: "Откройте это меню, чтобы управлять аккаунтом, участниками и системными настройками. Обучение можно снова открыть кнопкой помощи рядом с именем вверху меню.",
+      settingsMember: {
+        title: "Аккаунт и личные настройки",
+        desc: "Откройте этот пункт, чтобы перейти в настройки и управлять профилем, языком и личными параметрами. Обучение можно снова открыть кнопкой помощи рядом с именем вверху меню.",
+      },
+      settingsWorkspaceAdmin: {
+        title: "Аккаунт и настройки рабочего пространства",
+        desc: "Откройте этот пункт, чтобы перейти в настройки: помимо личных параметров, как администратор рабочего пространства вы также управляете информацией о пространстве, участниками и источниками данных. Обучение можно снова открыть кнопкой помощи рядом с именем вверху меню.",
+      },
+      settingsSuper: {
+        title: "Аккаунт, рабочее пространство и платформа",
+        desc: "Откройте этот пункт, чтобы перейти в настройки: помимо личных настроек и управления пространством, супер- и операционные администраторы видят раздел «Системное администрирование» с моделями, глобальными настройками, очередями задач и журналом аудита. Обучение можно снова открыть кнопкой помощи рядом с именем вверху меню.",
       },
       agents: {
         title: "Создавайте собственных агентов",
@@ -8994,10 +9002,10 @@ export default {
       },
       knowledge: {
         title: "Создайте базу знаний",
-        desc: "С этого всё начинается: загружайте документы, веб-страницы или FAQ, и WeKnora автоматически разберёт и проиндексирует их. Нажмите здесь, чтобы открыть базы знаний.",
+        desc: "С этого всё начинается: загружайте документы, веб-страницы или FAQ, и ThinkerFlow автоматически разберёт и проиндексирует их. Нажмите здесь, чтобы открыть базы знаний.",
       },
       welcome: {
-        title: "Добро пожаловать в WeKnora",
+        title: "Добро пожаловать в ThinkerFlow",
         desc: "Несколько простых шагов познакомят вас с базами знаний, чатом и агентами. Нажмите «Далее», чтобы начать.",
       },
     },

@@ -278,7 +278,7 @@ func (s *knowledgeService) GetFAQEntry(ctx context.Context,
 		return nil, werrors.NewNotFoundError("FAQ条目不存在")
 	}
 
-	// 验证chunk属于当前知识库
+	// 验证chunk属于当前认知库
 	if chunk.KnowledgeBaseID != kb.ID || chunk.TenantID != tenantID {
 		return nil, werrors.NewNotFoundError("FAQ条目不存在")
 	}
@@ -864,7 +864,7 @@ func (s *knowledgeService) UpdateFAQEntryTag(ctx context.Context, kbID string, e
 			return err
 		}
 		if tag.KnowledgeBaseID != kb.ID {
-			return werrors.NewBadRequestError("标签不属于当前知识库")
+			return werrors.NewBadRequestError("标签不属于当前认知库")
 		}
 		resolvedTagID = tag.ID
 	}
@@ -1266,7 +1266,7 @@ func (s *knowledgeService) DeleteFAQEntries(ctx context.Context,
 			}
 			if knowledge == nil || knowledge.TenantID != tenantID || knowledge.KnowledgeBaseID != kb.ID ||
 				knowledge.Type != types.KnowledgeTypeFAQ {
-				return werrors.NewForbiddenError("FAQ 文档不属于当前知识库")
+				return werrors.NewForbiddenError("FAQ 文档不属于当前认知库")
 			}
 			knowledges[chunk.KnowledgeID] = knowledge
 		}
@@ -1332,7 +1332,7 @@ func (s *knowledgeService) ExportFAQEntries(ctx context.Context, kbID string) ([
 	return s.buildFAQCSV(chunks, tagMap), nil
 }
 
-// ExportFAQEntriesJSON 以 JSON 数组形式导出 FAQ 知识库下的全部条目，
+// ExportFAQEntriesJSON 以 JSON 数组形式导出 FAQ 认知库下的全部条目，
 // 字段与 FAQEntryPayload 兼容，便于"导出 → 编辑 → 重新 append 导入"循环。
 func (s *knowledgeService) ExportFAQEntriesJSON(ctx context.Context, kbID string) ([]byte, error) {
 	kb, err := s.validateFAQKnowledgeBase(ctx, kbID)
@@ -1485,18 +1485,18 @@ func boolToCSV(b bool) string {
 
 func (s *knowledgeService) validateFAQKnowledgeBase(ctx context.Context, kbID string) (*types.KnowledgeBase, error) {
 	if kbID == "" {
-		return nil, werrors.NewBadRequestError("知识库 ID 不能为空")
+		return nil, werrors.NewBadRequestError("认知库 ID 不能为空")
 	}
 	kb, err := s.kbService.GetKnowledgeBaseByID(ctx, kbID)
 	if err != nil {
 		return nil, err
 	}
 	if kb == nil || kb.ID != kbID {
-		return nil, werrors.NewNotFoundError("知识库不存在")
+		return nil, werrors.NewNotFoundError("认知库不存在")
 	}
 	kb.EnsureDefaults()
 	if kb.Type != types.KnowledgeBaseTypeFAQ {
-		return nil, werrors.NewBadRequestError("仅 FAQ 知识库支持该操作")
+		return nil, werrors.NewBadRequestError("仅 FAQ 认知库支持该操作")
 	}
 	return kb, nil
 }
@@ -1635,7 +1635,7 @@ func buildFAQChunkContent(meta *types.FAQChunkMetadata, mode types.FAQIndexMode)
 	return builder.String()
 }
 
-// checkFAQQuestionDuplicate 检查标准问和相似问是否与知识库中其他条目重复
+// checkFAQQuestionDuplicate 检查标准问和相似问是否与认知库中其他条目重复
 // excludeChunkID 用于排除当前正在编辑的条目（更新时使用）
 // 按照批量导入时的检查方式：先构建已存在问题集合，再统一检查
 func (s *knowledgeService) checkFAQQuestionDuplicate(

@@ -1436,7 +1436,7 @@ func duplicateKBDefaultName(locale string) string {
 	locale = strings.ToLower(locale)
 	switch {
 	case strings.HasPrefix(locale, "zh"):
-		return "知识库"
+		return "认知库"
 	case strings.HasPrefix(locale, "ko"):
 		return "지식베이스"
 	case strings.HasPrefix(locale, "ru"):

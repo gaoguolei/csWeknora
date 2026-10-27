@@ -5,8 +5,8 @@ templates:
     description: "Standard template for answering questions based on knowledge base content"
     i18n:
       zh-CN:
-        name: "知识库问答助手"
-        description: "基础的知识库问答模板，适用于大多数场景"
+        name: "认知库问答助手"
+        description: "基础的认知库问答模板，适用于大多数场景"
       en-US:
         name: "Knowledge Base Assistant"
         description: "Basic knowledge base Q&A template for most scenarios"
@@ -132,7 +132,7 @@ templates:
     i18n:
       zh-CN:
         name: "通用对话"
-        description: "不依赖知识库的通用对话助手"
+        description: "不依赖认知库的通用对话助手"
       en-US:
         name: "General Chat"
         description: "General conversation assistant without knowledge base"

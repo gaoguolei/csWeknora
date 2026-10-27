@@ -12,10 +12,10 @@ builtin_agents:
         description: "Knowledge base RAG Q&A for fast and accurate answers"
       zh-CN:
         name: "快速问答"
-        description: "基于知识库的 RAG 问答，快速准确地回答问题"
+        description: "基于认知库的 RAG 问答，快速准确地回答问题"
       zh-TW:
         name: "快速問答"
-        description: "基於知識庫的 RAG 問答，快速準確地回答問題"
+        description: "基於認知庫的 RAG 問答，快速準確地回答問題"
       ja-JP:
         name: "クイック回答"
         description: "ナレッジベース RAG Q&A による迅速で正確な回答"
@@ -145,10 +145,10 @@ builtin_agents:
         description: "Specialized agent for answering questions based on Wiki knowledge bases"
       zh-CN:
         name: "维基问答"
-        description: "专注于在 Wiki 知识库中回答问题的智能体"
+        description: "专注于在 Wiki 认知库中回答问题的智能体"
       zh-TW:
         name: "維基問答"
-        description: "專注於在 Wiki 知識庫中回答問題的智能體"
+        description: "專注於在 Wiki 認知庫中回答問題的智能體"
       ja-JP:
         name: "Wiki 問答"
         description: "Wikiナレッジベースでの回答問題に特化したエージェント"
@@ -296,7 +296,7 @@ builtin_agents:
       temperature: 0.3
       max_completion_tokens: 0
       max_iterations: 30
-      # 关联知识库默认「不使用知识库」：前端按此值直接禁用知识库选择器，
+      # 关联认知库默认「不使用认知库」：前端按此值直接禁用认知库选择器，
       # 检索类工具随之失效，后端也不要求 rerank 模型
       # （agent_share.go agentRequiresRerankModel 对 "none" 短路）。
       kb_selection_mode: "none"

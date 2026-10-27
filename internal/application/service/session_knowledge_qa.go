@@ -758,7 +758,7 @@ func (s *sessionService) KnowledgeQAByEvent(ctx context.Context,
 		// retrieval stage short-circuited the pipeline (ErrSearchNothing or a
 		// hard error). The early returns below (fallback / stage_failed) would
 		// otherwise skip EndRetrievalProgress, leaving the "knowledge_search"
-		// tool_call pending — so the frontend keeps spinning on "正在检索知识库"
+		// tool_call pending — so the frontend keeps spinning on "正在检索认知库"
 		// forever even though the fallback answer has already streamed.
 		if retrievalProgress != nil && chatpipeline.ShouldCloseRetrievalProgress(eventType, lastRetrievalStage, err) {
 			chatpipeline.EndRetrievalProgress(stageCtx, chatManage, retrievalProgress, retrievalStart, err)

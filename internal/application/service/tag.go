@@ -70,7 +70,7 @@ func (s *knowledgeTagService) ListTags(
 	keyword string,
 ) (*types.PageResult, error) {
 	if kbID == "" {
-		return nil, werrors.NewBadRequestError("知识库ID不能为空")
+		return nil, werrors.NewBadRequestError("认知库ID不能为空")
 	}
 	if page == nil {
 		page = &types.Pagination{}
@@ -139,7 +139,7 @@ func (s *knowledgeTagService) CreateTag(
 ) (*types.KnowledgeTag, error) {
 	name = strings.TrimSpace(name)
 	if kbID == "" || name == "" {
-		return nil, werrors.NewBadRequestError("知识库ID和标签名称不能为空")
+		return nil, werrors.NewBadRequestError("认知库ID和标签名称不能为空")
 	}
 	kb, err := s.kbService.GetKnowledgeBaseByID(ctx, kbID)
 	if err != nil {
@@ -476,7 +476,7 @@ func (s *knowledgeTagService) ProcessIndexDelete(ctx context.Context, t *asynq.T
 func (s *knowledgeTagService) FindOrCreateTagByName(ctx context.Context, kbID string, name string) (*types.KnowledgeTag, error) {
 	name = strings.TrimSpace(name)
 	if kbID == "" || name == "" {
-		return nil, werrors.NewBadRequestError("知识库ID和标签名称不能为空")
+		return nil, werrors.NewBadRequestError("认知库ID和标签名称不能为空")
 	}
 
 	kb, err := s.kbService.GetKnowledgeBaseByID(ctx, kbID)

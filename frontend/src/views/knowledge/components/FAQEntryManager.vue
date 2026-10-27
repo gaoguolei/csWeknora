@@ -3064,23 +3064,23 @@ const downloadExampleOptions = computed(() => [
 // 示例数据
 const exampleData: FAQEntryPayload[] = [
   {
-    standard_question: "什么是 WeKnora？",
+    standard_question: "什么是 ThinkerFlow？",
     answers: [
-      "WeKnora 是一个智能知识库管理系统",
-      "它支持多种知识库类型和导入方式",
+      "ThinkerFlow 是一个智能认知库管理系统",
+      "它支持多种认知库类型和导入方式",
     ],
-    similar_questions: ["WeKnora 是什么？", "介绍一下 WeKnora"],
-    negative_questions: ["这不是 WeKnora", "与 WeKnora 无关"],
+    similar_questions: ["ThinkerFlow 是什么？", "介绍一下 ThinkerFlow"],
+    negative_questions: ["这不是 ThinkerFlow", "与 ThinkerFlow 无关"],
     tag_name: "产品介绍",
   },
   {
-    standard_question: "如何创建知识库？",
+    standard_question: "如何创建认知库？",
     answers: [
-      '点击"新建知识库"按钮',
-      "选择知识库类型并填写相关信息",
+      '点击"新建认知库"按钮',
+      "选择认知库类型并填写相关信息",
       "完成创建后即可开始使用",
     ],
-    similar_questions: ["怎么创建知识库？", "如何新建知识库？"],
+    similar_questions: ["怎么创建认知库？", "如何新建认知库？"],
     negative_questions: [],
     tag_name: "使用指南",
   },
@@ -4551,7 +4551,7 @@ watch(
   }
 }
 
-// 导入对话框样式 - 与创建知识库弹窗风格一致
+// 导入对话框样式 - 与创建认知库弹窗风格一致
 .faq-import-overlay {
   position: fixed;
   inset: 0;

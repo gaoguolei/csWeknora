@@ -28,7 +28,7 @@ const (
 
 var batchDownloadSlots = make(chan struct{}, maxConcurrentBatchDownloads)
 
-// BatchDownloadKnowledgeRequest 指定同一知识库中需要下载的文档。
+// BatchDownloadKnowledgeRequest 指定同一认知库中需要下载的文档。
 type BatchDownloadKnowledgeRequest struct {
 	IDs []string `json:"ids" binding:"required,min=1,max=200,dive,required,max=128"`
 }
@@ -40,11 +40,11 @@ type knowledgeDownloadEntry struct {
 
 // BatchDownloadKnowledge godoc
 // @Summary 批量下载知识文件
-// @Description 将同一知识库的最多 200 个文档打包为 ZIP，原始内容合计不超过 512 MiB。无原文件的条目会被跳过；无权访问、跨库或读取失败时不返回残缺压缩包。
+// @Description 将同一认知库的最多 200 个文档打包为 ZIP，原始内容合计不超过 512 MiB。无原文件的条目会被跳过；无权访问、跨库或读取失败时不返回残缺压缩包。
 // @Tags 知识管理
 // @Accept json
 // @Produce application/zip
-// @Param id path string true "知识库ID"
+// @Param id path string true "认知库ID"
 // @Param request body BatchDownloadKnowledgeRequest true "文档ID列表"
 // @Success 200 {file} file "ZIP 压缩包"
 // @Failure 400 {object} errors.AppError
@@ -92,11 +92,11 @@ func (h *KnowledgeHandler) BatchDownloadKnowledge(c *gin.Context) {
 		}
 	}
 	entries := make([]knowledgeDownloadEntry, 0, len(ids))
-	// 在读取任何文件之前检查整批文档，防止混入其他知识库或租户的 ID。
+	// 在读取任何文件之前检查整批文档，防止混入其他认知库或租户的 ID。
 	for _, id := range ids {
 		item := byID[id]
 		if item == nil {
-			_ = c.Error(errors.NewNotFoundError("部分文档不存在或不属于当前知识库，请刷新列表后重试"))
+			_ = c.Error(errors.NewNotFoundError("部分文档不存在或不属于当前认知库，请刷新列表后重试"))
 			return
 		}
 		if !item.IsManual() && item.FilePath == "" {

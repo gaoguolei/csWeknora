@@ -466,7 +466,7 @@ func (s *knowledgeService) processChunks(ctx context.Context,
 
 	// ========== DocReader 解析结果日志 ==========
 	logger.Infof(ctx, "[DocReader] ========== 解析结果概览 ==========")
-	logger.Infof(ctx, "[DocReader] 知识ID: %s, 知识库ID: %s", knowledge.ID, knowledge.KnowledgeBaseID)
+	logger.Infof(ctx, "[DocReader] 知识ID: %s, 认知库ID: %s", knowledge.ID, knowledge.KnowledgeBaseID)
 	logger.Infof(ctx, "[DocReader] 总Chunk数量: %d", len(chunks))
 
 	// 统计图片信息
@@ -3733,7 +3733,7 @@ func (s *knowledgeService) ProcessDocument(ctx context.Context, t *asynq.Task) e
 		logger.Warnf(ctx, "Unexpected parse status: %s for knowledge: %s", knowledge.ParseStatus, payload.KnowledgeID)
 	}
 
-	// 获取知识库信息
+	// 获取认知库信息
 	kb, err := s.kbService.GetKnowledgeBaseByID(ctx, payload.KnowledgeBaseID)
 	if err != nil {
 		logger.Errorf(ctx, "failed to get knowledge base: %v", err)

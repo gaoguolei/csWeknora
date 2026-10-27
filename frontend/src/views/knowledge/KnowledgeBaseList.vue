@@ -1126,7 +1126,12 @@ const showKbListEmpty = computed(() => {
 })
 
 const showKbListContextualGuide = computed(
-  () => showKbListEmpty.value && !uiStore.showKBEditorModal,
+  // 创建 CTA 仅 contributor 及以上可见（模板里 v-if="authStore.hasRole('contributor')"），
+  // viewer 空列表时引导会指向空气，直接不弹。
+  () =>
+    showKbListEmpty.value &&
+    !uiStore.showKBEditorModal &&
+    authStore.hasRole('contributor'),
 )
 
 const applyKbListData = (data: any[]) => {

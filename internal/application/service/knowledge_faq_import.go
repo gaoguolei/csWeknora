@@ -40,7 +40,7 @@ func (s *knowledgeService) UpsertFAQEntries(ctx context.Context,
 		return "", werrors.NewBadRequestError("模式仅支持 append 或 replace")
 	}
 
-	// 验证知识库是否存在且有效
+	// 验证认知库是否存在且有效
 	kb, ctx, err := s.writableFAQKnowledgeBase(ctx, kbID)
 	if err != nil {
 		return "", err
@@ -69,7 +69,7 @@ func (s *knowledgeService) UpsertFAQEntries(ctx context.Context,
 		// 检查失败不影响导入，继续执行
 	} else if runningTaskID != "" {
 		logger.Warnf(ctx, "Import task already running for KB %s: %s", kbID, runningTaskID)
-		return "", werrors.NewBadRequestError(fmt.Sprintf("该知识库已有导入任务正在进行中（任务ID: %s），请等待完成后再试", runningTaskID))
+		return "", werrors.NewBadRequestError(fmt.Sprintf("该认知库已有导入任务正在进行中（任务ID: %s），请等待完成后再试", runningTaskID))
 	}
 
 	// 确保 FAQ knowledge 存在
@@ -330,7 +330,7 @@ func csvEscape(s string) string {
 func (s *knowledgeService) saveFAQImportResultToDatabase(ctx context.Context,
 	payload *types.FAQImportPayload, progress *types.FAQImportProgress, originalTotalEntries int,
 ) error {
-	// 获取FAQ知识库实例
+	// 获取FAQ认知库实例
 	tenantID := ctx.Value(types.TenantIDContextKey).(uint64)
 	knowledge, err := s.repo.GetKnowledgeByID(ctx, tenantID, payload.KnowledgeID)
 	if err != nil {
@@ -477,7 +477,7 @@ func (s *knowledgeService) executeFAQDryRunValidation(ctx context.Context,
 // 分四阶段校验：
 // 阶段一（预校验）：
 //  1. 标准问 - 仅文件内部去重；如已有KB标准问则标记为合并候选
-//  2. 相似问 - 对比文件+知识库（合并候选排除自身已有问题） → 单条移除冲突相似问
+//  2. 相似问 - 对比文件+认知库（合并候选排除自身已有问题） → 单条移除冲突相似问
 //  3. 反例   - 仅对比当前QA自身标准问+相似问 → 单条移除冲突反例
 //
 // 阶段二（后校验，仅合并候选）：
@@ -487,7 +487,7 @@ func (s *knowledgeService) validateEntriesForAppendModeWithProgress(ctx context.
 ) []int {
 	totalEntries := len(entries)
 
-	// 查询知识库中已有的所有 FAQ chunks 的 metadata
+	// 查询认知库中已有的所有 FAQ chunks 的 metadata
 	existingChunks, err := s.chunkRepo.ListAllFAQChunksWithMetadataByKnowledgeBaseID(ctx, tenantID, kbID)
 	if err != nil {
 		logger.Warnf(ctx, "Failed to list existing FAQ chunks for dry run: %v", err)
@@ -561,7 +561,7 @@ func (s *knowledgeService) validateEntriesForAppendModeWithProgress(ctx context.
 			conflictStdQ := existingChunkIDToStdQ[conflictChunkID]
 			progress.FailedCount++
 			fe := buildFAQFailedEntry(i,
-				fmt.Sprintf(`标准问冲突：与知识库中标准问"%s"的相似问"%s"重复`, conflictStdQ, standardQ),
+				fmt.Sprintf(`标准问冲突：与认知库中标准问"%s"的相似问"%s"重复`, conflictStdQ, standardQ),
 				&entry)
 			fe.FailureType = "pre_validation"
 			progress.FailedEntries = append(progress.FailedEntries, fe)
@@ -624,14 +624,14 @@ func (s *knowledgeService) validateEntriesForAppendModeWithProgress(ctx context.
 				removedSimilarQuestions = append(removedSimilarQuestions, fmt.Sprintf(`「相似问冲突」："%s"与本条"标准问"冲突`, q))
 				continue
 			}
-			// 相似问校验：对比知识库已有标准问 + 相似问
+			// 相似问校验：对比认知库已有标准问 + 相似问
 			if _, exists := existingQuestionToChunkID[q]; exists {
 				// 合并候选：如果问题属于合并目标自身的 chunk，允许（去重合并时会处理）
 				if ownChunkQuestions != nil && ownChunkQuestions[q] {
 					validSimilarQuestions = append(validSimilarQuestions, q)
 					continue
 				}
-				removedSimilarQuestions = append(removedSimilarQuestions, fmt.Sprintf(`「相似问冲突」："%s"与知识库已有"标准问/相似问"冲突`, q))
+				removedSimilarQuestions = append(removedSimilarQuestions, fmt.Sprintf(`「相似问冲突」："%s"与认知库已有"标准问/相似问"冲突`, q))
 				continue
 			}
 			// 相似问校验：对比批次内标准问 + 相似问
@@ -1374,7 +1374,7 @@ func (s *knowledgeService) executeFAQImport(ctx context.Context, taskID string, 
 	payload *types.FAQBatchUpsertPayload, tenantID uint64, processedCount int,
 	progress *types.FAQImportProgress,
 ) (err error) {
-	// 保存知识库和embedding模型信息，用于清理索引
+	// 保存认知库和embedding模型信息，用于清理索引
 	var kb *types.KnowledgeBase
 	var embeddingModel embedding.Embedder
 	totalEntries := len(payload.Entries) + processedCount

@@ -60,7 +60,7 @@ func (s *knowledgeService) CreateKnowledgeFromFile(ctx context.Context,
 
 	// FAQ knowledge bases should not accept file uploads — use the FAQ import API instead
 	if kb.Type == types.KnowledgeBaseTypeFAQ {
-		return nil, werrors.NewBadRequestError("FAQ 知识库不支持文件上传，请使用 FAQ 导入功能")
+		return nil, werrors.NewBadRequestError("FAQ 认知库不支持文件上传，请使用 FAQ 导入功能")
 	}
 
 	if err := s.checkStorageEngineConfigured(ctx, kb); err != nil {
@@ -534,7 +534,7 @@ func (s *knowledgeService) createKnowledgeFromFileURL(
 	}
 
 	if kb.Type == types.KnowledgeBaseTypeFAQ {
-		return nil, werrors.NewBadRequestError("FAQ 知识库不支持文件上传，请使用 FAQ 导入功能")
+		return nil, werrors.NewBadRequestError("FAQ 认知库不支持文件上传，请使用 FAQ 导入功能")
 	}
 
 	if err := s.checkStorageEngineConfigured(ctx, kb); err != nil {

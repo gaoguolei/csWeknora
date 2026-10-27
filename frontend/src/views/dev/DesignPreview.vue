@@ -1,7 +1,7 @@
 <template>
   <div class="design-preview">
     <aside class="preview-nav">
-      <strong>WeKnora</strong>
+      <strong>ThinkerFlow</strong>
       <p>界面预览 · 示例数据</p>
       <button v-for="item in pages" :key="item.key" type="button" :aria-pressed="page === item.key" @click="page = item.key">
         <t-icon :name="item.icon" />{{ item.label }}
@@ -17,9 +17,9 @@
     </WorkspaceWelcome>
     <main v-else class="preview-page">
       <header class="header">
-        <div class="header-title"><div class="title-row"><h2>{{ pages.find(p => p.key === page)?.label }}</h2><t-button theme="primary">新建知识库</t-button></div><p class="header-subtitle">整理知识、连接工具，让每一次探索都有据可循。</p></div>
+        <div class="header-title"><div class="title-row"><h2>{{ pages.find(p => p.key === page)?.label }}</h2><t-button theme="primary">新建认知库</t-button></div><p class="header-subtitle">整理知识、连接工具，让每一次探索都有据可循。</p></div>
       </header>
-      <div class="preview-toolbar"><div class="preview-filters"><button v-for="item in ['全部', '收藏', '最近', '我的空间']" :key="item" :aria-pressed="filter === item" @click="filter = item">{{ item }}</button></div><t-input class="preview-search" v-model="query" placeholder="搜索知识库" clearable><template #prefix-icon><t-icon name="search" /></template></t-input></div>
+      <div class="preview-toolbar"><div class="preview-filters"><button v-for="item in ['全部', '收藏', '最近', '我的空间']" :key="item" :aria-pressed="filter === item" @click="filter = item">{{ item }}</button></div><t-input class="preview-search" v-model="query" placeholder="搜索认知库" clearable><template #prefix-icon><t-icon name="search" /></template></t-input></div>
       <div class="preview-content">
         <div v-if="page === 'resources'" class="preview-grid">
           <article v-for="item in resources.filter(r => r.title.includes(query))" :key="item.title" class="preview-card" tabindex="0">
@@ -58,7 +58,7 @@ import type { WorkspaceIntent } from '@/utils/workspaceEvents'
 const { currentTheme, setTheme } = useTheme()
 const page = ref('resources'), query = ref(''), filter = ref('全部'), section = ref('general')
 const settingsOpen = ref(false), enabled = ref(true), intent = ref<WorkspaceIntent>('chat')
-const pages = [{ key: 'welcome', label: '新对话', icon: 'chat' }, { key: 'resources', label: '知识库', icon: 'folder' }, { key: 'documents', label: '文档与空状态', icon: 'file' }]
+const pages = [{ key: 'welcome', label: '新对话', icon: 'chat' }, { key: 'resources', label: '认知库', icon: 'folder' }, { key: 'documents', label: '文档与空状态', icon: 'file' }]
 const resources = [
   { title: '产品手册', description: '功能说明、操作指南与常见问题，汇集到一个地方。', count: 12, icon: 'book-open' },
   { title: '团队知识', description: '保存讨论结论，记录每个项目的重要决定。', count: 8, icon: 'usergroup' },

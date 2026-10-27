@@ -49,7 +49,7 @@ func (s *knowledgeService) ReplaceKnowledgeFile(ctx context.Context,
 		return nil, err
 	}
 	if kb != nil && kb.Type == types.KnowledgeBaseTypeFAQ {
-		return nil, werrors.NewBadRequestError("FAQ 知识库不支持文件上传，请使用 FAQ 导入功能")
+		return nil, werrors.NewBadRequestError("FAQ 认知库不支持文件上传，请使用 FAQ 导入功能")
 	}
 	if existing.Type != "file" || existing.FilePath == "" {
 		return nil, werrors.NewBadRequestError("only file knowledge can have its file replaced")

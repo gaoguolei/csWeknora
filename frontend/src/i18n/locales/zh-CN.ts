@@ -585,7 +585,7 @@ export default {
   },
   integrations: {
     cli: {
-      title: "WeKnora CLI",
+      title: "ThinkerFlow CLI",
       subtitle:
         "在终端中管理认知库和文档、检索内容并发起问答，也可通过脚本或 MCP 接入 AI 工具。",
       docs: "查看 CLI 文档",
@@ -616,9 +616,9 @@ export default {
     filterByAgentWithName: "按智能体筛选：{name}",
     filterAllAgents: "全部智能体",
     claw: {
-      title: "WeKnora Skill",
+      title: "ThinkerFlow Skill",
       subtitle:
-        "通过 WeKnora REST API 导入文档并执行混合检索（向量 + 关键词）。适用于上传文件/URL/Markdown 到认知库、跨库检索与浏览知识内容。",
+        "通过 ThinkerFlow REST API 导入文档并执行混合检索（向量 + 关键词）。适用于上传文件/URL/Markdown 到认知库、跨库检索与浏览知识内容。",
       capabilitiesTitle: "Skill 能力",
       stepsTitle: "配置步骤",
       openApiSettings: "打开 API 信息",
@@ -628,7 +628,7 @@ export default {
       ecosystemNote:
         "Skill 托管于 ClawHub（{'@'}lyingbug/weknora），完整 API 说明与版本历史请参见 ClawHub 页面。",
       installCta: "前往 ClawHub",
-      installCtaHint: "安装 WeKnora Skill · 将在新标签页打开",
+      installCtaHint: "安装 ThinkerFlow Skill · 将在新标签页打开",
       hubMeta: "ClawHub · {'@'}lyingbug/weknora · MIT-0",
       steps: {
         verify: {
@@ -674,7 +674,7 @@ export default {
     chrome: {
       title: "知识管理助手",
       subtitle:
-        "配合 WeKnora 自建服务使用：在任意网页侧边栏提问、剪藏内容、Markdown 速记，将浏览中的知识沉淀到你的认知库。",
+        "配合 ThinkerFlow 自建服务使用：在任意网页侧边栏提问、剪藏内容、Markdown 速记，将浏览中的知识沉淀到你的认知库。",
       capabilitiesTitle: "核心能力",
       stepsTitle: "配置步骤",
       openApiSettings: "打开 API 信息",
@@ -694,7 +694,7 @@ export default {
         },
         port: {
           title: "桌面版配置固定端口（推荐）",
-          desc: "使用 WeKnora 桌面版时，在 API 信息中设置固定端口（如 37841），避免每次启动后地址变化导致插件断连。",
+          desc: "使用 ThinkerFlow 桌面版时，在 API 信息中设置固定端口（如 37841），避免每次启动后地址变化导致插件断连。",
         },
         api: {
           title: "获取 API 凭证",
@@ -857,7 +857,7 @@ export default {
       signedRecommended:
         "推荐给面向用户的应用：由你的业务后端为外部用户签发短期 HS256 JWT。",
       signedFlowDetail:
-        "HMAC 密钥仅保存在 WeKnora 与你的可信后端，切勿放入请求或下发给浏览器。请求头里传的是用该密钥签出的 JWT 字符串（每次签发或过期后会变），不是密钥本身。JWT 须包含 sub（外部用户 ID）、tenant_id、aud=weknora、exp（有效期不超过 24 小时）。",
+        "HMAC 密钥仅保存在 ThinkerFlow 与你的可信后端，切勿放入请求或下发给浏览器。请求头里传的是用该密钥签出的 JWT 字符串（每次签发或过期后会变），不是密钥本身。JWT 须包含 sub（外部用户 ID）、tenant_id、aud=weknora、exp（有效期不超过 24 小时）。",
       directHeader: "用户 ID 请求头",
       requireDirectHeader: "必须携带用户 ID",
       requireDirectHeaderDesc:
@@ -866,7 +866,7 @@ export default {
       tokenHeaderDesc: "客户端在该固定请求头中携带后端签发的 JWT。",
       hmacSecret: "HMAC 密钥",
       hmacSecretDesc:
-        "与 WeKnora 保存的同一份密钥；仅用于后端签发 JWT，不要作为请求头发送。",
+        "与 ThinkerFlow 保存的同一份密钥；仅用于后端签发 JWT，不要作为请求头发送。",
       secretConfigured: "已配置密钥（不可回看）；输入新值可轮换",
       secretSavedCopyHint:
         "密钥已保存，请立即复制到后端配置。离开本页后将无法再次查看。",
@@ -5456,7 +5456,7 @@ export default {
     showSuggestedQuestionsDesc:
       "访客未发言前展示快捷提问，内容来自智能体配置与关联认知库",
     originsHint:
-      "填写允许嵌入的宿主网站来源（A），不是 WeKnora 地址（B）。每行一个完整 Origin，如 https://shop.example.com；至少一项，支持 *.example.com 子域通配",
+      "填写允许嵌入的宿主网站来源（A），不是 ThinkerFlow 地址（B）。每行一个完整 Origin，如 https://shop.example.com；至少一项，支持 *.example.com 子域通配",
     originsRequired: "请至少填写一个域名白名单",
     originsInvalid: "域名格式无效：{origin}",
     originsWildcardProd: "生产环境不允许使用通配符 *",
@@ -5525,7 +5525,7 @@ export default {
     webhookUrlPlaceholder:
       "https://your-server.example.com/weknora/embed-events",
     webhookUrlDesc:
-      "可选。访客发消息与助手回复完成时，WeKnora 会向该 HTTPS 地址 POST 事件（message_sent / message_received）。",
+      "可选。访客发消息与助手回复完成时，ThinkerFlow 会向该 HTTPS 地址 POST 事件（message_sent / message_received）。",
     webhookSecret: "Webhook 签名密钥",
     webhookSecretPlaceholder: "用于 HMAC-SHA256 签名（X-WeKnora-Signature）",
     webhookSecretKeep: "留空表示不修改已保存的密钥",
@@ -5934,11 +5934,11 @@ export default {
     haveAccount: "已有账户？",
     backToLogin: "返回登录",
     loginHint: "登录以继续使用；首次使用请在下方创建账户。",
-    firstTime: "首次使用 WeKnora？",
+    firstTime: "首次使用 ThinkerFlow？",
     registerSuccess: "注册成功，请登录",
     registerFailed: "注册失败",
     subtitle: "面向 AI 原生软件工程的智能研发运行系统",
-    registerSubtitle: "创建账户并开始使用 WeKnora",
+    registerSubtitle: "创建账户并开始使用 ThinkerFlow",
     emailPlaceholder: "输入邮箱地址",
     passwordPlaceholder: "输入密码",
     confirmPasswordPlaceholder: "再次输入密码",
@@ -6244,7 +6244,7 @@ export default {
     title: "沙箱密钥",
     host: {
       title: "环境变量",
-      description: "给本机技能用的个人密钥，不是 WeKnora 的系统或部署配置。",
+      description: "给本机技能用的个人密钥，不是 ThinkerFlow 的系统或部署配置。",
       helpAria: "环境变量说明",
       introRuntimeBody:
         "技能在这台电脑上运行时才会注入；对话里也可以当场提供。保存后不再显示明文。",
@@ -6527,7 +6527,7 @@ export default {
         "本机 docker.sock 等同宿主机 root。仅私有化单机需要时，由系统管理员在「设置 → 系统设置 → 网络安全」中打开。",
       dockerDisabledCard: "部署未启用 Docker 沙箱，此配置不会再创建容器",
       dockerHostRisk:
-        "留空或 unix:// 会使用 WeKnora 所在机器的 Docker 守护进程，权限等同该机 root，只适合私有化单机。多套空间共用同一主机时请改用 Cube 或 E2B。远程 tcp:// 必须填写 TLS 证书目录。",
+        "留空或 unix:// 会使用 ThinkerFlow 所在机器的 Docker 守护进程，权限等同该机 root，只适合私有化单机。多套空间共用同一主机时请改用 Cube 或 E2B。远程 tcp:// 必须填写 TLS 证书目录。",
       addConfig: "添加沙箱",
       viewClusterGuide: "集群搭建指南",
       configName: "配置名称",
@@ -6636,14 +6636,14 @@ export default {
       legacyConfig: "已废弃",
       namedBackendHint:
         "空间配置是唯一运行时来源；智能体没有选择配置时不会执行技能脚本。",
-      weknoraTemplateTitle: "WeKnora 标准模板",
-      weknoraDockerImage: "WeKnora 标准镜像",
+      weknoraTemplateTitle: "ThinkerFlow 标准模板",
+      weknoraDockerImage: "ThinkerFlow 标准镜像",
       weknoraDockerImageHint:
         "每次会话独占一个长驻容器，脚本、shell 命令与文件都在同一个容器内，会话结束或空闲超时后回收。",
       weknoraTemplateOverview:
-        "WeKnora 负责提供标准运行环境。连接集群后会自动发现模板，缺少标准模板时自动创建。",
+        "ThinkerFlow 负责提供标准运行环境。连接集群后会自动发现模板，缺少标准模板时自动创建。",
       weknoraTemplateDescription:
-        "包含 WeKnora 技能所需的 Python、Node.js、CLI 工具、工作目录和非 root 执行用户。",
+        "包含 ThinkerFlow 技能所需的 Python、Node.js、CLI 工具、工作目录和非 root 执行用户。",
       recommendedTag: "推荐",
       templateNotConfigured: "未配置模板",
       cardTemplateConfigured: "模板已配置",
@@ -6663,7 +6663,7 @@ export default {
         "连接集群后刷新模板。缺少标准模板时点击创建；更改 DNS 后可在卡片上重建。",
       templateLoadFailed: "模板列表加载失败",
       standardTemplateProvisioning:
-        "已开始在集群中创建 WeKnora 标准模板，请稍后刷新查看状态",
+        "已开始在集群中创建 ThinkerFlow 标准模板，请稍后刷新查看状态",
       standardTemplateReplaced: "已删除原标准模板并开始重建，请等待状态就绪",
       templateNotReady: "所选模板尚未构建完成，请刷新并等待状态就绪",
       connectionPassed: "连接验证通过，以下模板均从当前集群实时加载。",
@@ -6673,16 +6673,16 @@ export default {
       loadingTemplates: "正在从集群加载模板…",
       templateBuildingHint: "模板正在构建，列表会自动刷新。",
       templateUntaggedHint:
-        "构建已完成，但没有构建带 default 标签，创建沙箱时无法解析。请在 E2B 删除该模板，刷新后 WeKnora 会重新构建。",
+        "构建已完成，但没有构建带 default 标签，创建沙箱时无法解析。请在 E2B 删除该模板，刷新后 ThinkerFlow 会重新构建。",
       templateFailedReason: "构建失败：{reason}",
       noTemplates: "当前集群未返回可用模板。",
-      weknoraStandardTemplate: "WeKnora 标准模板",
+      weknoraStandardTemplate: "ThinkerFlow 标准模板",
       createStandardTemplate: "创建",
       createStandardTemplateHint:
         "按当前连接配置构建，包含 DNS。之后改配置可在卡片上重建。",
       replaceStandardTemplate: "重建",
       replaceStandardTemplateConfirm:
-        "将用当前配置（含 DNS）重建 WeKnora 标准模板。新模板就绪前不会删除仍可启动的旧模板。",
+        "将用当前配置（含 DNS）重建 ThinkerFlow 标准模板。新模板就绪前不会删除仍可启动的旧模板。",
       templateLockedBySkills:
         "该沙箱已安装 Skill，技能环境绑在当前快照上，不能更换或重建运行模板。请新建一份沙箱，从新模板再装 Skill。",
       templateLockedByInFlight:
@@ -6716,7 +6716,7 @@ export default {
       cubeApiKeyWhere: "自建集群如何开启鉴权",
       cubeDnsServers: "DNS 服务器",
       cubeDnsServersHelp:
-        "可选。写入 WeKnora 标准模板的 nameserver（须为 IP）。留空则使用集群默认（常见 119.29.29.29）。私网或云上 UDP 53 出不去时，填 Cube 宿主机 /etc/resolv.conf 里能用的地址，并避开 10/8、172.16/12、192.168/16。已有标准模板需在模板卡片上点「重建」才会生效。",
+        "可选。写入 ThinkerFlow 标准模板的 nameserver（须为 IP）。留空则使用集群默认（常见 119.29.29.29）。私网或云上 UDP 53 出不去时，填 Cube 宿主机 /etc/resolv.conf 里能用的地址，并避开 10/8、172.16/12、192.168/16。已有标准模板需在模板卡片上点「重建」才会生效。",
       cubeDnsServersPlaceholder: "例如 8.8.8.8，回车添加",
       e2bApiKeyHelp: "在 E2B 控制台的 API Keys 页面创建，通常以 e2b_ 开头。",
       e2bApiKeyWhere: "前往 E2B 控制台获取 API Key",
@@ -6750,10 +6750,10 @@ export default {
         "留空跟随本机 docker CLI（DOCKER_HOST 或当前 docker context），不必手填 /var/run/docker.sock。远程守护进程填 tcp://host:2376，必须同时填写 TLS 证书目录，私网地址还要开启「允许访问私网地址」。",
       dockerTlsCertPath: "TLS 证书目录",
       dockerTlsCertPathHelp:
-        "WeKnora 所在主机上包含 ca.pem、cert.pem、key.pem 的目录。远程守护进程必填，证书不入库，由部署方挂载。",
+        "ThinkerFlow 所在主机上包含 ca.pem、cert.pem、key.pem 的目录。远程守护进程必填，证书不入库，由部署方挂载。",
       dockerIdleTtl: "空闲回收（秒）",
       dockerIdleTtlHelp:
-        "Docker 守护进程本身没有空闲超时。容器多久没有执行任何命令就会被 WeKnora 回收，会话继续时重建。留空按 1800 秒。",
+        "Docker 守护进程本身没有空闲超时。容器多久没有执行任何命令就会被 ThinkerFlow 回收，会话继续时重建。留空按 1800 秒。",
       dockerCpuLimit: "CPU 核数上限",
       dockerCpuLimitHelp: "单个沙箱可用的 CPU 核数，0 使用内置默认。",
       dockerMemoryLimit: "内存上限（MB）",
@@ -8451,9 +8451,17 @@ export default {
         title: "配置你的模型",
         desc: "这是关键一步：在模型管理中添加对话、向量等模型，认知库与对话功能才能正常工作。点击「添加模型」即可开始配置。",
       },
-      settings: {
-        title: "账户与设置入口",
-        desc: "点开这里可以管理账户、成员与系统设置。需要再次查看本引导时，可点击菜单顶部昵称旁的帮助按钮重新打开。",
+      settingsMember: {
+        title: "个人账户与偏好",
+        desc: "点开这里可以进入设置：管理个人资料、语言与偏好。需要再次查看本引导时，可点击菜单顶部昵称旁的帮助按钮重新打开。",
+      },
+      settingsWorkspaceAdmin: {
+        title: "账户与空间设置",
+        desc: "点开这里可以进入设置：除了个人资料与偏好，作为空间管理员你还可以管理空间信息、成员与数据源。需要再次查看本引导时，可点击菜单顶部昵称旁的帮助按钮重新打开。",
+      },
+      settingsSuper: {
+        title: "账户、空间与平台设置",
+        desc: "点开这里可以进入设置：除了个人账户与空间管理，超管和运营管理员还能进入「系统管理」配置模型、全局设置、任务队列与审计日志。需要再次查看本引导时，可点击菜单顶部昵称旁的帮助按钮重新打开。",
       },
       agents: {
         title: "打造专属智能体",
@@ -8465,7 +8473,7 @@ export default {
       },
       knowledge: {
         title: "创建你的认知库",
-        desc: "认知库是一切的起点：上传文档、网页或 FAQ，WeKnora 会自动解析并建立索引。点击这里进入认知库。",
+        desc: "认知库是一切的起点：上传文档、网页或 FAQ，ThinkerFlow 会自动解析并建立索引。点击这里进入认知库。",
       },
       welcome: {
         title: "欢迎使用ThinkerFlow",

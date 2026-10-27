@@ -45,7 +45,7 @@ var (
 	PlaceholderContexts = PromptPlaceholder{
 		Name:        "contexts",
 		Label:       "检索内容",
-		Description: "从知识库检索到的相关内容列表",
+		Description: "从认知库检索到的相关内容列表",
 	}
 
 	PlaceholderCurrentTime = PromptPlaceholder{
@@ -82,8 +82,8 @@ var (
 	// Agent mode specific placeholders
 	PlaceholderKnowledgeBases = PromptPlaceholder{
 		Name:        "knowledge_bases",
-		Label:       "知识库列表",
-		Description: "自动格式化的知识库列表，包含名称、描述、文档数量等信息",
+		Label:       "认知库列表",
+		Description: "自动格式化的认知库列表，包含名称、描述、文档数量等信息",
 	}
 
 	PlaceholderWebSearchStatus = PromptPlaceholder{

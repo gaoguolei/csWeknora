@@ -682,15 +682,15 @@ const messages = {
       "enterDescription": "輸入描述",
       "referencedContent": "引用了 {count} 個相關資料",
       "deepThinking": "深度思考完成",
-      "knowledgeBaseQandA": "知識庫問答",
-      "askKnowledgeBase": "向知識庫提問",
+      "knowledgeBaseQandA": "認知庫問答",
+      "askKnowledgeBase": "向認知庫提問",
       "sourcesCount": "{count} 個來源",
       "pleaseEnterContent": "請輸入內容！",
-      "pleaseUploadKnowledgeBase": "請先上傳知識庫！",
+      "pleaseUploadKnowledgeBase": "請先上傳認知庫！",
       "replyingPleaseWait": "正在回覆，請稍後再試！",
       "createSessionFailed": "建立會話失敗",
       "createSessionError": "建立會話出錯",
-      "unableToGetKnowledgeBaseId": "無法獲取知識庫ID",
+      "unableToGetKnowledgeBaseId": "無法獲取認知庫ID",
       "summaryInProgress": "正在總結答案……",
       "thinkingAlt": "正在思考",
       "conversationTime": {
@@ -714,11 +714,11 @@ const messages = {
       "referencesDrawerTitleTools": "工具結果",
       "referencesDrawerTitleMixed": "參考來源",
       "referencesDrawerWebSection": "網頁",
-      "referencesDrawerDocsSection": "知識庫文件",
+      "referencesDrawerDocsSection": "認知庫文件",
       "referencesDrawerToolsSection": "工具",
       "referencesDrawerEmpty": "暫無參考來源",
       "referenceChunkCount": "{count}個片段",
-      "fallbackHint": "未從知識庫中檢索到相關內容，以上為模型直接回答",
+      "fallbackHint": "未從認知庫中檢索到相關內容，以上為模型直接回答",
       "requestInfoTitle": "請求資訊",
       "requestInfoRequestId": "Request ID",
       "requestInfoMessageId": "訊息 ID",
@@ -796,8 +796,8 @@ const messages = {
       "contentLengthLabelSimple": "內容長度:",
       "fullContentLabel": "完整內容",
       "copyContent": "複製內容",
-      "knowledgeBaseCount": "共 {count} 個知識庫",
-      "noKnowledgeBases": "沒有可用的知識庫",
+      "knowledgeBaseCount": "共 {count} 個認知庫",
+      "noKnowledgeBases": "沒有可用的認知庫",
       "rawOutputLabel": "原始輸出",
       "wikiWritePageTitle": "Wiki 頁面寫入",
       "wikiReplaceTextTitle": "Wiki 文字取代",
@@ -817,7 +817,7 @@ const messages = {
       "wikiFieldNewSlug": "新路徑",
       "wikiFieldAffectedPages": "受影響頁面",
       "wikiAffectedCount": "{count} 個頁面的連結已更新",
-      "selectKnowledgeBaseWarning": "請至少選擇一個知識庫",
+      "selectKnowledgeBaseWarning": "請至少選擇一個認知庫",
       "processError": "處理出錯",
       "sessionExcerpt": "會話摘錄",
       "noAnswerContent": "（無回答內容）",
@@ -842,7 +842,7 @@ const messages = {
       "copySuccess": "已複製到剪貼簿",
       "copyFailed": "複製失敗",
       "emptyContentWarning": "當前回答為空",
-      "editorOpened": "已打開編輯器，請選擇知識庫後儲存"
+      "editorOpened": "已打開編輯器，請選擇認知庫後儲存"
     },
     "common": {
       "loading": "載入中...",
@@ -862,7 +862,7 @@ const messages = {
       "taskLabel": "任務:",
       "think": "思考",
       "copy": "複製",
-      "addToKnowledgeBase": "新增到知識庫",
+      "addToKnowledgeBase": "新增到認知庫",
       "artifactDrawer": {
         "buttonTitle": "查看本次生成的檔案",
         "title": "生成的檔案",
@@ -963,7 +963,7 @@ const messages = {
         }
       },
       "tools": {
-        "searchKnowledge": "知識庫檢索",
+        "searchKnowledge": "認知庫檢索",
         "grepChunks": "搜尋關鍵字",
         "webSearch": "網路搜尋",
         "webFetch": "網頁抓取",
@@ -1013,7 +1013,7 @@ const messages = {
         "binarySuppressed": "二進位輸出已省略，請將檔案寫入產物目錄後下載"
       },
       "summary": {
-        "searchKb": "檢索知識庫 <strong>{count}</strong> 次",
+        "searchKb": "檢索認知庫 <strong>{count}</strong> 次",
         "thinking": "思考 <strong>{count}</strong> 次",
         "callTool": "呼叫 {name}",
         "callTools": "呼叫工具 {names}",
@@ -1026,7 +1026,7 @@ const messages = {
         "notFound": "未找到內容",
         "loadFailed": "載入失敗",
         "chunkId": "片段ID",
-        "noKbForWiki": "無法識別關聯的知識庫，無法打開 Wiki"
+        "noKbForWiki": "無法識別關聯的認知庫，無法打開 Wiki"
       },
       "toolSummary": {
         "getDocument": "獲取文件：{title}",
@@ -1070,23 +1070,23 @@ const messages = {
       "ragPipeline": {
         "understanding": "正在理解問題...",
         "understandDone": "已完成問題理解",
-        "searching": "正在檢索知識庫...",
-        "searchingWithQuery": "正在檢索知識庫：「{query}」",
+        "searching": "正在檢索認知庫...",
+        "searchingWithQuery": "正在檢索認知庫：「{query}」",
         "searchingWeb": "正在檢索網路...",
         "searchingWebWithQuery": "正在檢索網路：「{query}」",
-        "searchingMixed": "正在檢索知識庫和網路...",
-        "searchingMixedWithQuery": "正在檢索知識庫和網路：「{query}」",
+        "searchingMixed": "正在檢索認知庫和網路...",
+        "searchingMixedWithQuery": "正在檢索認知庫和網路：「{query}」",
         "searchDone": "檢索完成",
-        "searchDoneWithQuery": "檢索知識庫：「{query}」",
+        "searchDoneWithQuery": "檢索認知庫：「{query}」",
         "referencedDocs": "引用 <strong>{count}</strong> 篇文件",
         "referencedWebs": "引用 <strong>{count}</strong> 條網頁",
         "referencedDocAndWeb": "引用 <strong>{docCount}</strong> 篇文件和 <strong>{webCount}</strong> 條網頁"
       },
       "toolStatus": {
         "calling": "正在呼叫 {name}...",
-        "searchKb": "檢索知識庫",
-        "searchKbFailed": "檢索知識庫失敗",
-        "searchMixed": "檢索知識庫和網路",
+        "searchKb": "檢索認知庫",
+        "searchKbFailed": "檢索認知庫失敗",
+        "searchMixed": "檢索認知庫和網路",
         "searchMixedFailed": "檢索失敗",
         "webSearch": "網路搜尋",
         "webSearchFailed": "網路搜尋失敗",
@@ -1117,8 +1117,8 @@ const messages = {
         "failed": "複製失敗，請手動複製"
       },
       "saveToKb": {
-        "emptyContent": "當前回答為空，無法儲存到知識庫",
-        "editorOpened": "已打開編輯器，請選擇知識庫後儲存"
+        "emptyContent": "當前回答為空，無法儲存到認知庫",
+        "editorOpened": "已打開編輯器，請選擇認知庫後儲存"
       }
     },
     "input": {
@@ -1144,7 +1144,7 @@ const messages = {
       },
       "messages": {
         "enterContent": "請先輸入內容!",
-        "selectKnowledge": "請先選擇知識庫!",
+        "selectKnowledge": "請先選擇認知庫!",
         "replying": "正在回覆中，請稍後再試!",
         "agentSwitchedOn": "已切換到智慧推論",
         "agentSwitchedOff": "已切換到快速問答",

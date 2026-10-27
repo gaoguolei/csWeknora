@@ -615,7 +615,7 @@ export default {
   },
   integrations: {
     cli: {
-      title: "WeKnora CLI",
+      title: "ThinkerFlow CLI",
       subtitle:
         "터미널에서 지식 베이스와 문서를 관리하고, 콘텐츠를 검색하고, 질문하세요. CLI 또는 MCP로 스크립트와 AI 도구를 연결할 수 있습니다.",
       docs: "CLI 문서 보기",
@@ -647,9 +647,9 @@ export default {
     filterByAgentWithName: "에이전트별 필터: {name}",
     filterAllAgents: "전체 에이전트",
     claw: {
-      title: "WeKnora Skill",
+      title: "ThinkerFlow Skill",
       subtitle:
-        "WeKnora REST API로 문서를 가져오고 하이브리드 검색(벡터+키워드)을 수행합니다. 파일/URL/Markdown 업로드 및 검색에 사용.",
+        "ThinkerFlow REST API로 문서를 가져오고 하이브리드 검색(벡터+키워드)을 수행합니다. 파일/URL/Markdown 업로드 및 검색에 사용.",
       capabilitiesTitle: "Skill 기능",
       stepsTitle: "구성 단계",
       openApiSettings: "API 정보 열기",
@@ -659,7 +659,7 @@ export default {
       ecosystemNote:
         "Skill은 ClawHub({'@'}lyingbug/weknora)에 호스팅됩니다. 전체 API 문서는 ClawHub 페이지를 참고하세요.",
       installCta: "ClawHub 열기",
-      installCtaHint: "WeKnora Skill 설치 · 새 탭에서 열림",
+      installCtaHint: "ThinkerFlow Skill 설치 · 새 탭에서 열림",
       hubMeta: "ClawHub · {'@'}lyingbug/weknora · MIT-0",
       steps: {
         verify: {
@@ -705,7 +705,7 @@ export default {
     chrome: {
       title: "지식 관리 어시스턴트",
       subtitle:
-        "자체 호스팅 WeKnora와 함께: 사이드바에서 질문하고, 웹 페이지를 클리핑하며, Markdown 메모를 지식베이스에 저장하세요.",
+        "자체 호스팅 ThinkerFlow와 함께: 사이드바에서 질문하고, 웹 페이지를 클리핑하며, Markdown 메모를 지식베이스에 저장하세요.",
       capabilitiesTitle: "핵심 기능",
       stepsTitle: "구성 단계",
       openApiSettings: "API 정보 열기",
@@ -725,7 +725,7 @@ export default {
         },
         port: {
           title: "데스크톱: 고정 포트(권장)",
-          desc: "WeKnora 데스크톱에서는 API 정보에서 고정 포트(예: 37841)를 설정하세요.",
+          desc: "ThinkerFlow 데스크톱에서는 API 정보에서 고정 포트(예: 37841)를 설정하세요.",
         },
         api: {
           title: "API 자격 증명",
@@ -893,7 +893,7 @@ export default {
       signedRecommended:
         "사용자 대상 앱에 권장: 비즈니스 백엔드가 외부 사용자용 단기 HS256 JWT를 서명합니다.",
       signedFlowDetail:
-        "HMAC secret은 WeKnora와 신뢰할 수 있는 백엔드에만 보관하세요. 요청에 넣거나 브라우저에 배포하지 마세요. 요청 헤더에는 secret이 아니라 해당 secret으로 서명한 JWT 문자열을 넣습니다(발급마다 또는 만료 후 변경). JWT에는 sub(외부 사용자 ID), tenant_id, aud=weknora, exp(최대 24시간)가 필요합니다.",
+        "HMAC secret은 ThinkerFlow와 신뢰할 수 있는 백엔드에만 보관하세요. 요청에 넣거나 브라우저에 배포하지 마세요. 요청 헤더에는 secret이 아니라 해당 secret으로 서명한 JWT 문자열을 넣습니다(발급마다 또는 만료 후 변경). JWT에는 sub(외부 사용자 ID), tenant_id, aud=weknora, exp(최대 24시간)가 필요합니다.",
       directHeader: "사용자 ID 헤더",
       requireDirectHeader: "사용자 ID 헤더 필수",
       requireDirectHeaderDesc:
@@ -903,7 +903,7 @@ export default {
         "클라이언트는 이 고정 헤더에 백엔드가 서명한 JWT를 전달합니다.",
       hmacSecret: "HMAC secret",
       hmacSecretDesc:
-        "WeKnora에 저장된 것과 동일한 secret. 백엔드에서 JWT 서명에만 사용하며 요청 헤더로 보내지 않습니다.",
+        "ThinkerFlow에 저장된 것과 동일한 secret. 백엔드에서 JWT 서명에만 사용하며 요청 헤더로 보내지 않습니다.",
       secretConfigured:
         "Secret configured (not shown again); enter a new value to rotate",
       secretSavedCopyHint:
@@ -5674,7 +5674,7 @@ export default {
     showSuggestedQuestionsDesc:
       "방문자 첫 메시지 전에 빠른 질문을 표시합니다(에이전트 설정 및 연결된 지식베이스에서 가져옴)",
     originsHint:
-      "WeKnora 주소(B)가 아닌 임베드를 허용할 호스트 웹사이트(A)를 입력하세요. 한 줄에 하나의 Origin(예: https://shop.example.com), 최소 1개. *.example.com 지원.",
+      "ThinkerFlow 주소(B)가 아닌 임베드를 허용할 호스트 웹사이트(A)를 입력하세요. 한 줄에 하나의 Origin(예: https://shop.example.com), 최소 1개. *.example.com 지원.",
     originsRequired: "허용 도메인을 최소 1개 입력하세요",
     originsInvalid: "잘못된 도메인: {origin}",
     originsWildcardProd: "프로덕션에서는 와일드카드 '*'를 사용할 수 없습니다",
@@ -5747,7 +5747,7 @@ export default {
     webhookUrlPlaceholder:
       "https://your-server.example.com/weknora/embed-events",
     webhookUrlDesc:
-      "Optional. WeKnora POSTs message_sent / message_received events to this HTTPS endpoint.",
+      "Optional. ThinkerFlow POSTs message_sent / message_received events to this HTTPS endpoint.",
     webhookSecret: "Webhook secret",
     webhookSecretPlaceholder: "HMAC-SHA256 secret (X-WeKnora-Signature header)",
     webhookSecretKeep: "Leave blank to keep the saved secret",
@@ -5866,7 +5866,7 @@ export default {
     },
   },
   createChat: {
-    title: "안녕하세요, WeKnora입니다 — 당신의 지식을 손끝에",
+    title: "안녕하세요, ThinkerFlow입니다 — 당신의 지식을 손끝에",
     newSessionTitle: "새 세션",
     openProject: "프로젝트 선택",
     clearProject: "바인딩 해제",
@@ -6175,12 +6175,12 @@ export default {
     haveAccount: "이미 계정이 있으신가요?",
     backToLogin: "로그인으로 돌아가기",
     loginHint: "로그인하여 계속하세요. 처음이시라면 아래에서 계정을 만드세요.",
-    firstTime: "WeKnora가 처음이신가요?",
+    firstTime: "ThinkerFlow가 처음이신가요?",
     registerSuccess: "가입이 완료되었습니다. 로그인해주세요",
     registerFailed: "가입 실패",
     subtitle:
       "AI 네이티브 소프트웨어 엔지니어링을 위한 지능형 R&D 운영 시스템",
-    registerSubtitle: "계정을 만들고 WeKnora를 시작하세요",
+    registerSubtitle: "계정을 만들고 ThinkerFlow를 시작하세요",
     emailPlaceholder: "이메일 주소 입력",
     passwordPlaceholder: "비밀번호 입력",
     confirmPasswordPlaceholder: "비밀번호 다시 입력",
@@ -6506,7 +6506,7 @@ export default {
     host: {
       title: "환경 변수",
       description:
-        "이 컴퓨터의 스킬에 쓰는 개인 키이며, WeKnora 시스템이나 배포 설정이 아닙니다.",
+        "이 컴퓨터의 스킬에 쓰는 개인 키이며, ThinkerFlow 시스템이나 배포 설정이 아닙니다.",
       helpAria: "환경 변수 설명",
       introRuntimeBody:
         "스킬이 이 컴퓨터에서 실행될 때 주입됩니다. 대화 중에 바로 제공할 수도 있습니다. 저장 후에는 평문을 다시 보여 주지 않습니다.",
@@ -6796,7 +6796,7 @@ export default {
         cube: "Self-hosted MicroVM cluster for private or on-premises deployments",
         e2b: "Managed MicroVM service or an E2B-compatible deployment",
         docker:
-          "이 WeKnora 호스트의 Docker에서 세션마다 장수명 컨테이너를 유지합니다. 스크립트와 파일이 같은 컨테이너에 남습니다",
+          "이 ThinkerFlow 호스트의 Docker에서 세션마다 장수명 컨테이너를 유지합니다. 스크립트와 파일이 같은 컨테이너에 남습니다",
       },
       dockerDisabledAlert: "이 배포에서는 Docker 샌드박스가 켜져 있지 않습니다",
       dockerDisabledHint:
@@ -6804,7 +6804,7 @@ export default {
       dockerDisabledCard:
         "이 배포에서 Docker 샌드박스가 꺼져 있어 이 구성은 컨테이너를 만들지 않습니다",
       dockerHostRisk:
-        "비우거나 unix:// 를 쓰면 WeKnora가 있는 머신의 Docker 데몬을 사용하며, 그 권한은 해당 머신의 root와 같습니다. 프라이빗 단일 노드에만 쓰세요. 여러 워크스페이스가 같은 호스트를 쓰는 경우에는 Cube 또는 E2B를 쓰세요. 원격 tcp:// 는 TLS 인증서 디렉터리가 필요합니다.",
+        "비우거나 unix:// 를 쓰면 ThinkerFlow가 있는 머신의 Docker 데몬을 사용하며, 그 권한은 해당 머신의 root와 같습니다. 프라이빗 단일 노드에만 쓰세요. 여러 워크스페이스가 같은 호스트를 쓰는 경우에는 Cube 또는 E2B를 쓰세요. 원격 tcp:// 는 TLS 인증서 디렉터리가 필요합니다.",
       addConfig: "샌드박스 추가",
       viewClusterGuide: "Cluster setup guide",
       configName: "Config name",
@@ -6918,14 +6918,14 @@ export default {
       legacyConfig: "Deprecated",
       namedBackendHint:
         "Workspace configuration is the only runtime source. Agents without one cannot execute skill scripts.",
-      weknoraTemplateTitle: "WeKnora standard template",
-      weknoraDockerImage: "WeKnora standard image",
+      weknoraTemplateTitle: "ThinkerFlow standard template",
+      weknoraDockerImage: "ThinkerFlow standard image",
       weknoraDockerImageHint:
         "Each session gets its own long-lived container. Scripts, shell commands and files all share it until the session ends or the idle timeout reclaims it.",
       weknoraTemplateOverview:
-        "WeKnora provides the standard runtime. Templates are discovered after connecting and the standard one is created when missing.",
+        "ThinkerFlow provides the standard runtime. Templates are discovered after connecting and the standard one is created when missing.",
       weknoraTemplateDescription:
-        "Includes the Python, Node.js, CLI tools, workspace path, and non-root execution user expected by WeKnora skills.",
+        "Includes the Python, Node.js, CLI tools, workspace path, and non-root execution user expected by ThinkerFlow skills.",
       recommendedTag: "Recommended",
       templateNotConfigured: "Template not configured",
       cardTemplateConfigured: "템플릿 설정됨",
@@ -6945,7 +6945,7 @@ export default {
         "Refresh after connecting. Create the standard template if missing; rebuild it after changing DNS.",
       templateLoadFailed: "Failed to load templates",
       standardTemplateProvisioning:
-        "The WeKnora standard template is being created. Refresh shortly to see its status.",
+        "The ThinkerFlow standard template is being created. Refresh shortly to see its status.",
       standardTemplateReplaced:
         "기존 표준 템플릿을 삭제했고 재구축을 시작했습니다. 준비될 때까지 기다리세요.",
       templateNotReady:
@@ -6959,16 +6959,16 @@ export default {
       templateBuildingHint:
         "템플릿을 구축하는 중입니다. 목록이 자동으로 새로고침됩니다.",
       templateUntaggedHint:
-        "빌드는 끝났지만 default 태그가 붙은 빌드가 없어 샌드박스 생성 시 이 템플릿을 찾을 수 없습니다. E2B에서 템플릿을 삭제하고 새로고침하면 WeKnora가 다시 빌드합니다.",
+        "빌드는 끝났지만 default 태그가 붙은 빌드가 없어 샌드박스 생성 시 이 템플릿을 찾을 수 없습니다. E2B에서 템플릿을 삭제하고 새로고침하면 ThinkerFlow가 다시 빌드합니다.",
       templateFailedReason: "빌드 실패: {reason}",
       noTemplates: "No templates were returned by this cluster.",
-      weknoraStandardTemplate: "WeKnora 표준 템플릿",
+      weknoraStandardTemplate: "ThinkerFlow 표준 템플릿",
       createStandardTemplate: "만들기",
       createStandardTemplateHint:
         "현재 연결 설정(DNS 포함)으로 구축합니다. 설정을 바꾼 뒤에는 카드에서 재구축하세요.",
       replaceStandardTemplate: "재구축",
       replaceStandardTemplateConfirm:
-        "현재 설정(DNS 포함)으로 WeKnora 표준 템플릿을 다시 만듭니다. 새 템플릿이 준비되기 전에는 기존에 쓸 수 있는 템플릿을 삭제하지 않습니다.",
+        "현재 설정(DNS 포함)으로 ThinkerFlow 표준 템플릿을 다시 만듭니다. 새 템플릿이 준비되기 전에는 기존에 쓸 수 있는 템플릿을 삭제하지 않습니다.",
       templateLockedBySkills:
         "이 샌드박스에는 이미 Skill이 설치되어 있습니다. 스킬 환경이 현재 스냅샷에 묶여 있어 런타임 템플릿을 바꾸거나 재구축할 수 없습니다. 새 샌드박스를 만들고 새 템플릿에서 Skill을 다시 설치하세요.",
       templateLockedByInFlight:
@@ -7004,7 +7004,7 @@ export default {
       cubeApiKeyWhere: "자체 호스팅 클러스터에서 인증을 켜는 방법",
       cubeDnsServers: "DNS 서버",
       cubeDnsServersHelp:
-        "선택 사항입니다. WeKnora 표준 템플릿에 기록되는 nameserver IP입니다. 비워 두면 클러스터 기본값(보통 119.29.29.29)을 사용합니다. 공용 DNS로 UDP/53이 나가지 않으면 Cube 호스트 /etc/resolv.conf에서 도달 가능한 주소를 넣고, 10/8, 172.16/12, 192.168/16은 피하세요. 이미 있는 표준 템플릿은 카드에서 「재구축」을 눌러야 변경이 적용됩니다.",
+        "선택 사항입니다. ThinkerFlow 표준 템플릿에 기록되는 nameserver IP입니다. 비워 두면 클러스터 기본값(보통 119.29.29.29)을 사용합니다. 공용 DNS로 UDP/53이 나가지 않으면 Cube 호스트 /etc/resolv.conf에서 도달 가능한 주소를 넣고, 10/8, 172.16/12, 192.168/16은 피하세요. 이미 있는 표준 템플릿은 카드에서 「재구축」을 눌러야 변경이 적용됩니다.",
       cubeDnsServersPlaceholder: "예: 8.8.8.8, Enter로 추가",
       e2bApiKeyHelp:
         "E2B 대시보드의 API Keys 페이지에서 생성하며 보통 e2b_ 로 시작합니다.",
@@ -7040,10 +7040,10 @@ export default {
         'Empty follows the local docker CLI (DOCKER_HOST or the current docker context), so you do not have to type /var/run/docker.sock. For a remote daemon use tcp://host:2376, fill in the TLS certificate directory, and turn on "allow private endpoints" for RFC1918 addresses.',
       dockerTlsCertPath: "TLS certificate directory",
       dockerTlsCertPathHelp:
-        "Directory on the WeKnora host holding ca.pem, cert.pem and key.pem. Required for a remote daemon; certificates are mounted by the deployment, never stored here.",
+        "Directory on the ThinkerFlow host holding ca.pem, cert.pem and key.pem. Required for a remote daemon; certificates are mounted by the deployment, never stored here.",
       dockerIdleTtl: "Idle reclaim (seconds)",
       dockerIdleTtlHelp:
-        "The Docker daemon has no idle timeout of its own. A container that runs no command for this long is reclaimed by WeKnora and rebuilt when the session continues. Empty means 1800 seconds.",
+        "The Docker daemon has no idle timeout of its own. A container that runs no command for this long is reclaimed by ThinkerFlow and rebuilt when the session continues. Empty means 1800 seconds.",
       dockerCpuLimit: "CPU cores",
       dockerCpuLimitHelp:
         "CPU cores available to one sandbox; 0 uses the built-in default.",
@@ -8843,9 +8843,17 @@ export default {
         title: "모델 구성하기",
         desc: "핵심 단계입니다. 모델 관리에서 대화·임베딩 등 모델을 추가해야 지식 베이스와 대화 기능이 정상 작동합니다. '모델 추가'를 클릭해 시작하세요.",
       },
-      settings: {
-        title: "계정 및 설정 입구",
-        desc: "여기를 열면 계정, 멤버, 시스템 설정을 관리할 수 있습니다. 이 가이드는 메뉴 상단 닉네임 옆 도움말 버튼에서 다시 열 수 있습니다.",
+      settingsMember: {
+        title: "계정 및 개인 설정",
+        desc: "여기를 눌러 설정에 들어가 프로필·언어·개인 설정을 관리할 수 있습니다. 이 가이드는 메뉴 상단 닉네임 옆 도움말 버튼에서 언제든 다시 열 수 있습니다.",
+      },
+      settingsWorkspaceAdmin: {
+        title: "계정 및 워크스페이스 설정",
+        desc: "여기를 눌러 설정에 들어가면 개인 설정뿐 아니라 워크스페이스 관리자로서 워크스페이스 정보·멤버·데이터 소스도 관리할 수 있습니다. 이 가이드는 메뉴 상단 닉네임 옆 도움말 버튼에서 언제든 다시 열 수 있습니다.",
+      },
+      settingsSuper: {
+        title: "계정·워크스페이스·플랫폼 설정",
+        desc: "여기를 눌러 설정에 들어가면 개인 및 워크스페이스 설정에 더해, 초관리자와 운영 관리자는 '시스템 관리'에서 모델·전역 설정·작업 큐·감사 로그를 구성할 수 있습니다. 이 가이드는 메뉴 상단 닉네임 옆 도움말 버튼에서 언제든 다시 열 수 있습니다.",
       },
       agents: {
         title: "전용 에이전트 구축",
@@ -8857,10 +8865,10 @@ export default {
       },
       knowledge: {
         title: "지식 베이스 만들기",
-        desc: "모든 것의 시작점입니다. 문서, 웹페이지, FAQ를 업로드하면 WeKnora가 자동으로 분석하고 색인합니다. 여기를 클릭해 지식 베이스로 이동하세요.",
+        desc: "모든 것의 시작점입니다. 문서, 웹페이지, FAQ를 업로드하면 ThinkerFlow가 자동으로 분석하고 색인합니다. 여기를 클릭해 지식 베이스로 이동하세요.",
       },
       welcome: {
-        title: "WeKnora에 오신 것을 환영합니다",
+        title: "ThinkerFlow에 오신 것을 환영합니다",
         desc: "몇 단계만으로 지식 베이스, 대화, 에이전트의 핵심 사용법을 안내합니다. '다음'을 눌러 시작하세요.",
       },
     },

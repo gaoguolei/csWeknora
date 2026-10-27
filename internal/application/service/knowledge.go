@@ -559,7 +559,7 @@ func (s *knowledgeService) checkStorageEngineConfigured(ctx context.Context, kb 
 			kbIDOrEmpty(kb))
 		return nil
 	}
-	return werrors.NewBadRequestError("请先为知识库选择存储引擎，再上传内容。请前往知识库设置页面进行配置。")
+	return werrors.NewBadRequestError("请先为认知库选择存储引擎，再上传内容。请前往认知库设置页面进行配置。")
 }
 
 func kbIDOrEmpty(kb *types.KnowledgeBase) string {
@@ -997,7 +997,7 @@ func (s *knowledgeService) validateKnowledgeTagIDs(
 			return werrors.NewBadRequestError(fmt.Sprintf("标签 %s 不存在", tagID))
 		}
 		if tag.KnowledgeBaseID != kbID {
-			return werrors.NewBadRequestError("标签不属于当前知识库")
+			return werrors.NewBadRequestError("标签不属于当前认知库")
 		}
 	}
 	return nil
@@ -1135,7 +1135,7 @@ func (s *knowledgeService) UpdateKnowledgeTagBatch(
 				return werrors.NewBadRequestError(fmt.Sprintf("标签 %s 不存在", tagID))
 			}
 			if tag.TenantID != tenantID || tag.KnowledgeBaseID != knowledge.KnowledgeBaseID {
-				return werrors.NewBadRequestError(fmt.Sprintf("标签 %s 不属于知识库 %s", tagID, knowledge.KnowledgeBaseID))
+				return werrors.NewBadRequestError(fmt.Sprintf("标签 %s 不属于认知库 %s", tagID, knowledge.KnowledgeBaseID))
 			}
 		}
 	}

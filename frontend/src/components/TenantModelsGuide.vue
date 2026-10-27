@@ -11,6 +11,7 @@ import {
   isGlobalUserGuideDone,
   markContextualGuideDone,
 } from '@/config/contextualGuides'
+import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
 import type { SpotlightGuideStep } from '@/types/spotlightGuide'
 
@@ -30,8 +31,15 @@ const stepI18nPrefix = computed(() =>
 )
 
 const uiStore = useUIStore()
+const authStore = useAuthStore()
 const active = ref(false)
 let settingsOpenedByGuide = false
+
+// 模型管理已收归平台超管（isSystemAdmin，运营管理员继承）：普通成员和空间
+// 管理员在设置导航里看不到该入口，深链打开只会看到 role-denied 空态。这里的
+// 守卫与 AgentList.vue 的 showAgentTenantModelsGuide 保持一致，双保险防止
+// 未来新增使用点（如 documentKb 变体）把非超管带到不存在的入口。
+const canShow = computed(() => props.when && authStore.isSystemAdmin)
 
 const steps: SpotlightGuideStep[] = [
   { key: 'intro' },
@@ -70,9 +78,9 @@ const onStepChange = ({ toKey }: { toKey: string }) => {
 let waitGlobalTimer: ReturnType<typeof setTimeout> | null = null
 
 const tryOpen = () => {
-  if (active.value || !props.when || isContextualGuideDone('tenantModels')) return
+  if (active.value || !canShow.value || isContextualGuideDone('tenantModels')) return
   openTimer = setTimeout(() => {
-    if (!props.when || isContextualGuideDone('tenantModels')) return
+    if (!canShow.value || isContextualGuideDone('tenantModels')) return
     active.value = true
   }, 500)
 }
@@ -86,13 +94,13 @@ const scheduleOpen = () => {
     clearTimeout(waitGlobalTimer)
     waitGlobalTimer = null
   }
-  if (!props.when || isContextualGuideDone('tenantModels')) return
+  if (!canShow.value || isContextualGuideDone('tenantModels')) return
   if (isGlobalUserGuideDone()) {
     tryOpen()
     return
   }
   const poll = () => {
-    if (!props.when || isContextualGuideDone('tenantModels')) return
+    if (!canShow.value || isContextualGuideDone('tenantModels')) return
     if (isGlobalUserGuideDone()) {
       tryOpen()
       return
@@ -103,7 +111,7 @@ const scheduleOpen = () => {
 }
 
 watch(
-  () => props.when,
+  canShow,
   (val) => {
     if (!val) {
       if (openTimer) clearTimeout(openTimer)

@@ -10,13 +10,13 @@ export interface ChunkingSample {
   text: string
 }
 
-const MARKDOWN_SAMPLE = `# WeKnora 知识框架
+const MARKDOWN_SAMPLE = `# ThinkerFlow 知识框架
 
-WeKnora 是一个基于 LLM 的开源企业知识框架，集 RAG 问答、ReAct 智能体、Wiki 知识图谱于一体。本文介绍其设计动机、架构与典型用法。
+ThinkerFlow 是一个基于 LLM 的开源企业知识框架，集 RAG 问答、ReAct 智能体、Wiki 知识图谱于一体。本文介绍其设计动机、架构与典型用法。
 
 ## 设计动机
 
-企业内部知识散落在 Confluence、飞书、Notion、Git 仓库等多种系统，传统全文检索难以理解语义，单一 LLM 又缺少可信赖的上下文来源。WeKnora 的目标是：
+企业内部知识散落在 Confluence、飞书、Notion、Git 仓库等多种系统，传统全文检索难以理解语义，单一 LLM 又缺少可信赖的上下文来源。ThinkerFlow 的目标是：
 
 - **多源接入**：把分散内容统一抽取、清洗、向量化
 - **多策略检索**：稠密、稀疏、知识图谱多路召回 + RRF 融合
@@ -43,7 +43,7 @@ WeKnora 是一个基于 LLM 的开源企业知识框架，集 RAG 问答、ReAct
 
 ### 数据源连接器
 
-- **飞书**：自动同步知识库与文档树，支持增量更新
+- **飞书**：自动同步认知库与文档树，支持增量更新
 - **Notion**：基于 API 抽取 Page / Database
 - **语雀**：按 Group 拉取，保留多级目录
 
@@ -71,7 +71,7 @@ make dev-frontend          # 启动前端，自动刷新
 
 ## 架构概览
 
-WeKnora 后端采用清晰的分层架构：
+ThinkerFlow 后端采用清晰的分层架构：
 
 \`\`\`
 ┌────────────────────────┐
@@ -109,7 +109,7 @@ Agent 引擎执行经典 ReAct 循环：
 - 故障排查：\`website-docs/01-getting-started/05-troubleshooting.md\`
 - 产品介绍：\`website-docs/01-getting-started/01-introduction.md\``
 
-const FAQ_SAMPLE = `# WeKnora 部署与使用 FAQ
+const FAQ_SAMPLE = `# ThinkerFlow 部署与使用 FAQ
 
 本文档汇总社区与内部用户最常问到的问题，按"安装 / 配置 / 检索 / 模型 / 性能"分类。
 
@@ -142,10 +142,10 @@ docker pull docker.m.daocloud.io/wechatopenai/weknora-ui:v0.5.0
 修改 \`.env\` 中的 \`RETRIEVE_DRIVER\`，可选值：\`qdrant\` (默认) / \`pgvector\` / \`elasticsearch\` / \`milvus\` / \`weaviate\`。切换后需要重新嵌入存量数据。
 
 ### Q7: 如何修改默认 chunk 大小？
-全局默认在 \`config/config.yaml\` 的 \`knowledge.chunking\` 段；单个知识库可在 UI 的"分块设置"页覆盖。修改后仅对新上传文档生效。
+全局默认在 \`config/config.yaml\` 的 \`knowledge.chunking\` 段；单个认知库可在 UI 的"分块设置"页覆盖。修改后仅对新上传文档生效。
 
 ### Q8: 如何启用多模态？
-在知识库的"多模态配置"中开启，并选择一个 VLM 模型（如 GPT-4o、Qwen2.5-VL）。开启后，文档中的图片会被 VLM 描述并参与检索。
+在认知库的"多模态配置"中开启，并选择一个 VLM 模型（如 GPT-4o、Qwen2.5-VL）。开启后，文档中的图片会被 VLM 描述并参与检索。
 
 ### Q9: 怎么把日志改成 JSON 格式？
 设置 \`LOG_FORMAT=json LOG_LEVEL=info\`，便于接入 ELK / Loki 等日志栈。
@@ -155,7 +155,7 @@ docker pull docker.m.daocloud.io/wechatopenai/weknora-ui:v0.5.0
 ### Q10: 检索结果为空但确认文档已索引
 按这个顺序排查：
 
-1. 确认知识库状态为 \`completed\`，而不是 \`indexing\` 或 \`failed\`
+1. 确认认知库状态为 \`completed\`，而不是 \`indexing\` 或 \`failed\`
 2. 检查向量库连接（默认 qdrant:6334），\`docker compose ps\` 看 qdrant 是否健康
 3. 在管理页"重建索引"，确认嵌入模型工作正常
 4. 查看后端日志中 retriever 是否报 dimension mismatch
@@ -168,7 +168,7 @@ docker pull docker.m.daocloud.io/wechatopenai/weknora-ui:v0.5.0
 - 切换到"按标题切分"或"结构感知"策略
 
 ### Q12: 排序看起来不合理
-重排（rerank）模型可能未启用。在"模型设置"中配置 BGE-Reranker 或 Cohere Rerank，并在知识库配置中打开重排。
+重排（rerank）模型可能未启用。在"模型设置"中配置 BGE-Reranker 或 Cohere Rerank，并在认知库配置中打开重排。
 
 ## 模型与 Token
 
@@ -271,7 +271,7 @@ PG 全量每日备份 + WAL 增量；MinIO/对象存储依赖云端版本管理�
 
 按"网关 → 业务 → 存储 → 模型"四个维度逐层排查。每层都有健康检查接口与 Langfuse trace 入口，组合起来可在 5 分钟内定位 80% 问题。`
 
-const PLAIN_SAMPLE = `知识库的检索质量受多个因素影响，最直接的是切分策略与嵌入模型的匹配度。切分过粗会导致单段语义混杂、相关度被稀释；切分过细则丢失上下文，单独检索某一段无法回答跨段问题。一般建议切分大小落在嵌入模型推荐窗口的 50%–80%，既保证语义完整又留出余量。常见嵌入模型如 BGE、Cohere 的 embed-v3 推荐窗口为 512 tokens，对应字符大致在 300–800 之间，因为中文一个字约 0.5–1.2 个 token，英文一个词约 1.3 个 token。
+const PLAIN_SAMPLE = `认知库的检索质量受多个因素影响，最直接的是切分策略与嵌入模型的匹配度。切分过粗会导致单段语义混杂、相关度被稀释；切分过细则丢失上下文，单独检索某一段无法回答跨段问题。一般建议切分大小落在嵌入模型推荐窗口的 50%–80%，既保证语义完整又留出余量。常见嵌入模型如 BGE、Cohere 的 embed-v3 推荐窗口为 512 tokens，对应字符大致在 300–800 之间，因为中文一个字约 0.5–1.2 个 token，英文一个词约 1.3 个 token。
 
 除了切分大小，重叠（overlap）也会显著影响召回完整性。重叠为 0 时，跨段问题往往只能召回半句话；重叠 10%–20% 通常就足够覆盖大多数边界情况；重叠超过 30% 会让相邻分块大量同质化，反而增加索引成本而不提升召回。一个简单的判断方法：对你的目标查询，平均答案长度的 1/3 作为 overlap 起点，再根据 A/B 测试微调。
 

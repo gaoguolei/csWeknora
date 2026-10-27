@@ -47,7 +47,7 @@ export function buildCommands(ctx: CommandContext): CmdkCommand[] {
       id: 'open-kb-list',
       label: t('commandPalette.quick.knowledgeBases'),
       icon: 'folder',
-      keywords: ['kb', 'knowledge', 'base', '知识库', '文档'],
+      keywords: ['kb', 'knowledge', 'base', '认知库', '知识库', '文档'],
       run: () => {
         close()
         router.push('/platform/knowledge-bases')

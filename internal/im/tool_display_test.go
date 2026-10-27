@@ -11,7 +11,7 @@ func TestFormatIMToolLine_pendingWithQuery(t *testing.T) {
 		Pending:   true,
 		Arguments: map[string]any{"query": "文明6"},
 	})
-	if line != "正在调用 知识库检索..." {
+	if line != "正在调用 认知库检索..." {
 		t.Fatalf("pending line = %q", line)
 	}
 }
@@ -28,7 +28,7 @@ func TestFormatIMToolLine_searchDoneWithQueryAndSummary(t *testing.T) {
 			"kb_counts": map[string]interface{}{"a": 1, "b": 1},
 		},
 	})
-	if !strings.Contains(line, "检索知识库：「文明6」") {
+	if !strings.Contains(line, "检索认知库：「文明6」") {
 		t.Fatalf("title missing query: %q", line)
 	}
 	if !strings.Contains(line, "找到 3 个结果，来自 2 个文件") {
@@ -76,7 +76,7 @@ func TestFormatIMRagPipelineLine_searchWithQuery(t *testing.T) {
 		Pending:   true,
 		Arguments: map[string]any{"query": "讯飞开放平台"},
 	})
-	if line != "正在检索知识库：「讯飞开放平台」" {
+	if line != "正在检索认知库：「讯飞开放平台」" {
 		t.Fatalf("line = %q", line)
 	}
 }

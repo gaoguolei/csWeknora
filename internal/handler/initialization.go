@@ -95,7 +95,7 @@ func NewInitializationHandler(
 	}
 }
 
-// KBModelConfigRequest 知识库模型配置请求（简化版，只传模型ID）
+// KBModelConfigRequest 认知库模型配置请求（简化版，只传模型ID）
 type KBModelConfigRequest struct {
 	LLMModelID       string           `json:"llmModelId"       binding:"required"`
 	EmbeddingModelID string           `json:"embeddingModelId"` // optional when RAG indexing is disabled
@@ -222,16 +222,16 @@ type InitializationRequest struct {
 }
 
 // UpdateKBConfig godoc
-// @Summary      更新知识库配置
-// @Description  根据知识库ID更新模型和分块配置
+// @Summary      更新认知库配置
+// @Description  根据认知库ID更新模型和分块配置
 // @Tags         初始化
 // @Accept       json
 // @Produce      json
-// @Param        kbId     path      string               true  "知识库ID"
+// @Param        kbId     path      string               true  "认知库ID"
 // @Param        request  body      KBModelConfigRequest true  "配置请求"
 // @Success      200      {object}  map[string]interface{}  "更新成功"
 // @Failure      400      {object}  errors.AppError         "请求参数错误"
-// @Failure      404      {object}  errors.AppError         "知识库不存在"
+// @Failure      404      {object}  errors.AppError         "认知库不存在"
 // @Security     Bearer
 // @Security     ApiKeyAuth
 // @Router       /initialization/config/{kbId} [put]
@@ -246,11 +246,11 @@ func (h *InitializationHandler) UpdateKBConfig(c *gin.Context) {
 		return
 	}
 
-	// 获取知识库信息
+	// 获取认知库信息
 	kb, err := h.kbService.GetKnowledgeBaseByID(ctx, kbIdStr)
 	if err != nil || kb == nil {
 		logger.ErrorWithFields(ctx, err, map[string]interface{}{"kbId": utils.SanitizeForLog(kbIdStr)})
-		c.Error(errors.NewNotFoundError("知识库不存在"))
+		c.Error(errors.NewNotFoundError("认知库不存在"))
 		return
 	}
 	ownWorkspace, err := kbSettingsAccess(c, kb)
@@ -269,7 +269,7 @@ func (h *InitializationHandler) UpdateKBConfig(c *gin.Context) {
 			}, types.KnowledgeListFilter{})
 		if err == nil && knowledgeList != nil && knowledgeList.Total > 0 {
 			logger.Error(ctx, "Cannot change embedding model when files exist")
-			c.Error(errors.NewBadRequestError("知识库中已有文件，无法修改Embedding模型"))
+			c.Error(errors.NewBadRequestError("认知库中已有文件，无法修改Embedding模型"))
 			return
 		}
 	}
@@ -292,7 +292,7 @@ func (h *InitializationHandler) UpdateKBConfig(c *gin.Context) {
 		}
 	}
 
-	// 更新知识库的模型ID
+	// 更新认知库的模型ID
 	kb.SummaryModelID = req.LLMModelID
 	if req.EmbeddingModelID != "" {
 		kb.EmbeddingModelID = req.EmbeddingModelID
@@ -380,7 +380,7 @@ func (h *InitializationHandler) UpdateKBConfig(c *gin.Context) {
 			return
 		}
 	} else if kbStorageBindingChanged(kb, req.StorageBackendID, req.StorageProvider) {
-		_ = c.Error(errors.NewForbiddenError("只有知识库所属空间可以修改存储配置"))
+		_ = c.Error(errors.NewForbiddenError("只有认知库所属空间可以修改存储配置"))
 		return
 	}
 
@@ -444,10 +444,10 @@ func (h *InitializationHandler) UpdateKBConfig(c *gin.Context) {
 		return
 	}
 
-	// 保存更新后的知识库
+	// 保存更新后的认知库
 	if err := h.kbRepository.UpdateKnowledgeBase(ctx, kb); err != nil {
 		logger.Error(ctx, "Failed to update knowledge base", err)
-		c.Error(errors.NewInternalServerError("更新知识库失败: " + err.Error()))
+		c.Error(errors.NewInternalServerError("更新认知库失败: " + err.Error()))
 		return
 	}
 
@@ -469,7 +469,7 @@ func kbSettingsAccess(c *gin.Context, kb *types.KnowledgeBase) (bool, error) {
 	grant, ok := middleware.KBAccessFromContext(c)
 	if !ok || grant.KnowledgeBase == nil || grant.KnowledgeBase.ID != kb.ID ||
 		!grant.Permission.HasPermission(types.OrgRoleAdmin) {
-		return false, errors.NewForbiddenError("修改共享知识库的设置需要管理员共享权限")
+		return false, errors.NewForbiddenError("修改共享认知库的设置需要管理员共享权限")
 	}
 	return false, nil
 }
@@ -547,12 +547,12 @@ func (h *InitializationHandler) applyKBStorageBinding(
 }
 
 // InitializeByKB godoc
-// @Summary      初始化知识库配置
-// @Description  根据知识库ID执行完整配置更新
+// @Summary      初始化认知库配置
+// @Description  根据认知库ID执行完整配置更新
 // @Tags         初始化
 // @Accept       json
 // @Produce      json
-// @Param        kbId     path      string  true  "知识库ID"
+// @Param        kbId     path      string  true  "认知库ID"
 // @Param        request  body      handler.InitializationRequest  true  "初始化请求"
 // @Success      200      {object}  map[string]interface{}  "初始化成功"
 // @Failure      400      {object}  errors.AppError         "请求参数错误"
@@ -597,13 +597,13 @@ func (h *InitializationHandler) InitializeByKB(c *gin.Context) {
 
 	if err := h.kbRepository.UpdateKnowledgeBase(ctx, kb); err != nil {
 		logger.ErrorWithFields(ctx, err, map[string]interface{}{"kbId": utils.SanitizeForLog(kbIdStr)})
-		c.Error(errors.NewInternalServerError("更新知识库配置失败: " + err.Error()))
+		c.Error(errors.NewInternalServerError("更新认知库配置失败: " + err.Error()))
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"message": "知识库配置更新成功",
+		"message": "认知库配置更新成功",
 		"data": gin.H{
 			// Through the response DTO, like every other body carrying a
 			// model: types.Model marshals api_key in plaintext, and now that
@@ -633,14 +633,14 @@ func (h *InitializationHandler) getKnowledgeBaseForInitialization(ctx context.Co
 		// initialization flow burns ops attention with a fake server
 		// error. See knowledgebase.go:validateAndGetKnowledgeBase.
 		if stderrors.Is(err, repository.ErrKnowledgeBaseNotFound) {
-			return nil, errors.NewNotFoundError("知识库不存在")
+			return nil, errors.NewNotFoundError("认知库不存在")
 		}
 		logger.ErrorWithFields(ctx, err, map[string]interface{}{"kbId": utils.SanitizeForLog(kbIdStr)})
-		return nil, errors.NewInternalServerError("获取知识库信息失败: " + err.Error())
+		return nil, errors.NewInternalServerError("获取认知库信息失败: " + err.Error())
 	}
 	if kb == nil {
 		logger.Error(ctx, "Knowledge base not found")
-		return nil, errors.NewNotFoundError("知识库不存在")
+		return nil, errors.NewNotFoundError("认知库不存在")
 	}
 	// Initialization rewrites the models the KB points at, and those rows
 	// belong to the KB's workspace. A shared-KB editor passes the route's
@@ -648,7 +648,7 @@ func (h *InitializationHandler) getKnowledgeBaseForInitialization(ctx context.Co
 	// without this check it could repoint the owner's models at its own
 	// endpoint and key.
 	if kb.TenantID != types.CallerFromContext(ctx).TenantID {
-		return nil, errors.NewForbiddenError("只有知识库所属空间可以初始化知识库")
+		return nil, errors.NewForbiddenError("只有认知库所属空间可以初始化认知库")
 	}
 	return kb, nil
 }
@@ -1471,14 +1471,14 @@ func (h *InitializationHandler) updateTaskStatus(
 }
 
 // GetCurrentConfigByKB godoc
-// @Summary      获取知识库配置
-// @Description  根据知识库ID获取当前配置信息
+// @Summary      获取认知库配置
+// @Description  根据认知库ID获取当前配置信息
 // @Tags         初始化
 // @Accept       json
 // @Produce      json
-// @Param        kbId  path      string  true  "知识库ID"
+// @Param        kbId  path      string  true  "认知库ID"
 // @Success      200   {object}  map[string]interface{}  "配置信息"
-// @Failure      404   {object}  errors.AppError         "知识库不存在"
+// @Failure      404   {object}  errors.AppError         "认知库不存在"
 // @Security     Bearer
 // @Security     ApiKeyAuth
 // @Router       /initialization/config/{kbId} [get]
@@ -1488,27 +1488,27 @@ func (h *InitializationHandler) GetCurrentConfigByKB(c *gin.Context) {
 
 	logger.Info(ctx, "Getting configuration for knowledge base")
 
-	// 获取指定知识库信息
+	// 获取指定认知库信息
 	kb, err := h.kbService.GetKnowledgeBaseByID(ctx, kbIdStr)
 	if err != nil {
 		// Mirror getKnowledgeBaseForInitialization above: missing /
 		// cross-tenant kb ids are 404, not 500.
 		if stderrors.Is(err, repository.ErrKnowledgeBaseNotFound) {
-			c.Error(errors.NewNotFoundError("知识库不存在"))
+			c.Error(errors.NewNotFoundError("认知库不存在"))
 			return
 		}
 		logger.Error(ctx, "Failed to get knowledge base", err)
-		c.Error(errors.NewInternalServerError("获取知识库信息失败: " + err.Error()))
+		c.Error(errors.NewInternalServerError("获取认知库信息失败: " + err.Error()))
 		return
 	}
 
 	if kb == nil {
 		logger.Error(ctx, "Knowledge base not found")
-		c.Error(errors.NewNotFoundError("知识库不存在"))
+		c.Error(errors.NewNotFoundError("认知库不存在"))
 		return
 	}
 
-	// 根据知识库的模型ID获取特定模型
+	// 根据认知库的模型ID获取特定模型
 	var models []*types.Model
 	modelIDs := []string{
 		kb.EmbeddingModelID,
@@ -1530,7 +1530,7 @@ func (h *InitializationHandler) GetCurrentConfigByKB(c *gin.Context) {
 		}
 	}
 
-	// 检查知识库是否有文件
+	// 检查认知库是否有文件
 	knowledgeList, err := h.knowledgeService.ListPagedKnowledgeByKnowledgeBaseID(ctx,
 		kbIdStr, &types.Pagination{
 			Page:     1,
@@ -1659,7 +1659,7 @@ func (h *InitializationHandler) buildConfigResponse(ctx context.Context, models 
 		}
 	}
 
-	// 添加知识库的文档分割配置
+	// 添加认知库的文档分割配置
 	if kb != nil {
 		ds := map[string]interface{}{
 			"chunkSize":    kb.ChunkingConfig.ChunkSize,
