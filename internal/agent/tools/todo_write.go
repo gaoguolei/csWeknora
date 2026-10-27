@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/Tencent/WeKnora/internal/utils"
@@ -139,12 +140,14 @@ When in doubt, use this tool. Being proactive with task management demonstrates 
 // This is an optional tool that helps organize multi-step research
 type TodoWriteTool struct {
 	BaseTool
+	executionPlan bool
 }
 
 // TodoWriteInput defines the input parameters for todo_write tool
 type TodoWriteInput struct {
-	Task  string     `json:"task,omitempty" jsonschema:"The complex task or question you need to create a plan for"`
-	Steps []PlanStep `json:"steps" jsonschema:"Array of research plan steps with status tracking"`
+	Task          string     `json:"task,omitempty" jsonschema:"The complex task or question you need to create a plan for"`
+	Steps         []PlanStep `json:"steps" jsonschema:"Array of task plan steps with status tracking"`
+	BlockedReason string     `json:"blocked_reason,omitempty" jsonschema:"Only set when an actual failed tool attempt prevents continuing the current approved task; explain the concrete blocker, not a request for permission to continue"`
 }
 
 // PlanStep represents a single step in the research plan
@@ -159,6 +162,43 @@ func NewTodoWriteTool() *TodoWriteTool {
 	return &TodoWriteTool{
 		BaseTool: todoWriteTool,
 	}
+}
+
+// NewExecutionTodoWriteTool tracks task execution as well as investigation.
+// Research agents retain their existing retrieval-specific instructions.
+func NewExecutionTodoWriteTool() *TodoWriteTool {
+	return &TodoWriteTool{BaseTool: BaseTool{
+		name:        ToolTodoWrite,
+		description: `Create or update the full task plan. Use concrete steps for investigation, implementation and verification as appropriate. Each step has a stable id, description and status (pending, in_progress, completed). Keep at most one step in_progress. Preserve unfinished steps when updating and mark steps completed only after doing the work. In Plan mode, the proposed checklist pauses for explicit user approval before execution. Wait for approval, then carry out the approved tasks using the available tools. If rejected, stop and await new instructions. Update the full checklist immediately after completing each step. After approval, the unfinished plan stays locked across follow-up messages and resumed execution: keep the approved title, task IDs, descriptions, order and task count unchanged. Only update statuses for the existing task IDs; never regenerate, replace, expand or shrink the plan. Completed tasks must remain completed. Only the first unfinished approved task is active. After a task is actually completed, update its status; the backend activates the next task. Completion requires successful tool execution for that task. Perform all already approved verification without asking whether to continue. Set blocked_reason only when an actual tool failure prevents continuing; otherwise keep executing. Keep blocked work unfinished and report actual results. Respect user instructions to skip tests or other verification.`,
+		schema:      utils.GenerateSchema[TodoWriteInput](),
+	}, executionPlan: true}
+}
+
+// TaskPlanHistoryState carries approval/progress across turns without deriving
+// permissions from model prose. Only a real successful todo_write result counts.
+func TaskPlanHistoryState(result *types.ToolResult) json.RawMessage {
+	if result == nil || !result.Success {
+		return nil
+	}
+	approved, marked := result.Data["plan_approved"].(bool)
+	if !marked {
+		// Execution plans saved before the explicit marker had this server-owned
+		// acceptance message. Rejected proposals never produced a success result.
+		approved = strings.HasPrefix(result.Output, "Task: ") && strings.Contains(result.Output, "The approved task content is locked.")
+	}
+	if !approved {
+		return json.RawMessage("null")
+	}
+	data, err := json.Marshal(result.Data)
+	if err != nil {
+		return nil
+	}
+	var plan TodoWriteInput
+	if json.Unmarshal(data, &plan) != nil || len(plan.Steps) == 0 {
+		return nil
+	}
+	snapshot, _ := json.Marshal(plan)
+	return snapshot
 }
 
 // Execute executes the todo_write tool
@@ -181,6 +221,16 @@ func (t *TodoWriteTool) Execute(ctx context.Context, args json.RawMessage) (*typ
 
 	// Generate formatted output
 	output := generatePlanOutput(input.Task, planSteps)
+	if t.executionPlan {
+		output = fmt.Sprintf("Task: %s\n\n", input.Task)
+		for i, step := range planSteps {
+			output += formatPlanStep(i+1, step)
+		}
+		output += "\nThe task list has been accepted. Continue the approved unfinished steps with the available tools. Update this full checklist immediately after each completed step. Do not execute a rejected plan. The approved task content is locked. Only update progress for its existing task IDs; do not rewrite or regenerate the plan, and do not reset completed tasks. If blocked, leave the task unfinished and explain why. Mark only work you actually performed as completed, and respect user instructions to skip tests or other verification."
+		if input.BlockedReason != "" {
+			output += "\nExecution blocked: " + input.BlockedReason
+		}
+	}
 
 	// Prepare structured data for response
 	stepsJSON, _ := json.Marshal(planSteps)
@@ -189,12 +239,13 @@ func (t *TodoWriteTool) Execute(ctx context.Context, args json.RawMessage) (*typ
 		Success: true,
 		Output:  output,
 		Data: map[string]interface{}{
-			"task":         input.Task,
-			"steps":        planSteps,
-			"steps_json":   string(stepsJSON),
-			"total_steps":  len(planSteps),
-			"plan_created": true,
-			"display_type": "plan",
+			"task":           input.Task,
+			"steps":          planSteps,
+			"steps_json":     string(stepsJSON),
+			"total_steps":    len(planSteps),
+			"plan_created":   true,
+			"display_type":   "plan",
+			"blocked_reason": input.BlockedReason,
 		},
 	}, nil
 }

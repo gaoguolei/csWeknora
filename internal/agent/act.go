@@ -254,8 +254,31 @@ func (e *AgentEngine) executeToolCalls(
 		return
 	}
 
+	rejected := false
 	for i, tc := range response.ToolCalls {
+		if rejected {
+			call := skippedToolCallAfterRejection(tc, i)
+			step.ToolCalls = append(step.ToolCalls, call)
+			e.emitToolOutcome(ctx, call, iteration, sessionID)
+			continue
+		}
 		e.executeSingleToolCall(ctx, tc, i, step, iteration, round, sessionID, assistantMessageID)
+		result := step.ToolCalls[len(step.ToolCalls)-1].Result
+		rejected = result != nil && result.ApprovalRejected
+	}
+}
+
+func skippedToolCallAfterRejection(tc types.LLMToolCall, i int) types.ToolCall {
+	var args map[string]any
+	if json.Unmarshal([]byte(tc.Function.Arguments), &args) != nil {
+		args = map[string]any{"_raw": tc.Function.Arguments}
+	}
+	return types.ToolCall{
+		ID:               agenttools.NormalizeToolCallID(tc.ID, tc.Function.Name, i),
+		Name:             tc.Function.Name,
+		Args:             args,
+		ProviderMetadata: tc.ProviderMetadata,
+		Result:           &types.ToolResult{Success: false, Error: "Not executed because the user rejected an operation in this turn."},
 	}
 }
 
@@ -303,13 +326,19 @@ func (e *AgentEngine) executeToolCallsParallel(
 	g, gCtx := errgroup.WithContext(ctx)
 	g.SetLimit(8)
 
+	rejected := false
 	for i, tc := range response.ToolCalls {
 		i, tc := i, tc // capture loop vars
+		if rejected {
+			results[i] = skippedToolCallAfterRejection(tc, i)
+			continue
+		}
 		if !agenttools.CanRunConcurrently(tc.Function.Name) {
 			// Drain preceding reads before a mutation, and finish the mutation
 			// before starting later reads. Preserve model order across barriers.
 			_ = g.Wait()
 			results[i] = e.runToolCall(ctx, tc, i, iteration, round, sessionID, assistantMessageID)
+			rejected = results[i].Result != nil && results[i].Result.ApprovalRejected
 			g, gCtx = errgroup.WithContext(ctx)
 			g.SetLimit(8)
 			continue
@@ -563,7 +592,8 @@ func (e *AgentEngine) runToolCall(
 		}
 	}
 	toolExecCtx := agenttools.WithToolExecContext(toolCtx, &agenttools.ToolExecContext{
-		RequireApproval:    e.config.ToolApprovalMode == types.ToolApprovalManual,
+		RequireApproval:    e.config.ToolApprovalMode == types.ToolApprovalManual || e.config.ToolApprovalMode == types.ToolApprovalAcceptEdits,
+		BypassApproval:     e.config.ToolApprovalMode == types.ToolApprovalBypass,
 		SessionID:          sessionID,
 		AssistantMessageID: assistantMessageID,
 		EventBus:           e.eventBus,
@@ -577,6 +607,7 @@ func (e *AgentEngine) runToolCall(
 
 	var result *types.ToolResult
 	var err error
+	toolExecuted := false
 	if len(tc.UnresolvedHandles) > 0 {
 		// A temporary handle is not an application identity. Fail before tool
 		// execution so a hallucinated/stale cN/dN/bN/wN/iN/res:// token can
@@ -591,6 +622,7 @@ func (e *AgentEngine) runToolCall(
 			args = nil
 			_ = json.Unmarshal(approvedArgs, &args)
 			execCtx, toolCancel := context.WithTimeout(toolExecCtx, execTimeout)
+			toolExecuted = true
 			result, err = e.toolRegistry.ExecuteTool(
 				execCtx, tc.Function.Name,
 				json.RawMessage(tc.Function.Arguments),
@@ -598,6 +630,14 @@ func (e *AgentEngine) runToolCall(
 			toolCancel()
 			if err == nil {
 				e.describeToolImages(toolCtx, result)
+				if tc.Function.Name == agenttools.ToolTodoWrite && result != nil && result.Success {
+					if result.Data == nil {
+						result.Data = make(map[string]interface{})
+					}
+					e.planApprovalMu.Lock()
+					result.Data["plan_approved"] = e.config.ToolApprovalMode == types.ToolApprovalPlan && e.approvedPlan != nil && !e.planRejected
+					e.planApprovalMu.Unlock()
+				}
 			}
 		}
 	}
@@ -616,8 +656,9 @@ func (e *AgentEngine) runToolCall(
 	if err != nil {
 		logger.Errorf(ctx, "%s Failed in %dms: %v", toolTag, duration, err)
 		toolCall.Result = &types.ToolResult{
-			Success: false,
-			Error:   err.Error(),
+			Success:          false,
+			Error:            err.Error(),
+			ApprovalRejected: errors.Is(err, errToolApprovalRejected),
 		}
 	} else {
 		success := result != nil && result.Success
@@ -629,6 +670,9 @@ func (e *AgentEngine) runToolCall(
 			toolTag, duration, success, outputLen)
 	}
 
+	if toolExecuted {
+		e.recordPlanExecution(toolCall)
+	}
 	finishToolSpan(toolSpan, toolCall, err, duration)
 
 	// Pipeline event for monitoring

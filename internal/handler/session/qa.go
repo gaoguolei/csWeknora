@@ -186,7 +186,7 @@ func (h *Handler) parseQARequest(c *gin.Context, logPrefix string) (*qaRequestCo
 	}
 	request.ReasoningEffort = string(level)
 	if !request.ToolApprovalMode.Valid() {
-		return nil, nil, errors.NewBadRequestError("tool_approval_mode must be auto or manual")
+		return nil, nil, errors.NewBadRequestError("tool_approval_mode must be auto, manual, accept_edits, plan or bypass")
 	}
 
 	// Validate syntax before session lookup or QA work, preserving the original

@@ -315,10 +315,15 @@ func formatToolGuidanceForMode(names []string, skillInstallMode bool, layout san
 				"Commands start from their specified working directory on every call. " +
 				"Files and installed packages persist within the session.\n")
 			b.WriteString(sandboxArtifactReferenceGuidance())
-			b.WriteString("Project previews belong in the Web preview panel, which forwards the project's HTTP server. " +
+			b.WriteString("Project previews belong in the Web preview panel, which builds and serves production artifacts, never development servers. " +
+				"For frontend projects, provide a build script and a production preview or start script; Vite preview and Next.js start are supported. " +
+				"Custom preview scripts must listen on the PORT environment variable. Static builds in dist, build or out can be served directly. " +
+				"For separate frontend/backend projects, build and start necessary backend services, and configure the production preview server " +
+				"to proxy API routes to the backend inside the sandbox (a development-only proxy is insufficient). " +
+				"After edits, verify the production build. The user can start or rebuild it from the Web preview panel. " +
 				"Keep the remote desktop available for the user's own desktop work: do not launch a graphical " +
 				"browser, navigate an existing desktop window, or crop/resize the desktop for project preview. " +
-				"When starting development servers, disable automatic browser opening (BROWSER=none, no --open) " +
+				"When starting project servers, disable automatic browser opening (BROWSER=none, no --open) " +
 				"and unset DISPLAY, WAYLAND_DISPLAY, XAUTHORITY and DBUS_SESSION_BUS_ADDRESS only for those server processes. " +
 				"Verify HTTP responses or use a headless browser when visual verification is needed. " +
 				"Do not stop the desktop session or change its global environment.\n")

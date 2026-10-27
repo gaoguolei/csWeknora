@@ -1,9 +1,71 @@
 """Loaded after workspace_project.py's helpers; starts project HTTP servers."""
 import secrets
+import signal
+
+
+# This process installs/builds before replacing itself with the production
+# server. Its PID stays stable while discovery polls, even for long builds.
+BUILD_SERVER_SCRIPT = r'''
+import http.server
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+from urllib.parse import urlsplit
+
+options = json.loads(sys.argv[1])
+plan = options['plan']
+if options['install']:
+    print('Installing project dependencies...', flush=True)
+    subprocess.run(options['install'], check=True, timeout=180)
+    Path(options['pending']).unlink(missing_ok=True)
+if plan.get('build'):
+    print('Building project for preview...', flush=True)
+    subprocess.run(plan['build'], check=True, timeout=600)
+os.environ['NODE_ENV'] = 'production'
+os.environ['PORT'] = str(options['port'])
+command = plan.get('serve')
+if command:
+    command = list(command)
+    script = plan['serve_script']
+    if re.search(r'\bvite\b(?!\s+preview\b)|\b(?:next|nuxt|astro)\s+dev\b|\b(?:npm|pnpm|yarn)\s+(?:run\s+)?dev\b|\bwebpack(?:-dev-server|\s+serve)\b|\breact-scripts\s+start\b|\bvue-cli-service\s+serve\b', script):
+        sys.exit('The preview/start script launches a development server. Configure it to serve the production build instead.')
+    if re.search(r'\bvite\s+preview\b', script):
+        command += (['--'] if plan['manager'] == 'npm' else []) + ['--host', '127.0.0.1', '--port', str(options['port']), '--strictPort']
+    elif re.search(r'\bnext\s+start\b', script):
+        command += (['--'] if plan['manager'] == 'npm' else []) + ['--hostname', '127.0.0.1', '--port', str(options['port'])]
+    print('Starting production preview (PORT=%d)...' % options['port'], flush=True)
+    os.execvpe(command[0], command, os.environ)
+
+root = Path.cwd().resolve()
+if not plan.get('static'):
+    root = next((root / name for name in ('dist', 'build', 'out') if (root / name / 'index.html').is_file() and not (root / name).is_symlink()), None)
+    if root is None:
+        sys.exit('Build produced no static dist/build/out/index.html. Add a production preview or start script that listens on PORT and serves the built app and its API routes.')
+os.chdir(root)
+
+class StaticPreview(http.server.SimpleHTTPRequestHandler):
+    def list_directory(self, path):
+        self.send_error(404)
+    def send_head(self):
+        path = urlsplit(self.path).path
+        # Client-side routes use the built index; missing assets remain 404s.
+        if not Path(self.translate_path(path)).exists() and not Path(path).suffix and not path.startswith(('/api', '/files', '/mcp/')):
+            self.path = '/index.html'
+        return super().send_head()
+    def end_headers(self):
+        self.send_header('Cache-Control', 'no-store')
+        super().end_headers()
+
+print('Serving built files from %s on port %d' % (root, options['port']), flush=True)
+http.server.ThreadingHTTPServer(('127.0.0.1', options['port']), StaticPreview).serve_forever()
+'''
 
 
 def project_server_environment():
-    # A dev script may enable --open itself. Keep project servers disconnected
+    # A project script may enable --open itself. Keep project servers disconnected
     # from the user's desktop even when the sandbox has a graphical session.
     env = dict(os.environ)
     for name in ('DISPLAY', 'WAYLAND_DISPLAY', 'XAUTHORITY', 'DBUS_SESSION_BUS_ADDRESS'):
@@ -12,21 +74,30 @@ def project_server_environment():
     return env
 
 
-def project_start_command(directory, command, state_dir):
+def project_start_command(directory, plan, state_dir, port):
     install = None
     pending = state_dir / ('dependencies-' + hashlib.sha256(str(directory).encode()).hexdigest()[:16] + '.pending')
-    if command[0] in ('npm', 'pnpm', 'yarn') and (pending.exists() or not (Path(directory) / 'node_modules').is_dir()):
-        manager = command[0]
+    if plan.get('manager') and (pending.exists() or not (Path(directory) / 'node_modules').is_dir()):
+        manager = plan['manager']
         install = [manager, 'ci' if manager == 'npm' and (Path(directory) / 'package-lock.json').exists() else 'install']
         if manager == 'npm':
             install += ['--no-audit', '--no-fund']
-    if not install:
-        return command
-    pending.write_text(command[0])
-    # A fixed wrapper keeps the PID alive during installation, then becomes
-    # the project process. Polling observes it without launching another copy.
-    script = "import json,os,subprocess,sys; o=json.loads(sys.argv[1]); r=subprocess.run(o['install'],timeout=180); sys.exit(r.returncode) if r.returncode else None; os.unlink(o['pending']); os.execvpe(o['command'][0],o['command'],os.environ)"
-    return [sys.executable, '-u', '-c', script, json.dumps({'install': install, 'command': command, 'pending': str(pending)})]
+        pending.write_text(manager)
+    return [sys.executable, '-u', '-c', BUILD_SERVER_SCRIPT, json.dumps({'install': install, 'plan': plan, 'port': port, 'pending': str(pending)})]
+
+
+def stop_preview_server(pid):
+    # Only stop the process group we created, including its build/server children.
+    try:
+        if alive(pid) and os.getpgid(int(pid)) == int(pid):
+            os.killpg(int(pid), signal.SIGTERM)
+            for _ in range(20):
+                if not alive(pid):
+                    return
+                time.sleep(.1)
+            os.killpg(int(pid), signal.SIGKILL)
+    except ProcessLookupError:
+        pass
 
 
 def web_preview(options):
@@ -38,39 +109,46 @@ def web_preview(options):
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             return {'status': 'starting'}
-        # Relay ports must never be rediscovered as project servers.
+        # Reuse authenticated relays only for the managed production port.
         relays = []
         for config_file in state_dir.glob('relay-*.json'):
             try:
                 relays.append(json.loads(config_file.read_text()))
             except (OSError, ValueError):
                 pass
-        RESERVED_PORTS.update(item['relay_port'] for item in relays)
-        url = running_url()
-        pid_file = state_dir / 'server.pid'
-        pid = pid_file.read_text().strip() if pid_file.exists() else ''
+        # Never discover arbitrary listeners: a running dev server must not win
+        # over a build in progress or a failed build. Legacy server.pid is ignored.
+        server_file = state_dir / 'build-server.json'
+        try:
+            server = json.loads(server_file.read_text())
+        except (OSError, ValueError):
+            server = {}
+        pid = server.get('pid')
+        url = 'http://127.0.0.1:%d/' % server['port'] if server.get('port') else ''
+        running = alive(pid)
+        ready = running and serves_html(url)
+        timed_out = running and not ready and time.time() - server.get('started_at', 0) > 900
         log_path = state_dir / 'server.log'
-        if not url and options.get('start'):
+        if options.get('start') and (not running or ready or timed_out):
             project = project_command(root)
             if not project:
                 return {'status': 'project_missing'}
-            process = None
-            if not alive(pid):
-                directory, command = project
-                with log_path.open('w') as log:
-                    process = subprocess.Popen(project_start_command(directory, command, state_dir), cwd=directory, stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True, env=project_server_environment())
-                pid_file.write_text(str(process.pid))
-                pid = str(process.pid)
-            deadline = time.monotonic() + 25
-            while time.monotonic() < deadline:
-                url = running_url()
-                if url or (process and process.poll() is not None):
-                    break
-                time.sleep(.5)
-            if not url:
-                return {'status': 'starting' if alive(pid) else 'start_failed', 'detail': log_tail(log_path)}
-        if not url:
-            if alive(pid):
+            stop_preview_server(pid)
+            for relay in relays:
+                stop_preview_server(relay.get('pid'))
+                (state_dir / ('relay-%d.json' % relay['port'])).unlink(missing_ok=True)
+            directory, plan = project
+            with socket.socket() as sock:
+                sock.bind(('127.0.0.1', 0))
+                port = sock.getsockname()[1]
+            with log_path.open('w') as log:
+                process = subprocess.Popen(project_start_command(directory, plan, state_dir, port), cwd=directory, stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True, env=project_server_environment())
+            server_file.write_text(json.dumps({'pid': process.pid, 'port': port, 'started_at': time.time()}))
+            return {'status': 'starting', 'detail': log_tail(log_path)}
+        if not ready:
+            if timed_out:
+                return {'status': 'start_failed', 'detail': log_tail(log_path) + '\nBuild or preview startup timed out. Production preview scripts must listen on the PORT environment variable.'}
+            if running:
                 return {'status': 'starting', 'detail': log_tail(log_path)}
             if pid and log_path.exists():
                 return {'status': 'start_failed', 'detail': log_tail(log_path)}
@@ -96,7 +174,8 @@ def web_preview(options):
                 time.sleep(.1)
         return {'status': 'start_failed', 'detail': 'Could not start the project relay.'}
 
-try:
-    print(json.dumps(web_preview(json.loads(sys.argv[1]))))
-except Exception as error:
-    print(json.dumps({'status': 'start_failed', 'detail': str(error)}))
+if __name__ == '__main__':
+    try:
+        print(json.dumps(web_preview(json.loads(sys.argv[1]))))
+    except Exception as error:
+        print(json.dumps({'status': 'start_failed', 'detail': str(error)}))

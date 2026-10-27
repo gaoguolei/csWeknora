@@ -150,10 +150,12 @@ func TestMCPProxyHTTPApprovalArgumentsAndImages(t *testing.T) {
 	result = invoke(`{"count":-1}`)
 	require.False(t, result.Success)
 	require.Contains(t, result.Error, "order not found")
+	require.False(t, result.ApprovalRejected, "an execution error is not a human rejection")
 	gate.reject = true
 	result = invoke(`{"count":2}`)
 	require.False(t, result.Success)
 	require.Contains(t, result.Error, "rejected by test user")
+	require.True(t, result.ApprovalRejected, "the MCP proxy must preserve the human rejection")
 	require.Equal(t, int32(2), calls.Load())
 	// A per-turn manual policy also gates a normally automatic MCP tool.
 	gate.automatic = true

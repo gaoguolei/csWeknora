@@ -112,7 +112,7 @@
               </div>
 
               <!-- MCP tool human approval (issue #1173) -->
-              <div v-else-if="event.type === 'tool_approval_required'" class="tool-event">
+              <div v-else-if="event.type === 'tool_approval_required' && (embeddedMode || event.service_name !== 'WeKnora' || event.mcp_tool_name !== 'approve_plan')" class="tool-event">
                 <ToolApprovalCard :pending-id="event.pending_id" :service-name="event.service_name || ''"
                   :mcp-tool-name="event.mcp_tool_name || ''" :description="event.description"
                   :args-json="event.args_json" :timeout-seconds="event.timeout_seconds"
@@ -203,11 +203,6 @@
                     class="search-results-summary-fixed knowledge-chunks-summary">
                     <div class="results-summary-text" v-html="getKnowledgeChunksSummary(event.tool_data)"></div>
                   </div>
-
-                  <SandboxCommandProgress
-                    v-if="event.tool_name === 'shell_exec' && event.pending && event.command_output && !event.command_output.done"
-                    :progress="event.command_output"
-                  />
 
                   <div v-if="!event.pending && event.tool_name === 'attachment_parsing'"
                     class="search-results-summary-fixed attachment-parsing-summary">
@@ -337,7 +332,7 @@
             </div>
 
             <!-- MCP tool human approval -->
-            <div v-else-if="event.type === 'tool_approval_required'" class="tool-event">
+            <div v-else-if="event.type === 'tool_approval_required' && (embeddedMode || event.service_name !== 'WeKnora' || event.mcp_tool_name !== 'approve_plan')" class="tool-event">
               <ToolApprovalCard :pending-id="event.pending_id" :service-name="event.service_name || ''"
                 :mcp-tool-name="event.mcp_tool_name || ''" :description="event.description" :args-json="event.args_json"
                 :timeout-seconds="event.timeout_seconds" :requested-at="event.requested_at" :resolved="event.resolved"
@@ -537,11 +532,6 @@
                   <div class="results-summary-text" v-html="getKnowledgeChunksSummary(event.tool_data)"></div>
                 </div>
 
-                <SandboxCommandProgress
-                  v-if="event.tool_name === 'shell_exec' && event.pending && event.command_output && !event.command_output.done"
-                  :progress="event.command_output"
-                />
-
                 <div v-if="!event.pending && event.tool_name === 'attachment_parsing'"
                   class="search-results-summary-fixed attachment-parsing-summary">
                   <div class="results-summary-text" v-html="getAttachmentParsingSummary(event)"></div>
@@ -645,7 +635,6 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, onUpdated, nextTick }
 import { useRouter, useRoute } from 'vue-router';
 import { marked } from 'marked';
 import 'katex/dist/katex.min.css';
-import SandboxCommandProgress from '@/components/SandboxCommandProgress.vue';
 import ToolResultRenderer from './ToolResultRenderer.vue';
 import ToolApprovalCard from './ToolApprovalCard.vue';
 import McpOAuthCard from './McpOAuthCard.vue';
@@ -695,9 +684,7 @@ import {
   getAttachmentReadTarget,
   getSandboxToolPath,
   sandboxPreviewRemaining,
-  skillScriptTitleCommand,
 } from '@/utils/skillToolDisplay';
-import { previewShellCommand } from '@/utils/shellExecResult';
 import type { DisplayType } from '@/types/tool-results';
 import { parseWikiToolReferences } from '@/utils/wikiToolReferences';
 import {
@@ -2199,6 +2186,9 @@ const isReferenceDrawerTool = (toolName?: string | null): boolean =>
   toolName === 'wiki_read_source_doc';
 
 const hasExpandableResults = (event: any): boolean => {
+  // Command calls remain compact status rows, including after approval and
+  // when reopening history. Never expose command bodies through expansion.
+  if (event?.tool_name === 'shell_exec' || event?.tool_name === 'execute_skill_script') return false;
   if (isReferenceDrawerTool(event?.tool_name)) return false;
   return hasResults(event);
 };
@@ -2574,7 +2564,7 @@ const renderAgentMarkdown = (
   return renderChatMarkdown(contentStr, {
     renderer: agentRenderer,
     escapeMarkdown,
-    sanitizeHtml: sanitizeMarkdownHTML,
+    sanitizeHtml: (html) => sanitizeMarkdownHTML(html, contentStr),
     streaming: !isSegmentDone.value,
     knowledgeReferences: getReferencesForDrawer(),
     cachedMermaidSvgHtml: streamingMermaidSvgCache.value,
@@ -2969,35 +2959,17 @@ const getToolTitle = (event: any): string => {
   }
 
   if (toolName === 'execute_skill_script') {
-    const command = previewShellCommand(skillScriptCommandLabel(event))
-    const baseTitle = formatToolTitleWithDetail(getToolDescription(event), getEventSkillName(event))
-    const rest = skillScriptTitleCommand(getEventSkillName(event), command)
-    return rest ? `${baseTitle}：${rest}` : baseTitle
+    return formatToolTitleWithDetail(getToolDescription(event), getEventSkillName(event))
   }
 
   if (toolName === 'shell_exec') {
-    const command = previewShellCommand(skillScriptCommandLabel(event))
-    const baseTitle = getToolDescription(event)
-    return command ? `${baseTitle}：${command}` : baseTitle
+    return getToolDescription(event)
   }
 
   // Use tool summary if available
   const summary = getToolSummary(event);
   return summary || getToolDescription(event);
 };
-
-const skillScriptCommandLabel = (event: any): string => {
-  const fromData = String(event?.tool_data?.command || event?.arguments?.command || '').trim()
-  if (fromData) return fromData
-  const skill = String(event?.tool_data?.skill_name || event?.arguments?.skill_name || '').trim()
-  const script = String(event?.tool_data?.script_path || event?.arguments?.script_path || '').trim()
-  const path = [skill, script].filter(Boolean).join('/')
-  const args = event?.tool_data?.args || event?.arguments?.args
-  if (Array.isArray(args) && args.length) {
-    return [path, ...args.map((arg: unknown) => String(arg))].filter(Boolean).join(' ')
-  }
-  return path
-}
 
 // Tool description
 const getToolDescription = (event: any): string => {
@@ -3882,8 +3854,9 @@ const handleAddToKnowledge = (answerEvent: any) => {
     padding: 7px 0 0 0;
     font-size: var(--agent-step-summary-size);
     color: var(--td-text-color-secondary);
-    max-height: none;
-    overflow-y: visible;
+    max-height: min(30vh, 240px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .thinking-inline-title {
@@ -3904,6 +3877,9 @@ const handleAddToKnowledge = (answerEvent: any) => {
     line-height: 1.6;
     overflow-wrap: anywhere;
     user-select: text;
+    max-height: min(30vh, 240px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
 
     :deep(.thinking-inline-markdown > :first-child) {
       margin-top: 0;

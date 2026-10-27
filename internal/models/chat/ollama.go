@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/Tencent/WeKnora/internal/models/utils/ollama"
 	"github.com/Tencent/WeKnora/internal/types"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
+	"github.com/google/uuid"
 	ollamaapi "github.com/ollama/ollama/api"
 )
 
@@ -114,12 +114,15 @@ func resolveImageForOllama(imageURL string) ollamaapi.ImageData {
 func (c *OllamaChat) buildChatRequest(messages []Message, opts *ChatOptions, isStream bool) *ollamaapi.ChatRequest {
 	// 设置流式标志
 	streamFlag := isStream
+	truncate := false
 
 	// 构建请求参数
 	chatReq := &ollamaapi.ChatRequest{
 		Model:    c.modelName,
 		Messages: c.convertMessages(messages),
 		Stream:   &streamFlag,
+		// Let the agent compact an oversized request instead of silently losing history.
+		Truncate: &truncate,
 		Options:  make(map[string]interface{}),
 	}
 
@@ -140,8 +143,17 @@ func (c *OllamaChat) buildChatRequest(messages []Message, opts *ChatOptions, isS
 		if len(opts.Format) > 0 {
 			chatReq.Format = opts.Format
 		}
-		if len(opts.Tools) > 0 {
-			chatReq.Tools = c.toolFrom(opts.Tools)
+		if len(opts.Tools) > 0 && opts.ToolChoice != "none" {
+			selected := opts.Tools
+			if opts.ToolChoice != "" && opts.ToolChoice != "auto" && opts.ToolChoice != "required" {
+				selected = nil
+				for _, tool := range opts.Tools {
+					if tool.Function.Name == opts.ToolChoice {
+						selected = append(selected, tool)
+					}
+				}
+			}
+			chatReq.Tools = c.toolFrom(selected)
 		}
 	}
 
@@ -235,6 +247,7 @@ func (c *OllamaChat) ChatStream(
 		defer close(streamChan)
 
 		var thinking api.ThinkingEmitter
+		var accumulatedToolCalls []types.LLMToolCall
 		err := c.ollamaService.Chat(ctx, chatReq, func(resp ollamaapi.ChatResponse) error {
 			// 发送思考内容（支持 Qwen3、DeepSeek 等推理模型）
 			if resp.Message.Thinking != "" {
@@ -252,9 +265,11 @@ func (c *OllamaChat) ChatStream(
 			}
 
 			if len(resp.Message.ToolCalls) > 0 {
+				calls := c.toolCallTo(resp.Message.ToolCalls)
+				accumulatedToolCalls = append(accumulatedToolCalls, calls...)
 				streamChan <- types.StreamResponse{
 					ResponseType: types.ResponseTypeToolCall,
-					ToolCalls:    c.toolCallTo(resp.Message.ToolCalls),
+					ToolCalls:    append([]types.LLMToolCall(nil), accumulatedToolCalls...),
 					Done:         false,
 				}
 
@@ -269,7 +284,7 @@ func (c *OllamaChat) ChatStream(
 					}
 				}
 
-				for _, tc := range resp.Message.ToolCalls {
+				for i, tc := range resp.Message.ToolCalls {
 					argsMap := tc.Function.Arguments.ToMap()
 					switch tc.Function.Name {
 					case "thinking":
@@ -280,7 +295,7 @@ func (c *OllamaChat) ChatStream(
 								Done:         false,
 								Data: map[string]interface{}{
 									"source":       "thinking_tool",
-									"tool_call_id": tooli2s(tc.Function.Index),
+									"tool_call_id": calls[i].ID,
 								},
 							}
 						}
@@ -303,6 +318,7 @@ func (c *OllamaChat) ChatStream(
 					ResponseType: types.ResponseTypeAnswer,
 					Done:         true,
 					Usage:        usage,
+					FinishReason: resp.DoneReason,
 				}
 			}
 
@@ -367,14 +383,14 @@ func (c *OllamaChat) toolCallFrom(toolCalls []ToolCall) []ollamaapi.ToolCall {
 		return nil
 	}
 	ollamaToolCalls := make([]ollamaapi.ToolCall, 0, len(toolCalls))
-	for _, tc := range toolCalls {
+	for i, tc := range toolCalls {
 		args := ollamaapi.NewToolCallFunctionArguments()
 		if tc.Function.Arguments != "" {
 			_ = args.UnmarshalJSON([]byte(tc.Function.Arguments))
 		}
 		ollamaToolCalls = append(ollamaToolCalls, ollamaapi.ToolCall{
 			Function: ollamaapi.ToolCallFunction{
-				Index:     tools2i(tc.ID),
+				Index:     i,
 				Name:      tc.Function.Name,
 				Arguments: args,
 			},
@@ -392,7 +408,9 @@ func (c *OllamaChat) toolCallTo(ollamaToolCalls []ollamaapi.ToolCall) []types.LL
 	for _, tc := range ollamaToolCalls {
 		argsBytes, _ := json.Marshal(tc.Function.Arguments)
 		toolCalls = append(toolCalls, types.LLMToolCall{
-			ID:   tooli2s(tc.Function.Index),
+			// Ollama indexes restart at zero in every response. They are not
+			// conversation-wide IDs and must not overwrite earlier tool events.
+			ID:   "call_" + strings.ReplaceAll(uuid.NewString(), "-", ""),
 			Type: "function",
 			Function: types.FunctionCall{
 				Name:      tc.Function.Name,
@@ -401,13 +419,4 @@ func (c *OllamaChat) toolCallTo(ollamaToolCalls []ollamaapi.ToolCall) []types.LL
 		})
 	}
 	return toolCalls
-}
-
-func tooli2s(i int) string {
-	return strconv.Itoa(i)
-}
-
-func tools2i(s string) int {
-	i, _ := strconv.Atoi(s)
-	return i
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/Tencent/WeKnora/internal/agent"
 	"github.com/Tencent/WeKnora/internal/agent/tools"
@@ -14,6 +15,7 @@ import (
 	"github.com/Tencent/WeKnora/internal/logger"
 	"github.com/Tencent/WeKnora/internal/models/chat"
 	"github.com/Tencent/WeKnora/internal/models/rerank"
+	ollamaruntime "github.com/Tencent/WeKnora/internal/models/utils/ollama"
 	"github.com/Tencent/WeKnora/internal/types"
 	secutils "github.com/Tencent/WeKnora/internal/utils"
 )
@@ -105,13 +107,23 @@ func (s *sessionService) AgentQA(
 		if modelInfo, err := s.modelService.GetModelByID(ctx, effectiveModelID); err == nil && modelInfo != nil {
 			agentModelSupportsVision = modelInfo.Parameters.SupportsVision
 			modelContextWindow = modelInfo.Parameters.ContextWindow
+			if modelInfo.Source == types.ModelSourceLocal {
+				if runtime, runtimeErr := ollamaruntime.GetOllamaService(); runtimeErr == nil {
+					lookupCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+					window, lookupErr := runtime.RunningContextWindow(lookupCtx, modelInfo.Name)
+					cancel()
+					if lookupErr == nil && window > 0 && (modelContextWindow == 0 || window < modelContextWindow) {
+						modelContextWindow = window
+					}
+				}
+			}
 		}
 	}
 	agentConfig.ChatModelSupportsVision = agentModelSupportsVision
 	agentConfig.MaxContextTokens = types.AgentMaxContextTokens(
 		agentConfig.MaxContextTokens, modelContextWindow,
 	)
-	logger.Infof(ctx, "Agent context window: %d tokens (model %s declares %d)",
+	logger.Infof(ctx, "Agent context window: %d tokens (model %s, model/runtime limit %d)",
 		agentConfig.MaxContextTokens, effectiveModelID, modelContextWindow)
 
 	// Get rerank model from custom agent config only when knowledge_search can
@@ -397,9 +409,9 @@ func (s *sessionService) buildAgentConfig(
 		skillConfigID, tenantSkills = hostSkillsForRun(ctx, s.tenantSkillRepo, s.hostSkillTree, sandboxTenantID)
 	} else {
 		skillConfigID, tenantSkills = skillsForRun(
-		ctx, s.sandboxPinner, s.sandboxConfigRepo, s.tenantSkillRepo,
-		sandboxTenantID, req.Session.ID, agentConfig.SandboxConfigID,
-	)
+			ctx, s.sandboxPinner, s.sandboxConfigRepo, s.tenantSkillRepo,
+			sandboxTenantID, req.Session.ID, agentConfig.SandboxConfigID,
+		)
 	}
 	agentConfig.TenantSkills = tenantSkills
 	if len(tenantSkills) > 0 {
@@ -439,6 +451,13 @@ func (s *sessionService) buildAgentConfig(
 		}
 		agentConfig.UseCustomSystemPrompt = true
 		agentConfig.SystemPrompt = codingSystemPrompt + "\n\n" + agentConfig.SystemPrompt
+	}
+	if req.ToolApprovalMode == types.ToolApprovalPlan {
+		if !slices.Contains(agentConfig.AllowedTools, tools.ToolTodoWrite) {
+			agentConfig.AllowedTools = append(agentConfig.AllowedTools, tools.ToolTodoWrite)
+		}
+		agentConfig.UseCustomSystemPrompt = true
+		agentConfig.SystemPrompt = taskPlanSystemPrompt + "\n\n" + agentConfig.SystemPrompt
 	}
 
 	logger.Infof(ctx, "Custom agent config applied: MaxIterations=%d, Temperature=%.2f, AllowedTools=%v, WebSearchEnabled=%v",
@@ -508,6 +527,12 @@ func (s *sessionService) buildAgentConfig(
 const codingSystemPrompt = `You are operating in WeKnora Coding mode on a user-authorized local project.
 
 Work inside the workspace shown in the runtime context. Treat all paths outside it as unavailable. Before changing files, inspect the relevant code and explain the smallest sound approach. For work with more than one meaningful implementation step, use todo_write to keep an implementation plan and update it as work progresses. Prefer precise edits over broad rewrites. After changes, run focused verification when the environment supports it, report changed files and test results honestly, and call out anything that still needs user review.`
+
+const taskPlanSystemPrompt = `The user selected PLAN mode: prepare a task plan, obtain explicit user approval, then execute the approved plan.
+Publish a concrete task checklist with todo_write before starting substantive work. Use stable step IDs and include investigation, implementation and verification where relevant. Even a small request should have a short checklist in this mode.
+The todo_write call will pause for user approval; its proposed task list is shown in the task panel. Do not perform changes or invoke other action tools before approval. You may use read-only tools to investigate before proposing the plan. After approval, use the available tools to carry out the approved plan without asking the user to switch modes. If the plan is rejected, stop and explain that no further work was executed. Mark the current step in_progress before working on it; after completing a step, immediately update todo_write to mark it completed and move on to the next. Include the full checklist on every update, keeping unfinished tasks visible and at most one step in_progress.
+Only mark work completed after actually doing it. Keep blocked or interrupted work unfinished and explain the blocker. After user approval the plan is fixed for this turn. Preserve its title, task IDs, descriptions, order and task count exactly; subsequent todo_write calls may only update task statuses. Do not add, remove, rewrite, reorder, replace or regenerate tasks, and do not ask for plan approval again. Execute the approved plan step by step. If the plan cannot be completed as approved, leave the blocked tasks unfinished and explain the blocker instead of silently replanning. The user can request a new plan in a new turn. Never reset completed tasks to pending or in_progress. Follow tool approval requirements that still apply to particular services.
+Task execution is sequential: only the first unfinished task is active. The backend requires actual successful tool execution before a task can be marked completed, then activates the next task. Perform the verification already included in the approved plan without asking for permission again. If an actual failed tool attempt prevents continuing, set blocked_reason in todo_write, keep the task unfinished, and explain that blocker. Do not label ordinary unfinished work or a request to continue as a blocker. Finish only after every task is completed or a genuine blocker is recorded, updating the checklist and reporting actual changes and verification results. Respect any user instruction to skip verification or tests.`
 
 func mergeResolvedTagKnowledgeIDs(
 	existing []string,

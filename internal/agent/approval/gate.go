@@ -32,6 +32,7 @@ var instanceID = uuid.New().String()
 // resolveMessage is the JSON payload published when one instance receives a
 // Resolve API call but the pending wait may live on another instance.
 type resolveMessage struct {
+	CheckOnly    bool            `json:"check_only,omitempty"`
 	TenantID     uint64          `json:"tenant_id"`
 	UserID       string          `json:"user_id,omitempty"`
 	PendingID    string          `json:"pending_id"`
@@ -218,7 +219,9 @@ func (g *Gate) runSubscriber() {
 	backoff := time.Second
 	const maxBackoff = 30 * time.Second
 	for {
-		sub := g.rdb.Subscribe(ctx, channel)
+		// Keep inspection off the resolve channel: an older replica must never
+		// mistake a read-only probe for a rejection during a rolling upgrade.
+		sub := g.rdb.Subscribe(ctx, channel, channel+":inspect")
 		ch := sub.Channel()
 		// Reset backoff once we have an active subscription.
 		backoff = time.Second
@@ -233,13 +236,18 @@ func (g *Gate) runSubscriber() {
 			if m.OriginID == instanceID {
 				continue
 			}
-			err := g.deliverLocal(m.TenantID, m.UserID, m.PendingID, Decision{
-				Approved:        m.Approved,
-				ModifiedArgs:    m.ModifiedArgs,
-				Reason:          m.Reason,
-				TimedOut:        m.TimedOut,
-				ContextCanceled: m.Canceled,
-			})
+			var err error
+			if m.CheckOnly {
+				err = g.checkLocal(m.TenantID, m.UserID, m.PendingID)
+			} else {
+				err = g.deliverLocal(m.TenantID, m.UserID, m.PendingID, Decision{
+					Approved:        m.Approved,
+					ModifiedArgs:    m.ModifiedArgs,
+					Reason:          m.Reason,
+					TimedOut:        m.TimedOut,
+					ContextCanceled: m.Canceled,
+				})
+			}
 			// Reply to the originating instance so it can return accurate HTTP
 			// status codes. Only the owning instance (or one that detects a
 			// real conflict) replies; other replicas stay silent on NotFound.
@@ -564,6 +572,43 @@ func (g *Gate) Resolve(tenantID uint64, userID, pendingID string, d Decision) er
 // the local path would return, so HTTP responses stay accurate even when the
 // session lives on a different replica.
 func (g *Gate) resolveCrossInstance(tenantID uint64, userID, pendingID string, d Decision) error {
+	return g.requestCrossInstance(tenantID, userID, pendingID, d, false)
+}
+
+// CheckPending checks the live waiter without delivering a decision. Replayed
+// prompts may outlive their owning process, so clients must not assume that a
+// prompt still represents a running, approvable tool call.
+func (g *Gate) CheckPending(tenantID uint64, userID, pendingID string) error {
+	if g == nil {
+		return fmt.Errorf("gate is nil")
+	}
+	err := g.checkLocal(tenantID, userID, pendingID)
+	if errors.Is(err, ErrPendingNotFound) && g.rdb != nil {
+		return g.requestCrossInstance(tenantID, userID, pendingID, Decision{}, true)
+	}
+	return err
+}
+
+func (g *Gate) checkLocal(tenantID uint64, userID, pendingID string) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	w, ok := g.pending[pendingID]
+	if !ok {
+		return ErrPendingNotFound
+	}
+	if w.tenantID != tenantID {
+		return ErrTenantMismatch
+	}
+	if w.userID != "" && w.userID != userID {
+		return ErrUserMismatch
+	}
+	if w.resolved.Load() {
+		return ErrAlreadyResolved
+	}
+	return nil
+}
+
+func (g *Gate) requestCrossInstance(tenantID uint64, userID, pendingID string, d Decision, checkOnly bool) error {
 	// Per-call nonce so concurrent Resolve callers for the same pendingID
 	// don't consume each other's acks on the shared reply channel.
 	nonce := uuid.New().String()
@@ -579,6 +624,7 @@ func (g *Gate) resolveCrossInstance(tenantID uint64, userID, pendingID string, d
 	}
 
 	payload, mErr := json.Marshal(resolveMessage{
+		CheckOnly:    checkOnly,
 		TenantID:     tenantID,
 		UserID:       userID,
 		PendingID:    pendingID,
@@ -596,7 +642,11 @@ func (g *Gate) resolveCrossInstance(tenantID uint64, userID, pendingID string, d
 	}
 	pubCtx, pubCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer pubCancel()
-	if pErr := g.rdb.Publish(pubCtx, pubsubChannel(), payload).Err(); pErr != nil {
+	channel := pubsubChannel()
+	if checkOnly {
+		channel += ":inspect"
+	}
+	if pErr := g.rdb.Publish(pubCtx, channel, payload).Err(); pErr != nil {
 		return fmt.Errorf("publish approval resolve: %w", pErr)
 	}
 

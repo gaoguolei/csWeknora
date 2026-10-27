@@ -76,55 +76,58 @@ export default defineConfig({
     modulePreload: {
       resolveDependencies(_filename, deps, { hostId }) {
         // Embed iframe bootstraps with token exchange only; defer heavy chat chunks.
-        if (hostId?.includes('embed')) {
-          return deps.filter((dep) => !(
-            dep.includes('vendor-mermaid')
-            || dep.includes('vendor-highlight')
-            || dep.includes('vendor-markdown')
-            || dep.includes('vendor-tdesign')
-            || dep.includes('botmsg')
-            || dep.includes('usermsg')
-            || dep.includes('EmbedBotMessage')
-            || dep.includes('EmbedUserMessage')
-            || dep.includes('AgentStreamDisplay')
-            || dep.includes('EmbedChatCore')
-            || dep.includes('vendor-markdown')
-            || dep.includes('fonts-')
-          ))
+        if (hostId?.includes("embed")) {
+          return deps.filter(
+            (dep) =>
+              !(
+                dep.includes("vendor-mermaid") ||
+                dep.includes("vendor-highlight") ||
+                dep.includes("vendor-markdown") ||
+                dep.includes("vendor-tdesign") ||
+                dep.includes("botmsg") ||
+                dep.includes("usermsg") ||
+                dep.includes("EmbedBotMessage") ||
+                dep.includes("EmbedUserMessage") ||
+                dep.includes("AgentStreamDisplay") ||
+                dep.includes("EmbedChatCore") ||
+                dep.includes("vendor-markdown") ||
+                dep.includes("fonts-")
+              ),
+          );
         }
-        return deps
+        return deps;
       },
     },
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
-        embed: resolve(__dirname, 'embed.html'),
+        main: resolve(__dirname, "index.html"),
+        embed: resolve(__dirname, "embed.html"),
       },
       output: {
         manualChunks(id) {
-          if (!id.includes('node_modules')) return
-          if (id.includes('mermaid') || id.includes('/dagre') || id.includes('cytoscape')) {
-            return 'vendor-mermaid'
+          if (!id.includes("node_modules")) return;
+          if (
+            id.includes("mermaid") ||
+            id.includes("/dagre") ||
+            id.includes("cytoscape")
+          ) {
+            return "vendor-mermaid";
           }
-          if (id.includes('marked') || id.includes('katex')) {
-            return 'vendor-markdown'
+          if (id.includes("marked") || id.includes("katex")) {
+            return "vendor-markdown";
           }
-          if (id.includes('highlight.js')) {
-            return 'vendor-highlight'
+          if (id.includes("highlight.js")) {
+            return "vendor-highlight";
           }
         },
       },
     },
   },
-  plugins: [
-    vue(),
-    vueJsx(),
-    embedHtmlDevFallback(),
-  ],
+  plugins: [vue(), vueJsx(), embedHtmlDevFallback()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-      '@vue-office/pptx': resolveVueOfficePptxEntry(),
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@vue-office/pptx": resolveVueOfficePptxEntry(),
     },
   },
   server: {
@@ -132,7 +135,7 @@ export default defineConfig({
     host: true,
     // 代理配置，用于开发环境
     proxy: {
-      '/mcp/': {
+      "/mcp/": {
         target: DEV_PROXY_TARGET,
         changeOrigin: true,
         secure: false,
@@ -140,7 +143,7 @@ export default defineConfig({
         timeout: 3_600_000,
         proxyTimeout: 3_600_000,
       },
-      '/api': {
+      "/api": {
         target: DEV_PROXY_TARGET,
         changeOrigin: true,
         secure: false,
@@ -152,12 +155,15 @@ export default defineConfig({
         timeout: 180_000,
         proxyTimeout: 180_000,
       },
-      '/files': {
+      "/files": {
         target: DEV_PROXY_TARGET,
         changeOrigin: true,
         secure: false,
-      }
-    }
+      },
+    },
+    headers: {
+      "Content-Security-Policy": "frame-ancestors http://127.0.0.1:5173"
+    },
   },
   // `vite preview` 用生产构建产物(dist)本地起服务，是最接近 release 镜像的环境：
   // 同样的压缩 / 拆包 / CSS 加载顺序，可提前暴露只在生产构建出现的问题
@@ -166,14 +172,14 @@ export default defineConfig({
     port: 4173,
     host: true,
     proxy: {
-      '/mcp/': {
+      "/mcp/": {
         target: DEV_PROXY_TARGET,
         changeOrigin: true,
         secure: false,
         timeout: 3_600_000,
         proxyTimeout: 3_600_000,
       },
-      '/api': {
+      "/api": {
         target: DEV_PROXY_TARGET,
         changeOrigin: true,
         secure: false,
@@ -181,11 +187,11 @@ export default defineConfig({
         timeout: 180_000,
         proxyTimeout: 180_000,
       },
-      '/files': {
+      "/files": {
         target: DEV_PROXY_TARGET,
         changeOrigin: true,
         secure: false,
-      }
-    }
-  }
-})
+      },
+    },
+  },
+});

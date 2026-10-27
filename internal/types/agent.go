@@ -72,6 +72,16 @@ func AgentRoundMaxCompletionTokens(configured int) int {
 	return AgentRoundMaxCompletionTokensFor(configured, "")
 }
 
+// AgentRoundMaxCompletionTokensForContext leaves room for instructions, tool
+// schemas and history on small runtime windows (e.g. a 32K Ollama allocation).
+func AgentRoundMaxCompletionTokensForContext(configured int, sandboxID string, contextWindow int) int {
+	budget := AgentRoundMaxCompletionTokensFor(configured, sandboxID)
+	if contextWindow > 0 {
+		budget = min(budget, max(1, contextWindow/4))
+	}
+	return budget
+}
+
 // MinSandboxWriteCompletionTokens is the floor applied to an explicitly
 // configured per-round budget when a sandbox is bound. write_sandbox_file and
 // edit_sandbox_file carry the whole file body inside the tool-call JSON, so a
@@ -379,6 +389,9 @@ type Cleanable interface {
 
 // ToolResult represents the result of a tool execution
 type ToolResult struct {
+	// ApprovalRejected ends the live turn after a human rejection. It is not a
+	// retryable execution error or a restriction on future user turns.
+	ApprovalRejected bool `json:"-"`
 	// OutputFiles holds sandbox references for this live result only. History
 	// uses the final answer's persistent resource references instead.
 	// A non-nil empty slice means output inspection found no eligible changes;

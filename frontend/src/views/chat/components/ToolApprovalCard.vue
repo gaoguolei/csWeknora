@@ -1,6 +1,6 @@
 <template>
   <Teleport :to="approvalDock || 'body'" :disabled="!isDocked">
-    <div class="action-card interaction-inline" :class="{ 'action-pending': !resolved, 'is-docked': isDocked }">
+    <div v-if="!unavailable || resolved" class="action-card interaction-inline" :class="{ 'action-pending': !effectiveResolved, 'is-docked': isDocked }">
       <div class="action-header no-results">
         <div class="action-title">
           <t-icon class="action-title-icon" :name="headerIcon" />
@@ -10,56 +10,25 @@
 
       <div class="interaction-status-summary">
         <div class="results-summary-text">
-          <span v-if="resolved" class="status-label">{{ statusLine }}</span>
-          <span v-if="!resolved" class="inline-actions">
-            <button type="button" class="inline-action" :disabled="submitting || submitted" @click.stop="submit('reject')">
+          <span v-if="effectiveResolved" class="status-label">{{ statusLine }}</span>
+          <span v-if="!effectiveResolved" class="inline-actions">
+            <button type="button" class="inline-action" :disabled="checking || submitting || submitted" @click.stop="submit('reject')">
               {{ $t('agentStream.toolApproval.reject') }}
             </button>
             <span class="inline-dot">·</span>
-            <button type="button" class="inline-action is-primary" :disabled="submitting || submitted || !isJsonValid"
+            <button type="button" class="inline-action is-primary" :disabled="checking || submitting || submitted"
               @click.stop="submit('approve')">
-              {{ $t('agentStream.toolApproval.approve') }}
+              {{ $t(approvalPlan ? 'agentStream.toolApproval.approvePlan' : 'agentStream.toolApproval.approve') }}
             </button>
           </span>
         </div>
       </div>
 
-      <div v-if="!resolved && !argsExpanded && (!isJsonValid || argsDirty)" class="interaction-status-summary">
-        <div class="results-summary-text">
-          <span v-if="!isJsonValid" class="args-status args-invalid">
-            <t-icon name="error-circle" />
-            {{ $t('agentStream.toolApproval.invalidJson') }}
-          </span>
-          <span v-else-if="argsDirty" class="args-status args-dirty">
-            {{ $t('agentStream.toolApproval.argsModified') }}
-          </span>
-        </div>
+      <div v-if="approvalPlan" class="approval-plan-preview">
+        <PlanDisplay :data="approvalPlan" />
       </div>
-
-      <div v-if="hasArgs" class="interaction-status-summary is-clickable" @click="toggleArgs">
-        <div class="results-summary-text args-toggle-row">
-          <span>{{ $t('agentStream.toolApproval.argsLabel') }}</span>
-          <t-icon class="args-toggle-icon" :name="argsExpanded ? 'chevron-down' : 'chevron-right'" />
-        </div>
-      </div>
-
-      <div v-if="hasArgs && argsExpanded" class="action-details">
-        <div v-if="!resolved && (!isJsonValid || argsDirty)" class="interaction-args-meta">
-          <span v-if="!isJsonValid" class="args-status args-invalid">
-            <t-icon name="error-circle" />
-            {{ $t('agentStream.toolApproval.invalidJson') }}
-          </span>
-          <span v-else-if="argsDirty" class="args-status args-dirty">
-            {{ $t('agentStream.toolApproval.argsModified') }}
-          </span>
-        </div>
-
-        <div v-if="!resolved" class="interaction-args-block">
-          <t-textarea v-model="argsText" class="interaction-args-input" :autosize="{ minRows: 2, maxRows: 8 }"
-            placeholder="{}" @click.stop />
-        </div>
-
-        <div v-else class="interaction-args-preview">{{ argsText }}</div>
+      <div v-if="!effectiveResolved" class="interaction-status-summary">
+        <div class="results-summary-text">{{ $t(approvalPlan ? 'agentStream.toolApproval.planApprovalHint' : 'agentStream.toolApproval.approvalHint') }}</div>
       </div>
     </div>
   </Teleport>
@@ -71,6 +40,9 @@ import { MessagePlugin } from 'tdesign-vue-next'
 import { useI18n } from 'vue-i18n'
 import { resolveToolApproval } from '@/api/mcp-service'
 import { resolveEmbedToolApproval } from '@/api/embed'
+import { isUnavailableToolApproval, usePendingToolApproval } from '@/composables/usePendingToolApproval'
+import PlanDisplay from './tool-results/PlanDisplay.vue'
+import type { PlanData } from '@/types/tool-results'
 
 const props = defineProps<{
   pendingId: string
@@ -101,88 +73,68 @@ const useEmbedApproval = () =>
 
 const { t } = useI18n()
 
-function formatJson(raw: string): string {
-  try {
-    return JSON.stringify(JSON.parse(raw), null, 2)
-  } catch {
-    return raw
-  }
-}
-
-const initialArgs = formatJson(props.argsJson || '{}')
-const argsText = ref(initialArgs)
-const argsExpanded = ref(true)
 const approvalDock = shallowRef<HTMLElement | null>(null)
 const submitting = ref(false)
 const submitted = ref(false)
-
-const hasArgs = computed(() => argsText.value.trim().length > 0)
-
-const isJsonValid = computed(() => {
-  if (!argsText.value.trim()) return true
+const submittedDecision = ref<'approve' | 'reject'>('reject')
+const effectiveResolved = computed(() => !!props.resolved || submitted.value)
+const effectiveApproved = computed(() => props.resolved ? props.approved : submitted.value && submittedDecision.value === 'approve')
+const { unavailable, checking, markUnavailable } = usePendingToolApproval(
+  () => props.pendingId, () => !props.embeddedMode && !effectiveResolved.value,
+)
+const approvalPlan = computed<PlanData | null>(() => {
+  if (props.serviceName !== 'WeKnora' || props.mcpToolName !== 'approve_plan') return null
   try {
-    const value = JSON.parse(argsText.value)
-    return value !== null && typeof value === 'object' && !Array.isArray(value)
-  } catch {
-    return false
-  }
+    const value = JSON.parse(props.argsJson || '{}')
+    if (!Array.isArray(value?.steps)) return null
+    return { display_type: 'plan', task: typeof value.task === 'string' ? value.task : '', steps: value.steps, total_steps: value.steps.length }
+  } catch { return null }
 })
 
-const argsDirty = computed(() => argsText.value.trim() !== initialArgs.trim())
-
-const isDocked = computed(() => !!approvalDock.value && !props.resolved && !props.embeddedMode)
+const isDocked = computed(() => !!approvalDock.value && !effectiveResolved.value && !props.embeddedMode)
 
 const headerIcon = computed(() => {
-  if (!props.resolved) return 'secured'
-  if (props.approved) return 'check-circle'
+  if (!effectiveResolved.value) return 'secured'
+  if (effectiveApproved.value) return 'check-circle'
   return 'close-circle'
 })
 
-const targetLabel = computed(() => (
-  t('agentStream.toolApproval.targetWithTool', {
-    service: props.serviceName,
-    tool: props.mcpToolName,
-  })
-))
+const builtinToolLabels: Record<string, string> = {
+  shell_exec: 'agentStream.tools.shellExec',
+  write_sandbox_file: 'agentStream.tools.writeSandboxFile',
+  edit_sandbox_file: 'agentStream.tools.editSandboxFile',
+  edit_knowledge_file: 'agentEditor.tools.editKnowledgeFile',
+}
+const toolLabel = computed(() => {
+  const key = props.serviceName === 'WeKnora' && builtinToolLabels[props.mcpToolName]
+  return key ? t(key) : props.mcpToolName
+})
 
 const mainTitle = computed(() => {
-  if (!props.resolved) {
-    return t('agentStream.toolApproval.waiting', { target: targetLabel.value })
+  if (approvalPlan.value) return t('agentStream.toolApproval.taskPlanTitle')
+  if (!effectiveResolved.value) {
+    return t('agentStream.toolApproval.waitingStatus')
   }
   return t('agentStream.toolApproval.titleWithTarget', {
     service: props.serviceName,
-    tool: props.mcpToolName,
+    tool: toolLabel.value,
   })
 })
 
 const statusLine = computed(() => {
-  if (!props.resolved) return t('agentStream.toolApproval.waitingStatus')
-  if (props.approved) return t('agentStream.toolApproval.approvedTag')
+  if (!effectiveResolved.value) return t('agentStream.toolApproval.waitingStatus')
+  if (effectiveApproved.value) return t('agentStream.toolApproval.approvedTag')
   return t('agentStream.toolApproval.rejectedTag')
 })
-
-function toggleArgs() {
-  argsExpanded.value = !argsExpanded.value
-}
 
 onMounted(() => {
   if (!props.embeddedMode) approvalDock.value = document.getElementById('chat-tool-approval-dock')
 })
 
 const submit = async (decision: 'approve' | 'reject') => {
-  if (props.resolved || submitting.value || submitted.value) return
+  if (effectiveResolved.value || checking.value || unavailable.value || submitting.value) return
   submitting.value = true
   try {
-    let modified: Record<string, unknown> | undefined
-    if (decision === 'approve') {
-      try {
-        modified = JSON.parse(argsText.value || '{}') as Record<string, unknown>
-      } catch {
-        argsExpanded.value = true
-        MessagePlugin.error(t('agentStream.toolApproval.invalidJson'))
-        return
-      }
-    }
     await (useEmbedApproval()
       ? resolveEmbedToolApproval(
         props.embedChannelId!,
@@ -193,18 +145,22 @@ const submit = async (decision: 'approve' | 'reject') => {
         props.pendingId,
         {
           decision,
-          modified_args: decision === 'approve' && argsDirty.value ? modified : undefined,
           reason: decision === 'reject' ? t('agentStream.toolApproval.userRejected') : undefined,
         },
       )
       : resolveToolApproval(props.pendingId, {
         decision,
-        modified_args: decision === 'approve' && argsDirty.value ? modified : undefined,
         reason: decision === 'reject' ? t('agentStream.toolApproval.userRejected') : undefined,
       }))
+    submittedDecision.value = decision
     submitted.value = true
     MessagePlugin.success(t('agentStream.toolApproval.submitted'))
   } catch (e: any) {
+    if (isUnavailableToolApproval(e)) {
+      markUnavailable()
+      MessagePlugin.info(t('agentStream.toolApproval.unavailable'))
+      return
+    }
     const msg = e?.response?.data?.error?.message || e?.message || t('agentStream.toolApproval.submitFailed')
     MessagePlugin.error(msg)
   } finally {
@@ -215,6 +171,8 @@ const submit = async (decision: 'approve' | 'reject') => {
 
 <style scoped lang="less">
 @import './agent-interaction-card.less';
+
+.approval-plan-preview { max-height: 180px; overflow-y: auto; padding-top: 8px; }
 
 .is-docked {
   .action-title { gap: 8px; flex-wrap: nowrap; }

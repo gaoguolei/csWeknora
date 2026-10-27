@@ -320,6 +320,8 @@
             </div>
           </transition>
           <div v-if="!embeddedMode" id="chat-tool-approval-dock" class="tool-approval-dock" aria-live="polite" />
+          <ChatTaskPlan v-if="!embeddedMode"
+            :messages="messagesList" :running="isReplying" />
           <InputField
             ref="inputFieldRef"
             :auto-focus="focusComposerOnMount"
@@ -489,6 +491,7 @@ import MessageTimestamp from "@/components/chat/MessageTimestamp.vue";
 import ChatQuestionMinimap from "@/components/chat/ChatQuestionMinimap.vue";
 import { shouldShowConversationTimestamp } from "@/utils/messageTimestamp";
 import ChatHeader from "@/components/ChatHeader.vue";
+import ChatTaskPlan from "@/components/chat/ChatTaskPlan.vue";
 import {
   notifySessionMutation,
   SESSION_MUTATION_EVENT,
@@ -601,7 +604,9 @@ const route = useRoute();
 const router = useRouter();
 const chatResources = useChatResourcesStore();
 const orgStore = useOrganizationStore();
+const currentSession = ref(null);
 const composerMode = computed(() => {
+  if (currentSession.value?.mode === 'coding') return 'coding';
   const id = useSettingsStoreInstance.selectedAgentId;
   const source = useSettingsStoreInstance.selectedAgentSourceTenantId;
   const agent = source
@@ -611,7 +616,6 @@ const composerMode = computed(() => {
 });
 const sandboxPanel = provideChatSandboxPanel(composerMode);
 const session_id = ref(props.session_id || route.params.chatid);
-const currentSession = ref(null);
 
 // 拉 session 详情，并按其 last_request_state 把输入栏状态恢复到当时的发起态。
 // 嵌入式（embeddedMode）由宿主页面注入 agent/KB，所以跳过整套恢复逻辑，

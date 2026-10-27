@@ -289,6 +289,12 @@ export async function revokeMCPOAuthToken(serviceId: string): Promise<void> {
   await del(`/api/v1/mcp-services/${serviceId}/oauth/token`)
 }
 
+export async function isToolApprovalPending(pendingId: string): Promise<boolean> {
+  const response: any = await get(`/api/v1/agent/tool-approvals/${encodeURIComponent(pendingId)}`)
+  if (typeof response?.pending !== 'boolean') throw new Error('Invalid tool approval status response')
+  return response.pending
+}
+
 export async function resolveToolApproval(
   pendingId: string,
   body: { decision: 'approve' | 'reject'; modified_args?: Record<string, unknown>; reason?: string }

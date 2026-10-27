@@ -116,6 +116,10 @@ type Message struct {
 	// exactly on a stored turn, the only kind it can persist for later turns.
 	// Engine-internal like Kind, and kept off the wire for the same reason.
 	TurnID string `json:"-"`
+	// TaskPlanState is a server-verified task-plan snapshot reconstructed from
+	// successful historical tools. It never comes from model/user prose and
+	// stays off the provider wire, like TurnID.
+	TaskPlanState json.RawMessage `json:"-"`
 }
 
 // ToolCall represents a tool call in a message

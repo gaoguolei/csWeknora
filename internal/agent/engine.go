@@ -37,6 +37,11 @@ const langfuseQueryPreview = 2000
 // cross-turn buffer.
 type AgentEngine struct {
 	toolApprovalGate     approval.MCPApproval
+	planApprovalMu       sync.Mutex
+	approvedPlan         *agenttools.TodoWriteInput // Immutable task content; only progress is updated after approval.
+	planEvidence         map[string]*planStepEvidence
+	planActionRecovery   bool // Retry a thought-only plan round with reasoning disabled.
+	planRejected         bool
 	config               *types.AgentConfig
 	toolRegistry         *agenttools.ToolRegistry
 	chatModel            chat.Chat
@@ -331,6 +336,12 @@ func (e *AgentEngine) Execute(
 	llmContext []chat.Message,
 	imageURLs ...[]string,
 ) (*types.AgentState, error) {
+	e.planApprovalMu.Lock()
+	e.approvedPlan, e.planRejected = nil, false
+	e.planEvidence = make(map[string]*planStepEvidence)
+	e.planActionRecovery = false
+	e.planApprovalMu.Unlock()
+	e.restoreTaskPlan(llmContext)
 	logger.Infof(ctx, "[Agent] Starting execution: session=%s, message=%s, query_len=%d, context_msgs=%d",
 		sessionID, messageID, len(query), len(llmContext))
 	// Ensure tools are cleaned up after execution
@@ -498,7 +509,7 @@ func (e *AgentEngine) withinIterationBudget(round int) bool {
 	if e.config.UnlimitedIterations() {
 		return true
 	}
-	return round < e.config.MaxIterations
+	return round < e.executionIterationLimit()
 }
 
 // loopGuards is the per-turn state the ReAct loop uses to notice it is not
@@ -558,7 +569,7 @@ func (e *AgentEngine) finishStalledTurn(
 	// answer would show an opening line and call the turn finished, so the
 	// fallback speaks for it instead.
 	answer := response.Content
-	if len(response.ToolCalls) > 0 {
+	if len(response.ToolCalls) > 0 || e.planMustContinue() {
 		answer = ""
 	}
 	answerID := ""
@@ -569,6 +580,9 @@ func (e *AgentEngine) finishStalledTurn(
 		answer = stalledAnswerFallback
 		if truncated {
 			answer = truncatedAnswerFallback
+		}
+		if e.planMustContinue() {
+			answer = e.incompletePlanSummary(ctx)
 		}
 		answerID = ""
 	}
@@ -599,7 +613,7 @@ func (e *AgentEngine) maxIterationsDisplay() string {
 	}
 	n := 0
 	if e.config != nil {
-		n = e.config.MaxIterations
+		n = e.executionIterationLimit()
 	}
 	return fmt.Sprintf("%d", n)
 }
@@ -897,6 +911,12 @@ func (e *AgentEngine) runReActIteration(
 		guards.consecutiveLength = 0
 	}
 
+	if len(response.ToolCalls) == 0 && (isNaturalStopFinishReason(response.FinishReason) || isLengthFinishReason(response.FinishReason)) && e.planMustContinue() {
+		e.planActionRecovery = true
+	} else if len(response.ToolCalls) > 0 {
+		e.planActionRecovery = false
+	}
+
 	// Detect stuck loops: a round with no tool calls that repeats the previous
 	// such round is not making progress. An identical *lack* of content counts
 	// — a model burning its whole budget on reasoning returns empty every
@@ -948,13 +968,24 @@ func (e *AgentEngine) runReActIteration(
 	if ctx.Err() != nil {
 		logger.Warnf(ctx, "[Agent][Round-%d] Context cancelled during LLM call; preserving partial step",
 			round)
-		if step.Thought != "" || len(step.ToolCalls) > 0 || len(step.UserMessagesBefore) > 0 {
+		if step.Thought != "" || step.ReasoningContent != "" || len(step.ToolCalls) > 0 || len(step.UserMessagesBefore) > 0 {
 			state.RoundSteps = append(state.RoundSteps, step)
 		}
 		return iterOutcomeBreak, nil
 	}
 
 	// 2. Analyze: Check for stop conditions (natural stop with no tool calls)
+	if len(response.ToolCalls) == 0 && (isNaturalStopFinishReason(response.FinishReason) || isLengthFinishReason(response.FinishReason)) && e.planMustContinue() {
+		// A prose summary or "shall I continue?" cannot finish an approved plan.
+		// Keep the transcript and spend another bounded round on the next task.
+		state.RoundSteps = append(state.RoundSteps, step)
+		*messagesPtr = append(*messagesPtr, chat.Message{
+			Role: "assistant", Content: response.Content,
+			ReasoningContent: response.ReasoningContent, ReasoningSignature: response.ReasoningSignature,
+			ReasoningMetadata: response.ReasoningMetadata,
+		}, chat.Message{Role: "user", Content: "The task plan is not complete. Continue the current approved step with tools and update todo_write after doing the work. Do not ask whether to perform already approved verification. If a tool actually failed and prevents continuing, record blocked_reason in todo_write and explain the blocker."})
+		return iterOutcomeNext, nil
+	}
 	verdict := e.analyzeResponse(ctx, response, step, state.CurrentRound, sessionID, roundStart)
 	if verdict.isDone {
 		// Guard against empty content: when the LLM stops naturally with no
@@ -1056,6 +1087,9 @@ func (e *AgentEngine) runReActIteration(
 
 	// 4. Observe: Add tool results to messages and write to context
 	state.RoundSteps = append(state.RoundSteps, step)
+	if e.finishRejectedToolApproval(ctx, step, state, sessionID) {
+		return iterOutcomeBreak, nil
+	}
 	*messagesPtr = e.appendToolResults(*messagesPtr, step)
 	*messagesPtr = e.appendToolImages(ctx, *messagesPtr, step)
 	common.PipelineInfo(ctx, "Agent", "round_end", map[string]interface{}{

@@ -3360,7 +3360,9 @@ defineExpose({
         ref="textareaRef"
         v-model="query"
         :placeholder="
-          codingMode ? '描述要在当前项目中完成的任务…' : t('input.placeholder')
+          settingsStore.toolApprovalMode === 'plan'
+            ? t('agentStream.toolApproval.planPlaceholder')
+            : codingMode ? '描述要在当前项目中完成的任务…' : t('input.placeholder')
         "
         name="description"
         :autosize="true"
@@ -3685,7 +3687,8 @@ defineExpose({
             </button>
           </t-tooltip>
 
-          <ToolApprovalModeSelector v-if="!embeddedMode && isAgentEnabled" :disabled="composerLocked || isReplying" />
+          <ToolApprovalModeSelector v-if="!embeddedMode && isAgentEnabled"
+            :disabled="composerLocked || isReplying" />
 
           <!-- 模型显示 -->
           <t-tooltip

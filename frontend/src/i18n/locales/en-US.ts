@@ -179,7 +179,7 @@ export default {
     searchInstructionsSaved: "Saved",
 
     sourceHint:
-      "Use the local browser to look up and interact with pages this turn, alongside web search, knowledge bases and other tools.",
+      "Use the local browser to look up and interact with pages this turn, alongside web search, devmind and other tools.",
     pressKey: "Press key",
     hoverPage: "Hover over element",
     scrollPage: "Scroll page",
@@ -475,11 +475,11 @@ export default {
     steps: {
       welcome: {
         title: "Welcome to WeKnora",
-        desc: 'A few quick steps to get you familiar with knowledge bases, chat and agents. Click "Next" to begin.',
+        desc: 'A few quick steps to get you familiar with devmind, chat and agents. Click "Next" to begin.',
       },
       knowledge: {
         title: "Create your knowledge base",
-        desc: "Everything starts here: upload documents, web pages or FAQs and WeKnora parses and indexes them automatically. Click here to open knowledge bases.",
+        desc: "Everything starts here: upload documents, web pages or FAQs and WeKnora parses and indexes them automatically. Click here to open devmind.",
       },
       chat: {
         title: "Start an AI chat",
@@ -487,7 +487,7 @@ export default {
       },
       agents: {
         title: "Build dedicated agents",
-        desc: "Combine knowledge bases, prompts and tools into reusable agents that capture your expertise.",
+        desc: "Combine devmind, prompts and tools into reusable agents that capture your expertise.",
       },
       settings: {
         title: "Account & settings",
@@ -495,7 +495,7 @@ export default {
       },
       models: {
         title: "Configure your models",
-        desc: 'A key step: add chat, embedding and other models in Model Management so knowledge bases and chat can work. Click "Add model" to get started.',
+        desc: 'A key step: add chat, embedding and other models in Model Management so devmind and chat can work. Click "Add model" to get started.',
       },
       done: {
         title: "You are all set",
@@ -538,7 +538,7 @@ export default {
       stepsAgent: {
         intro: {
           title: "Configure a chat model first",
-          desc: "Creating an agent requires at least one KnowledgeQA model. Add it in system settings (Embedding is only required for knowledge bases).",
+          desc: "Creating an agent requires at least one KnowledgeQA model. Add it in system settings (Embedding is only required for devmind).",
         },
         addModel: {
           title: "Add a chat model",
@@ -546,7 +546,7 @@ export default {
         },
         done: {
           title: "Then create an agent",
-          desc: 'After saving, close settings and click "Create agent". The wizard covers mode, knowledge bases, and attachment upload options.',
+          desc: 'After saving, close settings and click "Create agent". The wizard covers mode, devmind, and attachment upload options.',
         },
       },
     },
@@ -614,7 +614,7 @@ export default {
       steps: {
         create: {
           title: "Create your agent",
-          desc: 'Agents combine models, knowledge bases, tools, and prompts into reusable assistants. Click the highlighted "Create agent" button.',
+          desc: 'Agents combine models, devmind, tools, and prompts into reusable assistants. Click the highlighted "Create agent" button.',
         },
       },
     },
@@ -641,8 +641,8 @@ export default {
           desc: "Choose from configured chat models, or add one in system settings first.",
         },
         navKnowledge: {
-          title: "Link knowledge bases",
-          desc: "Control which knowledge the agent can retrieve. Default is all knowledge bases.",
+          title: "Link devmind",
+          desc: "Control which knowledge the agent can retrieve. Default is all devmind.",
         },
         knowledge: {
           title: "Knowledge scope",
@@ -690,7 +690,7 @@ export default {
       steps: {
         kb: {
           title: "Choose knowledge scope",
-          desc: "Click {'@'} to pick one or more knowledge bases or files. Answers use only the selection; otherwise the current agent settings apply.",
+          desc: "Click {'@'} to pick one or more devmind or files. Answers use only the selection; otherwise the current agent settings apply.",
         },
         input: {
           title: "Type your question",
@@ -1014,7 +1014,7 @@ export default {
     moveDocument: "Move to...",
     moveToKnowledgeBase: "Move to Knowledge Base",
     moveNoTargets:
-      "No compatible knowledge bases found (same type and embedding model required)",
+      "No compatible devmind found (same type and embedding model required)",
     moveModeReuseVectors: "Reuse Vectors (Fast)",
     moveModeReuseVectorsDesc:
       "Directly move chunks and vector indices. Use when chunking config is the same.",
@@ -1105,7 +1105,7 @@ export default {
     pdfDocFormat: "pdf, doc format files, max {size}MB",
     textMarkdownFormat: "text, markdown format files, max {size}MB",
     dragFileNotText: "Please drag files instead of text or links",
-    searchPlaceholder: "Search knowledge bases...",
+    searchPlaceholder: "Search devmind...",
     docSearchPlaceholder: "Search document names...",
     fileTypeFilter: "File Type",
     allFileTypes: "All Types",
@@ -1129,8 +1129,8 @@ export default {
     updatedTimeFrom: "From",
     updatedTimeTo: "To",
     noMatch: "No matching knowledge base found",
-    noKnowledge: "No knowledge bases available",
-    loadingFailed: "Failed to load knowledge bases",
+    noKnowledge: "No devmind available",
+    loadingFailed: "Failed to load devmind",
     operationNotSupportedForType:
       "This operation is not supported for the current knowledge base type",
     allFilesSkippedNoEngine:
@@ -1391,7 +1391,7 @@ export default {
     customAgents: "Custom Agents",
     capabilities: {
       kbCount: "{count} knowledge base(s) specified",
-      kbAll: "Access to all knowledge bases",
+      kbAll: "Access to all devmind",
       mcpEnabled: "MCP services enabled",
       multiTurn: "Multi-turn conversation",
     },
@@ -1447,7 +1447,7 @@ export default {
       rerankModel: "Rerank model",
       webSearch: "Web search",
       mcp: "MCP services",
-      kbAll: "All knowledge bases",
+      kbAll: "All devmind",
       kbSelected: "{count} selected",
       kbNone: "None",
       modelConfigured: "Configured",
@@ -1547,7 +1547,7 @@ export default {
       noKnowledgeBase: "No Knowledge Base",
       selectKnowledgeBases: "Select Knowledge Bases",
       selectKnowledgeBasesDesc:
-        "Select knowledge bases to associate (including collaborative ones)",
+        "Select devmind to associate (including collaborative ones)",
       myKnowledgeBases: "My Knowledge Bases",
       sharedKnowledgeBases: "Collaborative Knowledge Bases",
       retrieveKBOnlyWhenMentioned: "Retrieve Only When Mentioned",
@@ -2501,7 +2501,7 @@ export default {
     storage: {
       title: "Storage Engine",
       description:
-        "Configure document and image storage. Set engine parameters here; knowledge bases only select which engine to use.",
+        "Configure document and image storage. Set engine parameters here; devmind only select which engine to use.",
       basicSection: "Basic",
       modeSection: "Deployment Mode",
       credentialsSection: "Credentials",
@@ -2511,7 +2511,7 @@ export default {
       retry: "Retry",
       defaultEngine: "Default Engine",
       defaultEngineDesc:
-        "The default storage engine when creating new knowledge bases",
+        "The default storage engine when creating new devmind",
       engineLocal: "Local",
       engineCos: "Tencent Cloud COS",
       engineTos: "Volcengine TOS",
@@ -2959,7 +2959,7 @@ export default {
       "Adds semantic matching on top of wording, so a memory still surfaces after the user re-phrases the subject — and most memories get re-phrased eventually. Costs one embedding call per turn, and falls back to wording-only matching on timeout.",
     embeddingModelLabel: "Memory embedding model",
     embeddingModelDescription:
-      "Semantic recall uses this one model, independent of whichever embedding models knowledge bases bind. Leave blank for wording-only matching. After a change, new memories use the new model immediately; existing ones stay wording-only until they are re-embedded.",
+      "Semantic recall uses this one model, independent of whichever embedding models devmind bind. Leave blank for wording-only matching. After a change, new memories use the new model immediately; existing ones stay wording-only until they are re-embedded.",
     conditioningLabel: "Let memory shape retrieval",
     conditioningDescription:
       "Memory takes part in query rewriting and document ranking rather than only being appended to the answer prompt. This is where memory earns its keep in a knowledge-base product.",
@@ -2987,7 +2987,7 @@ export default {
       "Message indexing is configured by the platform super admin. This page shows the current workspace index records",
     enableLabel: "Enable Message Indexing",
     enableDescription:
-      "Platform-wide switch: when on, new conversation messages in ALL workspaces are automatically vectorized and indexed into their knowledge bases for semantic search; when off, every workspace stops immediately",
+      "Platform-wide switch: when on, new conversation messages in ALL workspaces are automatically vectorized and indexed into their devmind for semantic search; when off, every workspace stops immediately",
     embeddingModelLabel: "Embedding Model",
     embeddingModelDescription:
       "Select the embedding model for vectorizing chat messages (global, shared by all workspaces)",
@@ -3378,7 +3378,7 @@ export default {
         "Supports Markdown. Use # headings, lists, code blocks, etc.",
     },
     noDocumentKnowledgeBases:
-      "No document-type knowledge bases available. Please create one first",
+      "No document-type devmind available. Please create one first",
     status: {
       draftTag: "Status: Draft",
       publishedTag: "Status: Published",
@@ -3483,17 +3483,17 @@ export default {
   knowledgeList: {
     create: "Create Knowledge Base",
     subtitle:
-      "Manage and organize your knowledge bases, supporting document-based and FAQ-based knowledge bases",
+      "Manage and organize your devmind, supporting document-based and FAQ-based devmind",
     sharedToOrgs: "Shared to {count} space(s)",
     uninitializedBanner:
-      "Some knowledge bases are not initialized. Configure model information in settings before adding documents.",
+      "Some devmind are not initialized. Configure model information in settings before adding documents.",
     empty: {
-      title: "No knowledge bases yet",
+      title: "No devmind yet",
       description:
         'Click "Create Knowledge Base" in the top-right corner to add your first one.',
-      sharedTitle: "No shared knowledge bases",
+      sharedTitle: "No shared devmind",
       sharedDescription:
-        "You can join a shared space or request others to share knowledge bases with you",
+        "You can join a shared space or request others to share devmind with you",
       favoritesTitle: "No favorites yet",
       favoritesDescription:
         "Star a knowledge base from its card to add it here",
@@ -3542,9 +3542,9 @@ export default {
       sourceOrg: "Space",
       sourceFromAgent: "Agent",
       agentKbStrategy: "Agent KB strategy",
-      agentKbStrategyAll: "All knowledge bases",
-      agentKbStrategySelected: "Selected knowledge bases",
-      agentKbStrategyNone: "No knowledge bases",
+      agentKbStrategyAll: "All devmind",
+      agentKbStrategySelected: "Selected devmind",
+      agentKbStrategyNone: "No devmind",
       sharedAt: "Shared At",
       myPermission: "My Permission",
       goToKb: "Go to Knowledge Base",
@@ -3596,7 +3596,7 @@ export default {
       "Shown in the embed chat before the visitor sends their first message; leave blank to hide",
     showSuggestedQuestions: "Suggested questions",
     showSuggestedQuestionsDesc:
-      "Show starter prompts before the first visitor message, from agent config and linked knowledge bases",
+      "Show starter prompts before the first visitor message, from agent config and linked devmind",
     originsHint:
       "Enter the host websites allowed to embed this channel (A), not the WeKnora address (B). One full origin per line, e.g. https://shop.example.com; at least one required. Supports *.example.com.",
     originsRequired: "At least one allowed origin is required",
@@ -3720,14 +3720,14 @@ export default {
   kbDefaults: {
     title: "Knowledge Base Settings",
     description:
-      "Configure platform-wide defaults for knowledge bases. Regular users only fill in basic information when creating a knowledge base; all other settings automatically reference the defaults defined here, shared across every workspace on the platform.",
+      "Configure platform-wide defaults for devmind. Regular users only fill in basic information when creating a knowledge base; all other settings automatically reference the defaults defined here, shared across every workspace on the platform.",
     navGroup: "Knowledge Base Configuration",
     readonlyBanner:
       "Only super admins can edit the platform knowledge base defaults.",
     modelDefaultDesc:
-      "Models automatically selected for new knowledge bases; leave empty to let users choose.",
+      "Models automatically selected for new devmind; leave empty to let users choose.",
     appliesHint:
-      "These defaults apply to knowledge bases created from now on and do not affect existing ones.",
+      "These defaults apply to devmind created from now on and do not affect existing ones.",
     save: "Save Defaults",
     saving: "Saving…",
     autoSaved: "Auto-saved",
@@ -3735,7 +3735,7 @@ export default {
     saveFailed: "Failed to save platform knowledge base defaults",
     faqTitle: "FAQ Settings",
     faqHint:
-      "Index strategy for FAQ knowledge bases; applies to FAQ-type knowledge bases only.",
+      "Index strategy for FAQ devmind; applies to FAQ-type devmind only.",
     sections: {
       models: "Default Models",
       modelsDesc:
@@ -4367,7 +4367,7 @@ export default {
       buildDataFailed: "Failed to construct submission data",
       updateSuccess: "Configuration saved successfully",
       indexModeRequired:
-        "Please select an indexing mode for FAQ knowledge bases",
+        "Please select an indexing mode for FAQ devmind",
       storageChangeConfirm:
         "This knowledge base already has files. Changing the storage engine may make old files inaccessible. Do you want to proceed?",
     },
@@ -4381,7 +4381,7 @@ export default {
       subtitle:
         "Manage FAQ entries with batch import, edit, and search testing",
       description:
-        "Configure indexing strategy and guidance for FAQ-style knowledge bases",
+        "Configure indexing strategy and guidance for FAQ-style devmind",
       indexModeLabel: "Indexing Mode",
       indexModeDescription:
         "Question-only indexing improves precision, question+answer improves recall.",
@@ -4922,8 +4922,8 @@ export default {
     contentLengthLabelSimple: "Content length:",
     fullContentLabel: "Full content",
     copyContent: "Copy content",
-    knowledgeBaseCount: "{count} knowledge bases",
-    noKnowledgeBases: "No knowledge bases available",
+    knowledgeBaseCount: "{count} devmind",
+    noKnowledgeBases: "No devmind available",
     enterDescription: "Enter description",
     rawOutputLabel: "Raw output",
     wikiWritePageTitle: "Wiki Page Write",
@@ -4997,7 +4997,7 @@ export default {
       action: "Create new workspace",
       dialogTitle: "Create new workspace",
       dialogSubtitle:
-        "A workspace has its own knowledge bases and members. You will become the owner of the new workspace.",
+        "A workspace has its own devmind and members. You will become the owner of the new workspace.",
       nameLabel: "Workspace name",
       namePlaceholder: "e.g. My new project",
       nameRequired: "Please enter a workspace name",
@@ -5046,16 +5046,16 @@ export default {
     },
     leaveDangerZone: {
       title: "Leave this workspace",
-      desc: "Ends your membership in this workspace. You will lose access to its knowledge bases and agents. You can be invited again later.",
+      desc: "Ends your membership in this workspace. You will lose access to its devmind and agents. You can be invited again later.",
       button: "Leave workspace",
     },
     deleteDangerZone: {
       title: "Delete this workspace",
-      desc: "Delete the whole workspace and its configuration. Members will no longer be able to access its knowledge bases, agents, or API key.",
+      desc: "Delete the whole workspace and its configuration. Members will no longer be able to access its devmind, agents, or API key.",
       button: "Delete workspace",
       confirmTitle: "Delete this workspace?",
       confirmBody:
-        'This will delete "{name}" and make its knowledge bases, agents, members, and API key unavailable. This action cannot be undone.',
+        'This will delete "{name}" and make its devmind, agents, members, and API key unavailable. This action cannot be undone.',
       confirmHint: 'Type the workspace name "{name}" to confirm deletion.',
       confirm: "Delete workspace",
       nameMismatch: "Workspace name does not match",
@@ -5950,7 +5950,7 @@ export default {
         "Caps concurrent background (ingestion/enrichment) calls to this model, shared per model across all replicas. 0 or empty falls back to the global default; interactive chat is never affected.",
       isDefaultLabel: "Set as default",
       isDefaultDesc:
-        "Pre-select this model when creating knowledge bases / long-memory stores. Only one model per type can be the default.",
+        "Pre-select this model when creating devmind / long-memory stores. Only one model per type can be the default.",
       dimensionHint:
         'Model selected. Click "Detect Dimension" to fetch the vector dimension automatically.',
       loadModelListFailed: "Failed to load model list",
@@ -6114,7 +6114,7 @@ export default {
     titleDoneWithIssues: "{ok} done, {bad} not completed",
     titleCancelled: "Upload cancelled",
     destination: "Destination: {name}",
-    destinationMany: "Destination: {count} knowledge bases",
+    destinationMany: "Destination: {count} devmind",
     remaining: "about {time} left",
     eta: {
       seconds: "{n} sec",
@@ -6647,7 +6647,7 @@ export default {
   organization: {
     title: "Shared Spaces",
     subtitle:
-      "Create or join shared spaces so multiple workspaces can collaborate and share knowledge bases and agents",
+      "Create or join shared spaces so multiple workspaces can collaborate and share devmind and agents",
     createOrg: "Create Shared Space",
     joinOrg: "Join Shared Space",
     name: "Shared Space Name",
@@ -6688,7 +6688,7 @@ export default {
       confirm: "Confirm Join",
       preview: "Preview & Join",
       memberCount: "{count} members",
-      shareCount: "{count} shared knowledge bases",
+      shareCount: "{count} shared devmind",
       agentShareCount: "{count} agents",
       alreadyMember: "You are already a member of this shared space",
       invalidCode: "Invalid invite code",
@@ -6734,7 +6734,7 @@ export default {
     leave: "Leave Shared Space",
     leaveConfirmTitle: "Leave Shared Space",
     leaveConfirmMessage:
-      'Are you sure you want to leave shared space "{name}"? You will no longer have access to knowledge bases shared in this shared space.',
+      'Are you sure you want to leave shared space "{name}"? You will no longer have access to devmind shared in this shared space.',
     leaveSuccess: "Left shared space successfully",
     leaveFailed: "Failed to leave shared space",
     deleteConfirmTitle: "Delete Shared Space",
@@ -6779,7 +6779,7 @@ export default {
       },
     },
     sharedResources: {
-      kbListTitle: "Shared knowledge bases",
+      kbListTitle: "Shared devmind",
       agentListTitle: "Shared agents",
       loading: "Loading…",
       columns: {
@@ -6816,10 +6816,10 @@ export default {
       membersDesc:
         "View and manage shared space members and their roles. Each member represents a workspace — all users in the same workspace share access to this shared space.",
       permissionsIconHint: "View role permissions",
-      sharedDesc: "View all knowledge bases shared to this shared space",
-      noSharedKB: "No shared knowledge bases yet",
+      sharedDesc: "View all devmind shared to this shared space",
+      noSharedKB: "No shared devmind yet",
       noSharedKBTip:
-        "Knowledge base owners can share their knowledge bases to this shared space in KB settings",
+        "Knowledge base owners can share their devmind to this shared space in KB settings",
       sharedAgents: "Shared Agents",
       noSharedAgents: "No shared agents yet",
       sharedAgentsDesc:
@@ -6897,29 +6897,29 @@ export default {
         "Describe the purpose and goals of the shared space to help members understand it",
       permissionsTitle: "Member Permissions",
       permissionsDesc:
-        "Understand the permission scope of different roles for knowledge bases and agents in the shared space",
+        "Understand the permission scope of different roles for devmind and agents in the shared space",
       permissionFeature: "Permission Feature",
       fullAccess: "Full Access",
       editAccess: "Edit Access",
       viewAccess: "View Only",
       adminPerm1:
         "Manage shared space settings, members, and knowledge base & agent sharing",
-      adminPerm2: "Share and manage knowledge bases and agents",
+      adminPerm2: "Share and manage devmind and agents",
       adminPerm3: "Edit shared knowledge base content",
-      adminPerm4: "View and search knowledge bases",
+      adminPerm4: "View and search devmind",
       useSharedAgentsPerm: "Use shared agents",
-      shareKBPerm: "Share knowledge bases to shared space",
+      shareKBPerm: "Share devmind to shared space",
       editorPerm1: "Edit shared knowledge base content",
-      editorPerm2: "View and search knowledge bases",
+      editorPerm2: "View and search devmind",
       editorPerm3: "Manage shared space settings and members",
-      viewerPerm1: "View and search knowledge bases",
+      viewerPerm1: "View and search devmind",
       viewerPerm2: "Edit knowledge base content",
       viewerPerm3: "Manage shared space settings",
       ownerNote:
         "As the shared space creator, you will automatically become an admin with full permissions.",
       joinTitle: "Join Shared Space",
       joinDesc:
-        "Join an existing shared space with an invite code to access shared knowledge bases and agents",
+        "Join an existing shared space with an invite code to access shared devmind and agents",
       joinIllustration:
         "Enter the invite code provided by the shared space admin to join",
       inviteCodeTip:
@@ -7007,7 +7007,7 @@ export default {
     videoNotSupported: "Your browser does not support video playback",
   },
   commandPalette: {
-    placeholder: "Search knowledge bases, files, conversations…",
+    placeholder: "Search devmind, files, conversations…",
     clearRecent: "Clear",
     retrieval: "Retrieval settings",
     untitledSession: "Untitled conversation",
@@ -7031,7 +7031,7 @@ export default {
     },
     quick: {
       newChat: "New conversation",
-      knowledgeBases: "Open knowledge bases",
+      knowledgeBases: "Open devmind",
       agents: "Open agents",
       organizations: "Open shared spaces",
       settings: "Open settings",
@@ -7171,11 +7171,30 @@ export default {
   },
   agentStream: {
     toolApproval: {
+      unavailable: "This approval is no longer pending. Start the task again if needed.",
+      planBlocked: "Blocked",
+      planAwaitingApproval: "Awaiting approval",
+      planRejected: "Plan rejected",
+      planApprovalHint: "Review the task list before execution.",
+      approvePlan: "Approve and execute",
+      sessionPermissions: "Permissions · this session",
+      acceptEditsMode: "Accept edits",
+      acceptEditsModeDescription: "Automatically accept file creation and edits; ask before commands and other actions.",
+      bypassMode: "Bypass permissions",
+      bypassModeDescription: "Skip action approvals for this session and run all available tools.",
+      planUnfinished: "Unfinished tasks remain",
+      planComplete: "All done",
+      planningTasks: "Planning tasks…",
+      taskPlanTitle: "Task progress",
+      planMode: "Plan",
+      planModeDescription: "Propose a plan for your approval, then execute it and update progress.",
+      planPlaceholder: "Describe a task to plan and complete step by step…",
+      approvalHint: "Approval lets the assistant continue this action.",
       modeLabel: "Permissions",
-      autoMode: "Approve for me",
-      manualMode: "Request approval",
-      autoModeDescription: "Run actions automatically; required MCP approvals still apply.",
-      manualModeDescription: "Wait for your approval below before running commands, changing files or calling MCP tools.",
+      autoMode: "Auto",
+      manualMode: "Manual",
+      autoModeDescription: "Modify or delete files without asking each time.",
+      manualModeDescription: "Ask before changing files, running commands or taking other actions.",
 
       waiting: "Awaiting review · {target}",
       waitingStatus: "Awaiting review",
@@ -7522,7 +7541,7 @@ export default {
       selectTools: "Select tools available to the Agent",
       maxIterations:
         "Caps how many reasoning steps one task may take. Unlimited keeps going until the model stops on its own or you stop it.",
-      kbScope: "Select the scope of knowledge bases accessible to the agent",
+      kbScope: "Select the scope of devmind accessible to the agent",
       webSearch:
         "When enabled, the agent can search the internet for information",
       webSearchProvider:
@@ -8079,10 +8098,10 @@ export default {
         "Sync documents, spreadsheets and files from a Lark Drive folder (Feishu international)",
       notion: "Sync pages and databases from Notion",
       confluence: "Sync spaces and pages from Confluence as Markdown",
-      yuque: "Sync documents from Yuque knowledge bases",
-      dingtalk: "Sync online documents from DingTalk knowledge bases",
+      yuque: "Sync documents from Yuque devmind",
+      dingtalk: "Sync online documents from DingTalk devmind",
       rss: "Sync articles from RSS / Atom feeds",
-      ima: "Sync documents, notes and files from Tencent IMA knowledge bases (AI sessions and video parses are not supported)",
+      ima: "Sync documents, notes and files from Tencent IMA devmind (AI sessions and video parses are not supported)",
       gitlab: "Sync files from GitLab projects",
       seafile: "Sync folders and files from Seafile libraries",
     },
@@ -8114,7 +8133,7 @@ export default {
       clientSecret: "Client Secret",
       operatorId: "Operator Union ID",
       operatorIdHint:
-        "Reads knowledge bases with this user’s permissions. Obtain it from the DingTalk user details API.",
+        "Reads devmind with this user’s permissions. Obtain it from the DingTalk user details API.",
       integrationToken: "Integration Token",
       apiToken: "API Token",
       confluenceEdition: "Edition",
@@ -8214,7 +8233,7 @@ export default {
       "Grant Wiki.Workspace.Read, Wiki.Node.Read, and Storage.File.Read.",
     prereqStep3Brief_dingtalk: "Enter the operator Union ID",
     prereqStep3Desc_dingtalk:
-      "Enter the Union ID of a DingTalk user who can access the target knowledge bases.",
+      "Enter the Union ID of a DingTalk user who can access the target devmind.",
     prereqOpenConsole_dingtalk: "Open DingTalk Developer Console",
     prereqBarText_ima:
       "First time? Click to see the Tencent IMA OpenAPI setup guide",
@@ -8225,9 +8244,9 @@ export default {
     prereqStep2Desc_ima:
       "Copy the ima-openapi-clientid and ima-openapi-apikey credentials from the agent-interface page",
     prereqStep3Brief_ima:
-      "Grant the credential access to the target knowledge bases",
+      "Grant the credential access to the target devmind",
     prereqStep3Desc_ima:
-      "In the IMA client, authorize the credential for the knowledge bases you want to sync; unauthorized bases will not appear in the list",
+      "In the IMA client, authorize the credential for the devmind you want to sync; unauthorized bases will not appear in the list",
     prereqOpenConsole_ima: "Open Tencent IMA OpenAPI console",
     prereqBotBrief: 'Add "Bot" capability to your app',
     prereqBotDesc:
@@ -8293,7 +8312,7 @@ export default {
     cli: {
       title: "WeKnora CLI",
       subtitle:
-        "Manage knowledge bases and documents, search content, and ask questions from your terminal. Connect scripts and AI tools through the CLI or MCP.",
+        "Manage devmind and documents, search content, and ask questions from your terminal. Connect scripts and AI tools through the CLI or MCP.",
       docs: "CLI documentation",
       docsHint: "Installation and complete command reference",
       quickstart: "Quick start",
@@ -8305,7 +8324,7 @@ export default {
         "Create and activate a profile named weknora, then sign in with your email and password. If that profile already exists, choose another name and update the MCP example to match.",
       verifyTitle: "Verify the connection",
       verifyDesc:
-        "Check server and authentication status, then list the knowledge bases your account can access.",
+        "Check server and authentication status, then list the devmind your account can access.",
       commandsTitle: "Common commands",
       commandsDesc:
         "Replace KB_ID with a knowledge base ID and adapt the file path, query, and question. Uploaded documents must finish processing before they can be searched.",
@@ -8324,13 +8343,13 @@ export default {
       empty: "No MCP endpoints yet",
       disabled: "Disabled",
       cardSummary: "{tools} tools · {scope}",
-      scopeAll: "All knowledge bases",
-      scopeCount: "{count} knowledge bases",
+      scopeAll: "All devmind",
+      scopeCount: "{count} devmind",
       create: "New endpoint",
       editTitle: "Edit MCP endpoint",
       createTitle: "New MCP endpoint",
       drawerDesc:
-        "The endpoint decides which knowledge bases a client can see and which tools it can call. The token is shown once, on creation and rotation.",
+        "The endpoint decides which devmind a client can see and which tools it can call. The token is shown once, on creation and rotation.",
       sectionBasic: "Basics",
       nameLabel: "Name",
       namePlaceholder: "e.g. Product docs assistant",
@@ -8338,11 +8357,11 @@ export default {
       descriptionPlaceholder: "Optional: who uses this endpoint and for what",
       enabledLabel: "Enabled",
       sectionScope: "Knowledge-base scope",
-      kbScopeLabel: "Accessible knowledge bases",
+      kbScopeLabel: "Accessible devmind",
       kbScopePlaceholder:
         "Leave empty for every knowledge base in the workspace",
       kbScopeHint:
-        "Every retrieval, ask and write tool is confined to these knowledge bases. Empty means the whole workspace.",
+        "Every retrieval, ask and write tool is confined to these devmind. Empty means the whole workspace.",
       sectionTools: "Exposed tools",
       toolsHint:
         "Only checked tools appear in the client tool list; unchecked tools are refused even when called by name. Write tools are off by default.",
@@ -8356,9 +8375,9 @@ export default {
         ingest: "Writes (enable with care)",
       },
       tools: {
-        list_knowledge_bases: "List knowledge bases",
+        list_knowledge_bases: "List devmind",
         list_knowledge_basesDesc:
-          "Return the knowledge bases in scope and the retrieval modes each supports",
+          "Return the devmind in scope and the retrieval modes each supports",
         search_knowledge: "Semantic search",
         search_knowledgeDesc:
           "Find relevant passages for a natural-language question, with sources",
@@ -8485,7 +8504,7 @@ export default {
       capabilityTenantFull: "Workspace full access",
       capabilityTenantFullHint:
         "Allow every workspace-level API, including models, vector stores, data sources and channels. Knowledge-base scope does not apply.",
-      capabilityRetrieve: "Retrieve knowledge bases",
+      capabilityRetrieve: "Retrieve devmind",
       capabilityRetrieveHint:
         "Read, query, and search data inside the selected knowledge-base scope. Does not create sessions or modify content.",
       capabilityChat: "Chat",
@@ -8496,10 +8515,10 @@ export default {
         "List agents, read agent details, presets, and suggested questions. Does not allow chat or agent edits.",
       capabilityIngest: "Write KB content",
       capabilityIngestHint:
-        "Let this key write content into its allowed knowledge bases (upload documents, edit chunks/FAQ/tags/wiki). It cannot create knowledge bases or agents, cannot clear a knowledge base, and stays bounded to the selected knowledge bases.",
-      capabilityManageKbs: "Manage knowledge bases",
+        "Let this key write content into its allowed devmind (upload documents, edit chunks/FAQ/tags/wiki). It cannot create devmind or agents, cannot clear a knowledge base, and stays bounded to the selected devmind.",
+      capabilityManageKbs: "Manage devmind",
       capabilityManageKbsHint:
-        "Let this key manage the full knowledge-base lifecycle: create, copy, update, and delete knowledge bases and change their initialization/configuration. Operations on existing knowledge bases (copy/update/delete) stay bounded by the selected scope; creating a new knowledge base is unrestricted (the new KB belongs to this space).",
+        "Let this key manage the full knowledge-base lifecycle: create, copy, update, and delete devmind and change their initialization/configuration. Operations on existing devmind (copy/update/delete) stay bounded by the selected scope; creating a new knowledge base is unrestricted (the new KB belongs to this space).",
       capabilityManageAgents: "Manage agents",
       capabilityManageAgentsHint:
         "Let this key create, update, delete and copy agents. Agent config can carry sensitive model/MCP bindings, so this is off by default — enable only when needed.",
@@ -8541,13 +8560,13 @@ export default {
         "Read and update workspace-level integration settings such as API end-user identity mode, request header configuration, and workspace KV settings. Does not include API key management, member management, workspace deletion, or ownership transfer.",
       apiKeyKnowledgeScope: "Knowledge bases",
       apiKeyKnowledgeScopePlaceholder:
-        "Leave empty to allow all knowledge bases",
-      allKnowledgeBases: "All knowledge bases",
+        "Leave empty to allow all devmind",
+      allKnowledgeBases: "All devmind",
       editApiKeyScope: "Edit API key",
       editApiKeyScopeDesc:
         'Change the name and authorization scope of API key "{name}".',
       editApiKeyScopeHint:
-        "Leave empty to allow all knowledge bases in this workspace. All changes take effect immediately.",
+        "Leave empty to allow all devmind in this workspace. All changes take effect immediately.",
       updateApiKeyScopeSuccess: "API key updated",
       updateApiKeyScopeFailed: "Failed to update API key",
       createdAt: "Created",
@@ -8674,7 +8693,7 @@ export default {
     chrome: {
       title: "Knowledge Assistant",
       subtitle:
-        "For self-hosted WeKnora: ask questions in a sidebar, clip web pages, and save Markdown notes into your knowledge bases while you browse.",
+        "For self-hosted WeKnora: ask questions in a sidebar, clip web pages, and save Markdown notes into your devmind while you browse.",
       capabilitiesTitle: "Core capabilities",
       capabilities: {
         qa: {
@@ -8750,7 +8769,7 @@ export default {
         },
         browse: {
           title: "Browse knowledge",
-          desc: "List knowledge bases and entries, view details, and manage imported content.",
+          desc: "List devmind and entries, view details, and manage imported content.",
         },
       },
       stepsTitle: "Setup steps",
@@ -8769,7 +8788,7 @@ export default {
         },
         verify: {
           title: "Verify connection",
-          desc: "Ask the agent to list knowledge bases or run a search to confirm credentials and connectivity.",
+          desc: "Ask the agent to list devmind or run a search to confirm credentials and connectivity.",
         },
       },
       openApiSettings: "Open API Info",
@@ -8875,7 +8894,7 @@ export default {
     leave: {
       confirmTitle: "Leave this workspace?",
       confirmBody:
-        "You will lose access to all knowledge bases and agents in this workspace. You can be re-invited later.",
+        "You will lose access to all devmind and agents in this workspace. You can be re-invited later.",
       confirm: "Leave",
       success: "You have left the workspace",
     },

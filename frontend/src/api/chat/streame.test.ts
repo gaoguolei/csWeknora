@@ -81,7 +81,7 @@ for (const selected of [true, false, undefined]) {
   })
 }
 
-for (const mode of [undefined, 'auto', 'manual'] as const) {
+for (const mode of [undefined, 'auto', 'manual', 'accept_edits', 'plan', 'bypass'] as const) {
   test(`SSE body carries tool approval mode: ${mode}`, async () => {
     let stream!: ReturnType<typeof useStream>
     await renderToString(createSSRApp({ setup() { stream = useStream(); return () => null } }))

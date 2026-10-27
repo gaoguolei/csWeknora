@@ -732,6 +732,35 @@ type resolveToolApprovalBody struct {
 	Reason       string          `json:"reason"`
 }
 
+// CheckToolApproval reports whether a prompt still has a live, owned waiter.
+func (h *MCPServiceHandler) CheckToolApproval(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
+	ctx := c.Request.Context()
+	tenantID := c.GetUint64(types.TenantIDContextKey.String())
+	principal, _ := types.PrincipalFromContext(ctx)
+	userID := principal.StorageID()
+	if tenantID == 0 || strings.TrimSpace(userID) == "" {
+		c.Error(errors.NewUnauthorizedError("authenticated workspace user required"))
+		return
+	}
+	if h.toolApprovalGate == nil {
+		c.Error(errors.NewInternalServerError("Tool approval gate is not configured"))
+		return
+	}
+	err := h.toolApprovalGate.CheckPending(tenantID, userID, c.Param("pending_id"))
+	switch {
+	case err == nil:
+		c.JSON(http.StatusOK, gin.H{"success": true, "pending": true})
+	case stderrors.Is(err, approval.ErrPendingNotFound), stderrors.Is(err, approval.ErrAlreadyResolved):
+		c.JSON(http.StatusOK, gin.H{"success": true, "pending": false})
+	case stderrors.Is(err, approval.ErrTenantMismatch), stderrors.Is(err, approval.ErrUserMismatch):
+		c.Error(errors.NewForbiddenError("only the session owner may inspect this approval"))
+	default:
+		logger.ErrorWithFields(ctx, err, map[string]interface{}{"pending_id": c.Param("pending_id")})
+		c.Error(errors.NewInternalServerError(err.Error()))
+	}
+}
+
 // ResolveToolApproval completes a pending MCP tool approval (agent execution resumes).
 //
 // ResolveToolApproval godoc

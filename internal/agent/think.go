@@ -284,6 +284,22 @@ func (e *AgentEngine) streamThinkingToEventBus(
 		ParallelToolCalls:   &parallelToolCalls,
 		PromptCacheKey:      sessionID,
 	}
+	messages = e.withPlanExecutionState(messages)
+	planMustContinue := e.planMustContinue()
+	if planMustContinue && len(tools) > 0 {
+		opts.ToolChoice = "required"
+		parallelToolCalls = false
+		// Automatic reasoning should leave room for the actual operation once
+		// the plan is approved. Preserve explicit user-selected effort levels.
+		if (opts.ReasoningEffort == "" || opts.ReasoningEffort == "auto") && (opts.Thinking == nil || *opts.Thinking) {
+			opts.ReasoningEffort = "low"
+		}
+		if e.planActionRecovery {
+			thinkingOff := false
+			opts.Thinking = &thinkingOff
+			opts.ReasoningEffort = "off"
+		}
+	}
 
 	pendingToolCalls := make(map[string]bool)
 	thinkingToolIDs := make(map[string]string) // tool_call_id -> event ID for thinking tool streams
@@ -332,6 +348,12 @@ func (e *AgentEngine) streamThinkingToEventBus(
 	}
 	emitAnswer := func(content string) {
 		if content == "" {
+			return
+		}
+		if planMustContinue {
+			// Incomplete-plan prose is progress narration, never a final answer.
+			thinkingOpen = true
+			emitThought(content, false)
 			return
 		}
 		// Suppress whitespace-only content emitted before the real answer has

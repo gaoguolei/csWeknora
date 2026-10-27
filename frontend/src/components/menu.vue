@@ -1934,7 +1934,7 @@ const probeChannelBucketCounts = async (keys: string[], token: number) => {
       const bucket = sessionBuckets.value[key]
       if (!bucket) return
       try {
-        const res: any = await getSessionsList(1, 1, bucket.apiSource, 'chat')
+        const res: any = await getSessionsList(1, 1, bucket.apiSource)
         if (token !== bucketRequestToken) return
         sessionBuckets.value = {
           ...sessionBuckets.value,
@@ -1967,7 +1967,6 @@ const loadBucketPage = async (key: string, page?: number, token?: number) => {
       nextPage,
       SIDEBAR_BUCKET_PAGE_SIZE,
       bucket.apiSource,
-      'chat',
     )
     if (activeToken !== bucketRequestToken) return
     const rows = (res?.data || []).map((item: any) => mapSessionRow(item))

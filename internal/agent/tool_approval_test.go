@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/Tencent/WeKnora/internal/agent/tools"
 	"github.com/Tencent/WeKnora/internal/config"
 	"github.com/Tencent/WeKnora/internal/event"
+	"github.com/Tencent/WeKnora/internal/models/chat"
 	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/stretchr/testify/require"
 )
@@ -18,6 +20,76 @@ type approvalRecordingTool struct {
 	tools.BaseTool
 	called bool
 	args   json.RawMessage
+}
+
+func TestRejectedApprovalStopsTurnAndSkipsRemainingTools(t *testing.T) {
+	for _, mode := range []types.ToolApprovalMode{types.ToolApprovalManual, types.ToolApprovalPlan} {
+		for _, parallel := range []bool{false, true} {
+			t.Run(string(mode)+fmt.Sprintf("/parallel=%v", parallel), func(t *testing.T) {
+				name, args := tools.ToolShellExec, `{}`
+				if mode == types.ToolApprovalPlan {
+					name, args = tools.ToolTodoWrite, `{"steps":[{"id":"1","description":"Inspect the project","status":"pending"}]}`
+				}
+				model := &mockChat{responses: []mockResponse{
+					{chunks: []types.StreamResponse{{Done: true, FinishReason: "tool_calls", ToolCalls: []types.LLMToolCall{
+						{ID: "before", Function: types.FunctionCall{Name: tools.ToolReadFile, Arguments: `{}`}},
+						{ID: "denied", Function: types.FunctionCall{Name: name, Arguments: args}},
+						{ID: "after-read", Function: types.FunctionCall{Name: tools.ToolReadFile, Arguments: `{}`}},
+						{ID: "after-write", Function: types.FunctionCall{Name: tools.ToolWriteSandboxFile, Arguments: `{}`}},
+					}}}},
+					{chunks: []types.StreamResponse{{Content: `<｜DSML｜calls><｜DSML｜invoke name="shell_exec">`, Done: true}}},
+				}}
+				engine := newTestEngine(t, model)
+				engine.config.ToolApprovalMode = mode
+				engine.config.ParallelToolCalls = parallel
+				engine.toolRegistry = tools.NewToolRegistry()
+				read, denied, write := newCountingTool(tools.ToolReadFile), newCountingTool(name), newCountingTool(tools.ToolWriteSandboxFile)
+				for _, tool := range []types.Tool{read, denied, write} {
+					engine.toolRegistry.RegisterTool(tool)
+				}
+				gate := approval.NewGate(nil, nil, nil)
+				engine.SetToolApprovalGate(gate)
+				approvals, results, completions, answerDone := 0, 0, 0, 0
+				var answer string
+				engine.eventBus.On(event.EventToolApprovalRequired, func(ctx context.Context, evt event.Event) error {
+					approvals++
+					request := evt.Data.(event.ToolApprovalRequiredData)
+					principal, _ := types.PrincipalFromContext(ctx)
+					return gate.Resolve(request.TenantID, principal.StorageID(), request.PendingID, approval.Decision{Approved: false})
+				})
+				engine.eventBus.On(event.EventAgentToolResult, func(context.Context, event.Event) error { results++; return nil })
+				engine.eventBus.On(event.EventAgentComplete, func(context.Context, event.Event) error { completions++; return nil })
+				engine.eventBus.On(event.EventAgentFinalAnswer, func(_ context.Context, evt event.Event) error {
+					data := evt.Data.(event.AgentFinalAnswerData)
+					answer += data.Content
+					if data.Done {
+						answerDone++
+					}
+					return nil
+				})
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				ctx = context.WithValue(ctx, types.LanguageContextKey, "zh-CN")
+				state := &types.AgentState{}
+				_, err := engine.executeLoop(ctx, state, "start", []chat.Message{{Role: "user", Content: "start"}}, nil, "session", "message")
+				require.NoError(t, err)
+				require.True(t, state.IsComplete)
+				require.Equal(t, 1, model.callCount, "rejection must not start another model round or final synthesis")
+				require.Equal(t, 1, approvals, "later tools must not request approval again")
+				require.Equal(t, 1, read.calls, "reads after rejection must be skipped")
+				require.Zero(t, denied.calls)
+				require.Zero(t, write.calls)
+				require.Len(t, state.RoundSteps, 1)
+				require.Len(t, state.RoundSteps[0].ToolCalls, 4)
+				require.Equal(t, 4, results, "all pending tool cards must receive a result")
+				require.Equal(t, 1, completions)
+				require.Equal(t, 1, answerDone)
+				require.Equal(t, state.FinalAnswer, answer)
+				require.Contains(t, answer, "已拒绝")
+				require.NotContains(t, answer, "DSML")
+			})
+		}
+	}
 }
 
 func (t *approvalRecordingTool) Execute(ctx context.Context, args json.RawMessage) (*types.ToolResult, error) {
@@ -90,6 +162,7 @@ func TestManualApprovalBlocksExecutionUntilDecision(t *testing.T) {
 			if outcome == "reject" || outcome == "cancel" || outcome == "invalid" {
 				require.False(t, tool.called)
 				require.False(t, call.Result.Success)
+				require.Equal(t, outcome == "reject", call.Result.ApprovalRejected, "cancellation and invalid arguments are not human rejections")
 			} else {
 				require.True(t, tool.called)
 				require.True(t, call.Result.Success, call.Result.Error)
@@ -120,4 +193,35 @@ func TestApprovalModeKeepsReadsAutomaticAndFailsClosedWithoutGate(t *testing.T) 
 			})
 		}
 	}
+}
+
+func TestToolFailureAfterApprovalCanStillRecover(t *testing.T) {
+	model := &mockChat{responses: []mockResponse{
+		{chunks: []types.StreamResponse{{Done: true, FinishReason: "tool_calls", ToolCalls: []types.LLMToolCall{
+			{ID: "call", Function: types.FunctionCall{Name: tools.ToolShellExec, Arguments: `{}`}},
+		}}}},
+		{chunks: []types.StreamResponse{{Content: "The command failed.", Done: true}}},
+	}}
+	engine := newTestEngine(t, model)
+	engine.config.ToolApprovalMode = types.ToolApprovalManual
+	engine.toolRegistry = tools.NewToolRegistry()
+	engine.toolRegistry.RegisterTool(&orderedTestTool{
+		BaseTool: tools.NewBaseTool(tools.ToolShellExec, "", json.RawMessage(`{"type":"object"}`)),
+		run: func(context.Context) *types.ToolResult {
+			return &types.ToolResult{Success: false, Error: "tool approval denied: text returned by the command"}
+		},
+	})
+	gate := approval.NewGate(nil, nil, nil)
+	engine.SetToolApprovalGate(gate)
+	engine.eventBus.On(event.EventToolApprovalRequired, func(ctx context.Context, evt event.Event) error {
+		request := evt.Data.(event.ToolApprovalRequiredData)
+		principal, _ := types.PrincipalFromContext(ctx)
+		return gate.Resolve(request.TenantID, principal.StorageID(), request.PendingID, approval.Decision{Approved: true})
+	})
+	state := &types.AgentState{}
+	_, err := engine.executeLoop(context.Background(), state, "start", emptyMessages(), nil, "session", "message")
+	require.NoError(t, err)
+	require.Equal(t, 2, model.callCount)
+	require.True(t, state.IsComplete)
+	require.Equal(t, "The command failed.", state.FinalAnswer)
 }

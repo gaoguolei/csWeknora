@@ -1,15 +1,15 @@
 import { onBeforeUnmount, ref, watch, type Ref } from 'vue'
-import { discoverProgrammingWebPreview, type ProgrammingWebPreview } from '@/api/programming'
+import type { discoverProgrammingWebPreview, ProgrammingWebPreview } from '@/api/programming'
 import { resolveProjectPreviewUrl } from '@/utils/projectPreview'
 
 /** Discovery follows the active session; polling never starts or resumes a sandbox. */
 export function useWorkspaceWebPreview(
   session: Ref<string>, active: Ref<boolean>, revision: Ref<number | undefined>,
-  discover = discoverProgrammingWebPreview,
+  discover: typeof discoverProgrammingWebPreview,
   agent?: Ref<{ agent_id?: string; agent_source_tenant_id?: string | number }>,
 ) {
   const result = ref<ProgrammingWebPreview | null>(null)
-  const currentUrl = ref(''), busy = ref(false), starting = ref(false), frameKey = ref(0)
+  const currentUrl = ref(''), busy = ref(false), starting = ref(false)
   let previewID = '', generation = 0, pendingRefresh = false, pendingStart = false
   let timer: ReturnType<typeof setTimeout> | undefined
   function schedule(delay: number) {
@@ -23,6 +23,10 @@ export function useWorkspaceWebPreview(
     const epoch = generation
     busy.value = true
     starting.value = start
+    if (start) {
+      currentUrl.value = ''
+      result.value = { status: 'starting' }
+    }
     try {
       const response = await discover(session.value, { start, preview_id: previewID, ...(start ? agent?.value : {}) })
       if (epoch !== generation) return
@@ -54,8 +58,8 @@ export function useWorkspaceWebPreview(
     }
   }
   function reload() {
-    if (currentUrl.value) frameKey.value++
-    void refresh()
+    // Built previews have no HMR: refresh explicitly rebuilds the project.
+    void refresh(true)
   }
   watch(session, () => {
     generation++; clearTimeout(timer)
@@ -66,5 +70,5 @@ export function useWorkspaceWebPreview(
     if (active.value && session.value) schedule(150)
   }, { immediate: true })
   onBeforeUnmount(() => { generation++; clearTimeout(timer) })
-  return { result, currentUrl, busy, starting, frameKey, refresh, reload }
+  return { result, currentUrl, busy, starting, refresh, reload }
 }

@@ -539,6 +539,11 @@ func buildAgentStepMessages(step types.AgentStep) []chat.Message {
 		ToolCalls:          make([]chat.ToolCall, 0, len(nonTerminalCalls)),
 	}
 	for _, tc := range nonTerminalCalls {
+		if tc.Name == agenttools.ToolTodoWrite {
+			if snapshot := agenttools.TaskPlanHistoryState(tc.Result); snapshot != nil {
+				assistantMsg.TaskPlanState = snapshot
+			}
+		}
 		argsJSON, _ := json.Marshal(tc.Args)
 		assistantMsg.ToolCalls = append(assistantMsg.ToolCalls, chat.ToolCall{
 			ID:               tc.ID,

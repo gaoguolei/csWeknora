@@ -109,9 +109,23 @@ export function useChatStreamHandler(options: UseChatStreamHandlerOptions) {
     return undefined
   }
 
+  const closePendingToolApprovals = () => {
+    for (const row of messagesList) {
+      if (!Array.isArray(row.agentEventStream)) continue
+      for (const approval of row.agentEventStream as ChatMessage[]) {
+        if (approval.type !== 'tool_approval_required' || approval.resolved) continue
+        approval.resolved = true
+        approval.approved = false
+        approval.canceled = true
+        approval.resolve_reason = 'request ended before approval'
+      }
+    }
+  }
+
   const markAssistantStopped = (message: ChatMessage) => {
     if (!message || message.is_completed) return
     message.is_completed = true
+    closePendingToolApprovals()
     if (message.isAgentMode) {
       if (!message.agentEventStream) message.agentEventStream = []
       const stream = message.agentEventStream as ChatMessage[]
@@ -331,9 +345,18 @@ export function useChatStreamHandler(options: UseChatStreamHandlerOptions) {
     usage?: unknown,
   ) => {
     const events: ChatMessage[] = []
+    const toolIdCounts = new Map<string, number>()
+    for (const rawStep of agentSteps || []) {
+      const calls = (rawStep as ChatMessage)?.tool_calls
+      if (!Array.isArray(calls)) continue
+      for (const call of calls) {
+        const id = String(call?.id || '')
+        toolIdCounts.set(id, (toolIdCounts.get(id) || 0) + 1)
+      }
+    }
 
     if (agentSteps && Array.isArray(agentSteps) && agentSteps.length > 0) {
-      agentSteps.forEach((rawStep) => {
+      agentSteps.forEach((rawStep, stepIndex) => {
         const step = rawStep as ChatMessage
         events.push(...steerStepEvents(step))
         const stepTimestamp = step.timestamp ? new Date(String(step.timestamp)).getTime() : 0
@@ -372,14 +395,17 @@ export function useChatStreamHandler(options: UseChatStreamHandlerOptions) {
         }
 
         if (toolCalls && Array.isArray(toolCalls)) {
-          toolCalls.forEach((toolCall: ChatMessage) => {
+          toolCalls.forEach((toolCall: ChatMessage, toolIndex: number) => {
             if (toolCall.name === 'final_answer') return
             const result = toolCall.result as ChatMessage | undefined
             const resultData = result?.data as ChatMessage | undefined
             const target = toolCall.target as ChatMessage | undefined
             events.push({
               type: 'tool_call',
-              tool_call_id: toolCall.id,
+              // Old Ollama transcripts reused "0" in every round. Keep each
+              // historical operation independently addressable in the UI.
+              tool_call_id: !toolCall.id || (toolIdCounts.get(String(toolCall.id)) || 0) > 1
+                ? `history-${stepIndex}-${toolIndex}-${toolCall.id || 'tool'}` : toolCall.id,
               tool_name: target?.name || toolCall.name,
               arguments: target?.args || toolCall.args,
               pending: false,
@@ -682,6 +708,11 @@ export function useChatStreamHandler(options: UseChatStreamHandlerOptions) {
       case 'tool_approval_required': {
         if (!message.agentEventStream) message.agentEventStream = []
         const d = dataPayload || {}
+        // Stream reattachment replays prompts. Preserve the original card and
+        // its resolved state instead of appending another actionable copy.
+        if (d.pending_id && messagesList.some(row => Array.isArray(row.agentEventStream)
+          && (row.agentEventStream as ChatMessage[]).some(event =>
+            event.type === 'tool_approval_required' && event.pending_id === d.pending_id))) break
         ;(message.agentEventStream as ChatMessage[]).push({
           type: 'tool_approval_required',
           pending_id: d.pending_id,
@@ -699,15 +730,18 @@ export function useChatStreamHandler(options: UseChatStreamHandlerOptions) {
       case 'tool_approval_resolved': {
         const d = dataPayload || {}
         const pid = d.pending_id
-        const ev = (message.agentEventStream as ChatMessage[] | undefined)?.find(
-          (e) => e.type === 'tool_approval_required' && e.pending_id === pid,
-        )
-        if (ev) {
-          ev.resolved = true
-          ev.approved = d.approved
-          ev.resolve_reason = d.reason
-          ev.timed_out = d.timed_out
-          ev.canceled = d.canceled
+        // A steer may have moved the prompt into an earlier assistant segment.
+        // Resolve every copy so an old approval cannot remain clickable.
+        for (const row of messagesList) {
+          if (!Array.isArray(row.agentEventStream)) continue
+          for (const ev of row.agentEventStream as ChatMessage[]) {
+            if (ev.type !== 'tool_approval_required' || ev.pending_id !== pid) continue
+            ev.resolved = true
+            ev.approved = d.approved
+            ev.resolve_reason = d.reason
+            ev.timed_out = d.timed_out
+            ev.canceled = d.canceled
+          }
         }
         break
       }
@@ -1033,8 +1067,6 @@ export function useChatStreamHandler(options: UseChatStreamHandlerOptions) {
         loading.value = false
         isReplying.value = false
         message.is_completed = true
-        onReplyComplete?.(String(message.content || ''))
-        onTurnComplete?.(message)
         fullContent.value = ''
         currentAssistantMessageId.value = ''
         // Hydrate skill-generated artifacts as soon as the SSE completion
@@ -1052,7 +1084,25 @@ export function useChatStreamHandler(options: UseChatStreamHandlerOptions) {
         if (usage) {
           message.usage = usage
         }
-        if (message.agentEventStream) {
+        const savedSteps = dataPayload?.agent_steps
+        const hasSteerSegments = Array.isArray(savedSteps) && savedSteps.some(step =>
+          Array.isArray((step as ChatMessage)?.user_messages_before) && ((step as ChatMessage).user_messages_before as unknown[]).length > 0)
+        if (Array.isArray(savedSteps) && savedSteps.length > 0 && !hasSteerSegments && !message.steerForked) {
+          const interactions = ((message.agentEventStream as ChatMessage[]) || []).filter(event =>
+            event.type === 'tool_approval_required' || event.type === 'mcp_oauth_required' || event.type === 'context_compacted')
+          const restored = reconstructEventStreamFromSteps(savedSteps, String(message.content || ''), true,
+            Boolean(message.is_fallback), Number(dataPayload?.total_duration_ms) || 0, usage)
+          for (const interaction of interactions) {
+            let position = restored.findIndex(event => event.type === 'tool_call' && event.tool_call_id === interaction.tool_call_id)
+            if (position < 0 && interaction.mcp_tool_name === 'approve_plan')
+              position = restored.findIndex(event => event.type === 'tool_call' && event.tool_name === 'todo_write')
+            restored.splice(Math.max(0, position), 0, interaction)
+          }
+          message.agent_steps = markRaw(savedSteps)
+          message.agentEventStream = markRaw(restored)
+          message._eventMap = markRaw(new Map())
+          message._pendingToolCalls = markRaw(new Map())
+        } else if (message.agentEventStream) {
           ;(message.agentEventStream as ChatMessage[]).push({
             type: 'agent_complete',
             total_duration_ms: dataPayload?.total_duration_ms || 0,
@@ -1060,10 +1110,14 @@ export function useChatStreamHandler(options: UseChatStreamHandlerOptions) {
             usage,
           })
         }
+        closePendingToolApprovals()
+        onReplyComplete?.(String(message.content || ''))
+        onTurnComplete?.(message)
         break
       }
       case 'stop': {
         log('[Agent] Stop event received')
+        closePendingToolApprovals()
         if (!message.agentEventStream) message.agentEventStream = []
         ;(message.agentEventStream as ChatMessage[]).push({
           type: 'stop',

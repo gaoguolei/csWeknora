@@ -167,7 +167,7 @@ export function sanitizeDocumentPreviewHTML(html: string): string {
 }
 
 /** Sanitize assistant markdown HTML (code/mermaid toolbars, KaTeX, SVG). */
-export function sanitizeMarkdownHTML(html: string): string {
+export function sanitizeMarkdownHTML(html: string, fallbackText?: string): string {
   if (!html || typeof html !== 'string') {
     return '';
   }
@@ -181,7 +181,12 @@ export function sanitizeMarkdownHTML(html: string): string {
     );
   } catch (error) {
     console.error('Markdown HTML sanitization failed:', error);
-    return escapeHTML(html);
+    // Agent streams can contain large, incomplete code examples. If HTML
+    // sanitization fails, show escaped source instead of leaking the generated
+    // <p>/<li> markup into the conversation. The fallback remains plain text.
+    return fallbackText === undefined
+      ? escapeHTML(html)
+      : escapeHTML(fallbackText).replace(/\n/g, '<br>');
   }
 }
 

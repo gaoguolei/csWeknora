@@ -482,7 +482,7 @@ func (s *agentService) registerSandboxFileTools(
 		// bounds one write; the tool advertises a limit derived from it.
 		toolRegistry.RegisterTool(tools.NewWriteSandboxFileTool(
 			store,
-			types.AgentRoundMaxCompletionTokensFor(config.MaxCompletionTokens, config.SandboxConfigID),
+			types.AgentRoundMaxCompletionTokensForContext(config.MaxCompletionTokens, config.SandboxConfigID, config.MaxContextTokens),
 		))
 		toolRegistry.RegisterTool(tools.NewEditSandboxFileTool(store))
 		logger.Infof(ctx, "Registered sandbox file primitives (listing is a no-shell fallback)")
@@ -1156,9 +1156,9 @@ func (s *agentService) registerTools(
 		}
 
 		// If no knowledge and no web search, todo_write is not useful for a
-		// simple chat. Coding sessions are the exception: their task plan tracks
-		// implementation work inside the existing Agent loop.
-		if !config.WebSearchEnabled && !config.CodingMode {
+		// simple chat. Coding sessions and an explicit Plan selection keep their
+		// task list inside the existing Agent loop.
+		if !config.WebSearchEnabled && !config.CodingMode && config.ToolApprovalMode != types.ToolApprovalPlan {
 			kbTools[tools.ToolTodoWrite] = true
 		}
 
@@ -1283,6 +1283,9 @@ func (s *agentService) registerTools(
 			toolToRegister = tools.NewSequentialThinkingTool()
 		case tools.ToolTodoWrite:
 			toolToRegister = tools.NewTodoWriteTool()
+			if config.CodingMode || config.ToolApprovalMode == types.ToolApprovalPlan {
+				toolToRegister = tools.NewExecutionTodoWriteTool()
+			}
 		case tools.ToolSearchKnowledge:
 			toolToRegister = tools.NewSearchKnowledgeTool(
 				s.knowledgeBaseService,

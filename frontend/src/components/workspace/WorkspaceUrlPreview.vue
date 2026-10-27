@@ -39,8 +39,8 @@
       <button
         type="button"
         :disabled="busy"
-        :title="t('workspace.previewRefresh')"
-        :aria-label="t('workspace.previewRefresh')"
+        :title="t('workspace.rebuildPreview')"
+        :aria-label="t('workspace.rebuildPreview')"
         @click="reload"
       >
         <t-icon name="refresh" />
@@ -106,7 +106,7 @@
           <t-icon v-if="starting" name="loading" size="12px" class="spinning" />
           {{ t(starting ? 'workspace.autoPreviewStarting' : sandboxNeedsStart ? 'workspace.startSandboxPreview' : 'workspace.startPreview') }}
         </button>
-        <button type="button" :disabled="busy" :title="t('workspace.previewRecheckHint')" @click="reload()">
+        <button type="button" :disabled="busy" :title="t('workspace.previewRecheckHint')" @click="refresh()">
           {{ t('workspace.previewRecheck') }}
         </button>
         <button
@@ -139,7 +139,6 @@
              same-origin requests in the generated app. Chrome warns about the
              combination regardless of the frame's real origin. -->
         <iframe
-          :key="frameKey"
           :src="currentUrl"
           sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"
           referrerpolicy="no-referrer"
@@ -154,6 +153,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useWorkspaceWebPreview } from "@/composables/useWorkspaceWebPreview";
+import { discoverProgrammingWebPreview } from "@/api/programming";
 const props = defineProps<{
   sessionId: string;
   active: boolean;
@@ -171,12 +171,12 @@ const agent = computed(() => ({
   agent_id: props.agentId,
   agent_source_tenant_id: props.agentSourceTenantId || undefined,
 }));
-const { result, currentUrl, busy, starting, frameKey, refresh, reload } =
+const { result, currentUrl, busy, starting, refresh, reload } =
   useWorkspaceWebPreview(
     toRef(props, "sessionId"),
     toRef(props, "active"),
     toRef(props, "revision"),
-    undefined,
+    discoverProgrammingWebPreview,
     agent,
   );
 const sandboxNeedsStart = computed(() => ['sandbox_not_running', 'sandbox_start_failed', 'paused'].includes(result.value?.status || ''));

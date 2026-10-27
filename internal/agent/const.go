@@ -196,7 +196,11 @@ func completionTokenBudgetFor(cfg *types.AgentConfig) int {
 		configured = cfg.MaxCompletionTokens
 		sandboxID = cfg.SandboxConfigID
 	}
-	return types.AgentRoundMaxCompletionTokensFor(configured, sandboxID)
+	window := 0
+	if cfg != nil {
+		window = cfg.MaxContextTokens
+	}
+	return types.AgentRoundMaxCompletionTokensForContext(configured, sandboxID, window)
 }
 
 // contextReserveTokens is the part of the window that history may not occupy,

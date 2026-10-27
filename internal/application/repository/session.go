@@ -182,7 +182,7 @@ func (r *sessionRepository) QueryPaged(
 		db = db.Where("s.tenant_id = ? AND s.deleted_at IS NULL", q.TenantID)
 		if q.Mode == types.WorkModeCoding {
 			db = db.Where("s.mode = ?", types.WorkModeCoding)
-		} else {
+		} else if q.Mode == types.WorkModeChat {
 			db = db.Where("s.mode IS NULL OR s.mode = '' OR s.mode = ?", types.WorkModeChat)
 		}
 		if q.UserID != "" {

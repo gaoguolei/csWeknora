@@ -290,7 +290,7 @@ async function createNewSession(value: string, modelId: string, mentionedItems: 
         const selectedFiles = settingsStore.settings.selectedFiles || [];
     
         // 构建 session 数据，包含 Agent 配置
-        const sessionData: any = {};
+        const sessionData: any = { mode: composerMode.value === 'coding' ? 'coding' : 'chat' };
     
         // 添加 Agent 配置（知识库信息在 agent_config 中）
         sessionData.agent_config = {

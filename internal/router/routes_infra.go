@@ -207,6 +207,7 @@ func RegisterMCPServiceRoutes(
 		// caller initiated — restricting it to Admin+ blocks the only
 		// people who actually have context to approve, so the gate is
 		// kept at "anyone in the tenant" instead.
+		agentTool.GET("/tool-approvals/:pending_id", g.Viewer(), handler.CheckToolApproval)
 		agentTool.POST("/tool-approvals/:pending_id", g.Viewer(), handler.ResolveToolApproval)
 		// Resume an agent run paused on an in-conversation MCP OAuth prompt.
 		// Same tenant-member (Viewer+) gating rationale as tool-approvals.

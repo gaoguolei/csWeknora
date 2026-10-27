@@ -1,14 +1,23 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
 
-defineProps<{ disabled?: boolean }>()
+const props = defineProps<{ disabled?: boolean }>()
 const { t } = useI18n()
 const settings = useSettingsStore()
 const visible = ref(false)
-const modes = ['auto', 'manual'] as const
-const select = (mode: 'auto' | 'manual') => {
+const modes = [
+  { value: 'auto', key: 'auto', icon: 'check-circle' },
+  { value: 'manual', key: 'manual', icon: 'secured' },
+  { value: 'accept_edits', key: 'acceptEdits', icon: 'edit' },
+  { value: 'plan', key: 'plan', icon: 'task' },
+  { value: 'bypass', key: 'bypass', icon: 'lock-off' },
+] as const
+const selectedMode = computed(() => modes.find(mode => mode.value === settings.toolApprovalMode) || modes[0])
+const modeLabel = computed(() => t('agentStream.toolApproval.modeLabel'))
+const select = (mode: typeof modes[number]['value']) => {
+  if (props.disabled) return
   settings.toolApprovalMode = mode
   visible.value = false
 }
@@ -18,23 +27,24 @@ const select = (mode: 'auto' | 'manual') => {
   <t-popup v-model:visible="visible" trigger="click" placement="top-left" :disabled="disabled"
     :overlay-inner-style="{ padding: '6px', borderRadius: 'var(--app-radius-lg)' }">
     <button type="button" class="approval-trigger" :disabled="disabled" aria-haspopup="menu"
-      :aria-expanded="visible" :aria-label="`${t('agentStream.toolApproval.modeLabel')}: ${t(`agentStream.toolApproval.${settings.toolApprovalMode}Mode`)}`"
+      :aria-expanded="visible" :aria-label="`${modeLabel}: ${t(`agentStream.toolApproval.${selectedMode.key}Mode`)}`"
       @keydown.esc="visible = false">
-      <t-icon :name="settings.toolApprovalMode === 'manual' ? 'secured' : 'check-circle'" size="14px" />
-      <span>{{ t(`agentStream.toolApproval.${settings.toolApprovalMode}Mode`) }}</span>
+      <t-icon :name="selectedMode.icon" size="14px" />
+      <span>{{ t(`agentStream.toolApproval.${selectedMode.key}Mode`) }}</span>
       <t-icon name="chevron-down" size="12px" />
     </button>
     <template #content>
-      <div class="approval-menu" role="menu" :aria-label="t('agentStream.toolApproval.modeLabel')"
+      <div class="approval-menu" role="menu" :aria-label="modeLabel"
         @keydown.esc="visible = false">
-        <button v-for="mode in modes" :key="mode" type="button" role="menuitemradio"
-          :aria-checked="settings.toolApprovalMode === mode" :disabled="disabled"
-          class="approval-option" @click="select(mode)">
+        <div class="approval-menu-heading">{{ t('agentStream.toolApproval.sessionPermissions') }}</div>
+        <button v-for="mode in modes" :key="mode.value" type="button" role="menuitemradio"
+          :aria-checked="selectedMode.value === mode.value" :disabled="disabled"
+          class="approval-option" @click="select(mode.value)">
           <span class="option-copy">
-            <strong>{{ t(`agentStream.toolApproval.${mode}Mode`) }}</strong>
-            <span>{{ t(`agentStream.toolApproval.${mode}ModeDescription`) }}</span>
+            <strong>{{ t(`agentStream.toolApproval.${mode.key}Mode`) }}</strong>
+            <span>{{ t(`agentStream.toolApproval.${mode.key}ModeDescription`) }}</span>
           </span>
-          <t-icon v-if="settings.toolApprovalMode === mode" name="check" size="16px" />
+          <t-icon v-if="selectedMode.value === mode.value" name="check" class="approval-option-check" size="16px" />
         </button>
       </div>
     </template>
@@ -58,7 +68,9 @@ const select = (mode: 'auto' | 'manual') => {
   &:hover { background: var(--td-bg-color-container-hover); }
   &:disabled { opacity: .5; cursor: default; }
 }
-.approval-menu { width: min(300px, 80vw); }
+.approval-menu { width: min(340px, 80vw); max-height: 70vh; overflow-y: auto; }
+.approval-menu-heading { padding: 6px 10px 8px; color: var(--td-text-color-placeholder); font-size: 12px; }
+.approval-option-check { flex-shrink: 0; align-self: flex-start; margin-top: 2px; color: var(--td-brand-color); }
 .approval-option {
   display: flex;
   align-items: center;
@@ -72,7 +84,7 @@ const select = (mode: 'auto' | 'manual') => {
   color: var(--td-text-color-primary);
   text-align: left;
   cursor: pointer;
-  &:hover, &[aria-checked='true'] { background: var(--td-bg-color-container-hover); }
+  &:hover { background: var(--td-bg-color-container-hover); }
 }
 .option-copy {
   display: flex;

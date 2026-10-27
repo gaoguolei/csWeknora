@@ -122,7 +122,7 @@ export const useSettingsStore = defineStore("settings", {
     _isApplyingSessionState: false,
     // Session-only preference: never written into global settings/localStorage.
     reasoningEffortOverride: '' as ReasoningLevel | '',
-    toolApprovalMode: 'auto' as 'auto' | 'manual',
+    toolApprovalMode: 'auto' as 'auto' | 'manual' | 'accept_edits' | 'plan' | 'bypass',
   }),
 
   getters: {
@@ -534,7 +534,8 @@ export const useSettingsStore = defineStore("settings", {
       this._isApplyingSessionState = true;
       try {
         this.reasoningEffortOverride = isReasoningLevel(state.reasoning_effort) ? state.reasoning_effort : '';
-        this.toolApprovalMode = state.tool_approval_mode === 'manual' ? 'manual' : 'auto';
+        this.toolApprovalMode = ['manual', 'accept_edits', 'plan', 'bypass'].includes(state.tool_approval_mode || '')
+          ? state.tool_approval_mode! : 'auto';
         if (typeof state.agent_enabled === "boolean") {
           this.settings.isAgentEnabled = state.agent_enabled;
         }
@@ -627,7 +628,7 @@ export const useSettingsStore = defineStore("settings", {
 // 后端 sessions.last_request_state JSON 形状（与 SessionLastRequestState 对齐）。
 // 字段全部可选——历史会话或新建会话首发前的请求没有这条记录。
 export interface SessionLastRequestStatePayload {
-  tool_approval_mode?: 'auto' | 'manual';
+  tool_approval_mode?: 'auto' | 'manual' | 'accept_edits' | 'plan' | 'bypass';
   reasoning_effort?: string;
   agent_id?: string;
   agent_source_tenant_id?: string | number;

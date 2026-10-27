@@ -34,6 +34,7 @@ func (e *AgentEngine) streamFinalAnswerToEventBus(
 	// messages. Tool output must retain its role and call ID; never promote it
 	// into user instructions during error recovery or iteration-limit synthesis.
 	messages := append([]chat.Message(nil), conversation...)
+	messages = e.withPlanExecutionState(messages)
 	messages = append(messages, chat.Message{
 		Role: "user",
 		Content: "Tool execution has ended for this run. Respond to the current task, including " +
@@ -123,10 +124,14 @@ func (e *AgentEngine) streamFinalAnswerToEventBus(
 func (e *AgentEngine) handleMaxIterations(
 	ctx context.Context, query string, state *types.AgentState, sessionID string, messages []chat.Message,
 ) {
+	if e.planMustContinue() {
+		messages = append(append([]chat.Message(nil), messages...), chat.Message{Role: "user",
+			Content: "The bounded execution-round allowance was exhausted. Report the unfinished approved tasks as incomplete and explain that execution paused at the round limit. Do not claim the plan is complete or ask permission to perform its already approved checks."})
+	}
 	logger.Info(ctx, "Reached max iterations, generating final answer")
 	common.PipelineWarn(ctx, "Agent", "max_iterations_reached", map[string]interface{}{
 		"iterations": state.CurrentRound,
-		"max":        e.config.MaxIterations,
+		"max":        e.executionIterationLimit(),
 	})
 
 	// Stream final answer generation through EventBus

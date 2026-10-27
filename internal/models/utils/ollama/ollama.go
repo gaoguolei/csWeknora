@@ -327,6 +327,24 @@ func IsValidModelName(name string) bool {
 	return name != "" && !strings.Contains(name, " ")
 }
 
+// RunningContextWindow returns the actual allocated context, not the model's
+// theoretical maximum. Zero means the model is not currently loaded.
+func (s *OllamaService) RunningContextWindow(ctx context.Context, modelName string) (int, error) {
+	response, err := s.client.ListRunning(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if !strings.Contains(modelName, ":") {
+		modelName += ":latest"
+	}
+	for _, model := range response.Models {
+		if model.Name == modelName || model.Model == modelName {
+			return model.ContextLength, nil
+		}
+	}
+	return 0, nil
+}
+
 // Chat uses Ollama chat
 func (s *OllamaService) Chat(ctx context.Context, req *api.ChatRequest, fn api.ChatResponseFunc) error {
 	// First check if service is available

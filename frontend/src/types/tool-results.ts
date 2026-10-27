@@ -180,6 +180,7 @@ export interface PlanData {
     task: string;
     steps: PlanStep[];
     total_steps: number;
+    blocked_reason?: string;
 }
 
 // Database query data

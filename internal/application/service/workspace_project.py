@@ -1,5 +1,4 @@
 """Project discovery helpers executed inside the session sandbox."""
-import concurrent.futures
 import fcntl
 import hashlib
 import http.client
@@ -13,24 +12,7 @@ import sys
 import time
 from urllib.parse import urlsplit
 
-RESERVED_PORTS = {49983, 5900, 6080, 9222}
-SKIP_DIRS = {"node_modules", "input", "output", "vendor", "venv", "__pycache__"}
-
-
-def listening_ports():
-    ports = set()
-    for table in ("/proc/net/tcp", "/proc/net/tcp6"):
-        try:
-            for line in Path(table).read_text().splitlines()[1:]:
-                fields = line.split()
-                if fields[3] == "0A":
-                    port = int(fields[1].split(":")[-1], 16)
-                    if port >= 1024 and port not in RESERVED_PORTS:
-                        ports.add(port)
-        except OSError:
-            pass
-    preferred = [5173, 3000, 4173, 8080, 8000, 3001]
-    return sorted(ports, key=lambda p: (preferred.index(p) if p in preferred else 99, p))[:32]
+SKIP_DIRS = {"node_modules", "input", "output", "vendor", "venv", "__pycache__", "dist", "build", "out", "src", "public"}
 
 
 def serves_html(url):
@@ -47,17 +29,8 @@ def serves_html(url):
         connection.close()
 
 
-def running_url(preferred=""):
-    if preferred and serves_html(preferred):
-        return preferred
-    urls = ["http://127.0.0.1:%d/" % port for port in listening_ports()]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-        results = list(pool.map(serves_html, urls))
-    return next((url for url, ready in zip(urls, results) if ready), "")
-
-
 def project_command(root):
-    """Bounded discovery; prefer frontend packages over a sibling API server."""
+    """Find a production build; never fall back to a development server."""
     candidates = []
     seen = 0
     for folder, dirs, files in os.walk(root, followlinks=False):
@@ -73,27 +46,27 @@ def project_command(root):
                 with (directory / "package.json").open() as manifest:
                     package = json.loads(manifest.read(262144))
                 scripts = package.get("scripts", {})
-                script = next((key for key in ("dev", "start", "serve") if isinstance(scripts.get(key), str)), None)
-                if script:
+                if isinstance(scripts.get("build"), str) and scripts["build"].strip():
                     manager = "pnpm" if (directory / "pnpm-lock.yaml").exists() else "yarn" if (directory / "yarn.lock").exists() else "npm"
                     if not shutil.which(manager):
                         manager = "npm"
-                    candidates.append((score, str(directory), [manager, "run", script]))
+                    script = next((key for key in ("preview", "start") if isinstance(scripts.get(key), str) and scripts[key].strip()), None)
+                    candidates.append((score, str(directory), {
+                        "manager": manager,
+                        "build": [manager, "run", "build"],
+                        "serve": [manager, "run", script] if script else None,
+                        "serve_script": scripts.get(script, ""),
+                    }))
                     continue
                 continue
             except (OSError, ValueError, TypeError, AttributeError):
                 continue
         if "index.html" in files and not (directory / "index.html").is_symlink():
-            candidates.append((score + 20, str(directory), None))
+            candidates.append((score + 20, str(directory), {"static": True}))
     if not candidates:
         return None
-    _, directory, command = sorted(candidates, key=lambda c: (c[0], c[1]))[0]
-    if command is None:
-        with socket.socket() as sock:
-            sock.bind(("127.0.0.1", 0))
-            port = sock.getsockname()[1]
-        command = [sys.executable, "-m", "http.server", str(port), "--bind", "127.0.0.1"]
-    return directory, command
+    _, directory, plan = sorted(candidates, key=lambda c: (c[0], c[1]))[0]
+    return directory, plan
 
 
 def alive(pid):
