@@ -201,21 +201,22 @@ var registry = map[string]settingSpec{
 	// agent.default_config is the platform-wide default agent configuration a
 	// super admin manages under Settings -> 智能体配置. It holds the fields
 	// reclaimed from the per-agent editor: model (A), multi-turn (B), question
-	// suggestions (C), retrieval strategy (E), web search (F), attachments (G),
-	// tools (H), MCP services (I) and skills (J). Read on every agent creation
-	// to fill unset fields (see types.AgentDefaultsConfig.ApplyTo). Basic info,
-	// prompts and the knowledge-base scope stay user-owned and are NOT here.
-	// Empty string = no platform defaults, new agents fall back to request
-	// values / built-in defaults. Edits take effect on the next agent created,
-	// no restart.
+	// suggestions (C), retrieval strategy (E), web search (F) and attachments
+	// (G). Read on every agent creation to fill unset fields (see
+	// types.AgentDefaultsConfig.ApplyTo). Basic info, prompts, the knowledge-base
+	// scope, tools (H), MCP services (I) and skills (J) stay user-owned and are
+	// NOT here. Empty string = no platform defaults, new agents fall back to
+	// request values / built-in defaults. Edits take effect on the next agent
+	// created, no restart.
 	"agent.default_config": {
 		Type:     "string",
 		EnvName:  "",
 		Default:  "",
 		Category: "agent",
 		Description: "智能体平台默认配置（JSON，可选）。由超级管理员在「设置 → 智能体配置」统一维护，" +
-			"包含默认模型、多轮对话、问题推荐、检索策略、网络搜索、附件上传、工具、MCP 服务、技能等子块；" +
-			"创建智能体时用于填充界面不再暴露的配置项。留空 = 不套用平台默认。修改后对新建智能体立即生效。",
+			"包含默认模型、多轮对话、问题推荐、检索策略、网络搜索、附件上传等子块；" +
+			"创建智能体时用于填充界面不再暴露的配置项。工具、MCP 服务、技能属于用户级配置，" +
+			"在创建智能体时由用户自行设置，不在平台默认中。留空 = 不套用平台默认。修改后对新建智能体立即生效。",
 	},
 	// tenant.max_owned_per_user caps how many tenants a single non-superuser
 	// can create (and Own) via self-service POST /tenants. Read on every

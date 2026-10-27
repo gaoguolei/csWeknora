@@ -16,9 +16,10 @@
       </div>
     </div>
 
-    <!-- Long-term memory is now a platform-wide setting owned by the super
-         admin. Everyone else lands on the same page but every control is
-         greyed out; this banner states who actually controls it. -->
+    <!-- Long-term memory is a platform-wide setting owned by the super admin and
+         its nav entry is super-admin-only (SUPER_ADMIN_ONLY_SECTIONS), so in
+         practice only super/operations admins land here. Keep the banner as a
+         fallback in case the page is reached through another host. -->
     <div v-if="!canEdit" class="platform-readonly-banner">
       <t-icon name="info-circle" class="intro-icon" />
       <span>{{ t('memoryWorkspaceSettings.platformManagedReadonly') }}</span>
@@ -241,8 +242,9 @@ const config = reactive<MemoryConfig>({
 const isInitializing = ref(true)
 
 // Long-term memory is a platform-wide setting now: only the super admin can
-// edit it. Workspace admins and members see the same page with every control
-// disabled (all rows already bind :disabled="!canEdit").
+// edit it, and the settings nav entry is gated to isSystemAdmin (operations
+// admins inherit it), so members never reach this page. All rows bind
+// :disabled="!canEdit" as a defensive fallback.
 const canEdit = computed(() => authStore.isSystemAdmin)
 
 const loadConfig = async () => {

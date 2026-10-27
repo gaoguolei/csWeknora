@@ -26,13 +26,12 @@ const AgentDefaultsKey = "agent.default_config"
 //	F 网络搜索    -> WebSearch* / WebFetch*
 //	G 附件上传    -> ImageUploadEnabled / VLMModelID / Attachment* / ImageStorageProvider /
 //	                 AudioUploadEnabled / ASRModelID / ChatParserEngineRules
-//	H 工具配置    -> AllowedTools
-//	I MCP 服务    -> MCPSelectionMode / MCPServices / MCPAuthWaitTimeout
-//	J 技能        -> SkillsSelectionMode / SelectedSkills / SandboxConfigID
 //
 // Basic info (name/description/agent_mode/agent_type), prompts and the
 // knowledge-base scope (知识库检索, requirement item D) stay user-owned and are
-// deliberately NOT here.
+// deliberately NOT here. Tools (H), MCP services (I) and skills (J) are also
+// user-level: the user picks them when creating the agent, so the platform
+// default must not fill them.
 //
 // Every field is optional. Booleans are pointers so "the operator left it
 // unset" can be told apart from "the operator explicitly chose false"; the
@@ -90,19 +89,6 @@ type AgentDefaultsConfig struct {
 	ASRModelID                    string             `json:"asr_model_id,omitempty"`
 	AttachmentParseWaitTimeoutSec int                `json:"attachment_parse_wait_timeout_sec,omitempty"`
 	ChatParserEngineRules         []ParserEngineRule `json:"chat_parser_engine_rules,omitempty"`
-
-	// H: tool configuration.
-	AllowedTools []string `json:"allowed_tools,omitempty"`
-
-	// I: MCP services.
-	MCPSelectionMode   string   `json:"mcp_selection_mode,omitempty"`
-	MCPServices        []string `json:"mcp_services,omitempty"`
-	MCPAuthWaitTimeout int      `json:"mcp_auth_wait_timeout,omitempty"`
-
-	// J: skills.
-	SkillsSelectionMode string   `json:"skills_selection_mode,omitempty"`
-	SelectedSkills      []string `json:"selected_skills,omitempty"`
-	SandboxConfigID     string   `json:"sandbox_config_id,omitempty"`
 }
 
 // ParseAgentDefaultsConfig decodes a raw system_settings JSON string into an
@@ -225,31 +211,6 @@ func (d *AgentDefaultsConfig) ApplyTo(c *CustomAgentConfig) {
 	if len(c.ChatParserEngineRules) == 0 && len(d.ChatParserEngineRules) > 0 {
 		c.ChatParserEngineRules = d.ChatParserEngineRules
 	}
-
-	// ===== H: tools =====
-	// An empty AllowedTools means "use the built-in default tool set" at
-	// runtime, so an empty slice is the unset marker.
-	if len(c.AllowedTools) == 0 && len(d.AllowedTools) > 0 {
-		c.AllowedTools = d.AllowedTools
-	}
-
-	// ===== I: MCP =====
-	// "none" is both the zero-ish default and a meaningful choice, so only fill
-	// from an explicit non-"none" platform default.
-	fillString(&c.MCPSelectionMode, d.MCPSelectionMode)
-	if len(c.MCPServices) == 0 && len(d.MCPServices) > 0 {
-		c.MCPServices = d.MCPServices
-	}
-	if c.MCPAuthWaitTimeout == 0 {
-		c.MCPAuthWaitTimeout = d.MCPAuthWaitTimeout
-	}
-
-	// ===== J: skills =====
-	fillString(&c.SkillsSelectionMode, d.SkillsSelectionMode)
-	if len(c.SelectedSkills) == 0 && len(d.SelectedSkills) > 0 {
-		c.SelectedSkills = d.SelectedSkills
-	}
-	fillString(&c.SandboxConfigID, d.SandboxConfigID)
 }
 
 // fillString writes def into *dst when dst is still empty and def is not.

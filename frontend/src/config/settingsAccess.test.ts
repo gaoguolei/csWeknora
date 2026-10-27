@@ -40,7 +40,7 @@ test('personal skill environment variables are visible to every member', () => {
 test('system administration settings stay explicitly system-admin-only', () => {
   assert.deepEqual(
     [...SYSTEM_ADMIN_SETTINGS_SECTIONS],
-    ['system-global', 'model-catalog', 'runtime-queues', 'platform-api-keys', 'system-audit-log'],
+    ['system-global', 'runtime-queues', 'platform-api-keys', 'system-audit-log'],
   )
 })
 
@@ -55,6 +55,17 @@ test('model config is reclaimed to the platform super admin; Ollama to the opera
   assert.ok(OPERATIONS_ADMIN_ONLY_SECTIONS.has('ollama'))
 })
 
+test('model catalogue is operations-admin-only', () => {
+  // The catalogue is shared by every workspace and its edits apply globally, so
+  // the surface is reserved to operations admins: a plain system admin keeps the
+  // `models` page but does not see (or deep-link into) the catalogue.
+  assert.equal(SETTINGS_SECTION_MIN_ROLE['model-catalog'], undefined)
+  assert.ok(OPERATIONS_ADMIN_ONLY_SECTIONS.has('model-catalog'))
+  assert.equal(SYSTEM_ADMIN_SETTINGS_SECTIONS.has('model-catalog'), false)
+  assert.equal(GLOBAL_MODEL_ADMIN_SECTIONS.has('model-catalog'), false)
+  assert.equal(SUPER_ADMIN_ONLY_SECTIONS.has('model-catalog'), false)
+})
+
 test('platform knowledge base defaults are super-admin-only', () => {
   // `kb-defaults` is the platform-wide default KB configuration page backed by
   // system_settings "knowledge_base.default_config" (PUT is SystemAdmin-gated).
@@ -67,18 +78,41 @@ test('platform knowledge base defaults are super-admin-only', () => {
   assert.equal(GLOBAL_MODEL_ADMIN_SECTIONS.has('kb-defaults'), false)
 })
 
+test('long-term memory settings are super-admin-only', () => {
+  // `memory` is the platform-wide long-term memory configuration backed by
+  // system_settings "memory.global_config" (PUT is SystemAdmin-gated). Members
+  // and workspace admins/owners no longer see the entry; operations admins
+  // still do because they inherit isSystemAdmin.
+  assert.equal(SETTINGS_SECTION_MIN_ROLE.memory, undefined)
+  assert.ok(SUPER_ADMIN_ONLY_SECTIONS.has('memory'))
+  assert.equal(OPERATIONS_ADMIN_ONLY_SECTIONS.has('memory'), false)
+  assert.equal(GLOBAL_MODEL_ADMIN_SECTIONS.has('memory'), false)
+})
+
 test('promoted kb-config sub-sections keep the same role split as the inner nav', () => {
   // 7 super-admin sections (models / chunking / image / audio / graph / advanced /
-  // FAQ) stay isSystemAdmin; the 4 ops-only ones (vectorStore / parser / storage /
-  // datasource) are isOperationsAdmin-only, exactly as the old inner nav gated.
+  // FAQ) stay isSystemAdmin; the 3 ops-only ones (vectorStore / parser / storage)
+  // are isOperationsAdmin-only, exactly as the old inner nav gated.
   for (const key of ['kb-models', 'kb-chunking', 'kb-image', 'kb-audio', 'kb-graph', 'kb-advanced', 'kb-faq']) {
     assert.equal(SETTINGS_SECTION_MIN_ROLE[key], undefined)
     assert.ok(SUPER_ADMIN_ONLY_SECTIONS.has(key))
     assert.equal(OPERATIONS_ADMIN_ONLY_SECTIONS.has(key), false)
   }
-  for (const key of ['kb-vectorStore', 'kb-parser', 'kb-storage', 'kb-datasource']) {
+  for (const key of ['kb-vectorStore', 'kb-parser', 'kb-storage']) {
     assert.equal(SETTINGS_SECTION_MIN_ROLE[key], undefined)
     assert.ok(OPERATIONS_ADMIN_ONLY_SECTIONS.has(key))
     assert.equal(SUPER_ADMIN_ONLY_SECTIONS.has(key), false)
   }
+})
+
+test('workspace data sources are configured by the workspace admin', () => {
+  // Data sources are a tenant-wide concern (configured once, effective for every
+  // knowledge base in the workspace), so `kb-datasource` sits on the tenant role
+  // ladder at admin+ instead of being operations-admin-only. Operations admins
+  // and cross-tenant superusers still pass through hasRole/ bypass.
+  assert.equal(SETTINGS_SECTION_MIN_ROLE['kb-datasource'], 'admin')
+  assert.equal(OPERATIONS_ADMIN_ONLY_SECTIONS.has('kb-datasource'), false)
+  assert.equal(SUPER_ADMIN_ONLY_SECTIONS.has('kb-datasource'), false)
+  assert.equal(GLOBAL_MODEL_ADMIN_SECTIONS.has('kb-datasource'), false)
+  assert.equal(SYSTEM_ADMIN_SETTINGS_SECTIONS.has('kb-datasource'), false)
 })

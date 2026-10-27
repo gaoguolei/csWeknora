@@ -3390,7 +3390,7 @@ export default {
       "userList": {
         "title": "平台使用者列表",
         "rowLabel": "使用者管理",
-        "rowDesc": "檢視平台上的全部註冊使用者（跨空間），支援分頁與依使用者名稱/郵箱篩選。",
+        "rowDesc": "檢視平台上的註冊使用者（跨空間）。系統管理員可檢視全部使用者並設定任意角色；超級管理員僅可檢視超級管理員與一般使用者，並可設定這兩類角色。",
         "searchPlaceholder": "依使用者名稱或郵箱篩選（目前頁面）",
         "refresh": "重新整理",
         "active": "正常",
@@ -3413,13 +3413,11 @@ export default {
         "actionFailed": "操作失敗",
         "loadFailed": "載入使用者列表失敗",
         "roleAdmin": "系統管理員",
+        "roleSuperAdmin": "超級管理員",
         "roleUser": "一般使用者",
-        "confirmRevoke": "確定撤銷 {name} 的系統管理員權限嗎？",
-        "confirmPromote": "確定將 {name} 提升為系統管理員嗎？",
-        "revokeBtn": "撤銷",
-        "promoteBtn": "提升",
-        "revokedMsg": "已撤銷 {name} 的管理員權限",
-        "promotedMsg": "已將 {name} 提升為系統管理員",
+        "confirmRoleChange": "確定將 {name} 的角色修改為「{role}」嗎？",
+        "changeRoleBtn": "修改",
+        "roleChangedMsg": "已將 {name} 的角色修改為「{role}」",
         "roleFailed": "修改角色失敗"
       },
       "passwordReset": {
@@ -6742,6 +6740,7 @@ export default {
       "account": "帳戶",
       "workspace": "空間",
       "modelsRuntime": "模型",
+      "memory": "記憶",
       "dataExtensions": "資料與擴展",
       "systemAdministration": "系統管理",
       "platform": "平台"
@@ -6880,7 +6879,7 @@ export default {
       "rerankModel": "ReRank 模型",
       "rerankModelDesc": "用於對知識庫檢索結果進行重排序，提高回答準確性",
       "rerankModelPlaceholder": "請選擇 ReRank 模型",
-      "rerankModelOptionalHint": "當前作用域內暫無 RAG 類型知識庫，可不填；後續若加入 RAG 知識庫，將自動使用空間預設重排模型，仍建議顯式設定。",
+      "rerankModelOptionalHint": "智能體作用域內無 RAG 知識庫時，可不填；後續若加入 RAG 知識庫，將自動使用已配置的重排模型。",
       "maxIterations": "最大疊代次數",
       "maxIterationsLimit": "限制",
       "maxIterationsUnlimited": "不限制",

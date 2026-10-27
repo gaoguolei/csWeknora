@@ -1459,6 +1459,222 @@ func (h *SystemHandler) RevokeSystemAdmin(c *gin.Context) {
 	}
 }
 
+// Platform role wire values used by the user-management role selector. They
+// map onto the two independent platform flags on types.User:
+//
+//	system_admin -> IsOperationsAdmin (系统管理员, highest)
+//	super_admin  -> IsSystemAdmin      (超级管理员)
+//	user         -> neither            (普通用户)
+const (
+	platformRoleUser        = "user"
+	platformRoleSuperAdmin  = "super_admin"
+	platformRoleSystemAdmin = "system_admin"
+)
+
+// platformRoleOf collapses the two platform flags into the single role the
+// user-management table renders. A system administrator also passes the
+// system-admin gate at the auth layer, so the higher flag wins.
+func platformRoleOf(user *types.User) string {
+	switch {
+	case user == nil:
+		return ""
+	case user.IsOperationsAdmin:
+		return platformRoleSystemAdmin
+	case user.IsSystemAdmin:
+		return platformRoleSuperAdmin
+	default:
+		return platformRoleUser
+	}
+}
+
+// platformRoleAuditAction picks the audit action for a role transition. The
+// target role decides promotions; the previous role decides which revoke row
+// a demotion leaves behind.
+func platformRoleAuditAction(fromRole, toRole string) types.AuditAction {
+	switch toRole {
+	case platformRoleSystemAdmin:
+		return types.AuditActionOperationsAdminPromoted
+	case platformRoleSuperAdmin:
+		return types.AuditActionSystemAdminPromoted
+	}
+	if fromRole == platformRoleSystemAdmin {
+		return types.AuditActionOperationsAdminRevoked
+	}
+	return types.AuditActionSystemAdminRevoked
+}
+
+// SetUserRoleRequest is the payload for the unified role selector in the
+// platform user-management table.
+type SetUserRoleRequest struct {
+	UserID string `json:"user_id" binding:"required"`
+	// Role is one of user / super_admin / system_admin.
+	Role string `json:"role" binding:"required"`
+}
+
+// SetUserRole godoc
+// @Summary      Change a user's platform role
+// @Description  Set the target user's role to user (普通用户), super_admin (超级管理员)
+// @Description  or system_admin (系统管理员). SystemAdmin only.
+// @Description  Only a system administrator may grant or revoke the system-administrator role;
+// @Description  a super admin may only switch other users between super admin and regular user.
+// @Description  Changing your own role is rejected.
+// @Tags         System Admin
+// @Accept       json
+// @Produce      json
+// @Param        request body SetUserRoleRequest true "Role change request"
+// @Success      200  {object}  types.UserInfo  "Role updated"
+// @Failure      400  {object}  map[string]interface{}  "Invalid role / self-change / last-admin guard"
+// @Failure      403  {object}  map[string]interface{}  "Forbidden: not allowed to manage this role"
+// @Failure      404  {object}  map[string]interface{}  "User not found"
+// @Router       /system/admin/users/role [post]
+func (h *SystemHandler) SetUserRole(c *gin.Context) {
+	ctx := logger.CloneContext(c.Request.Context())
+
+	var req SetUserRoleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	userID := strings.TrimSpace(req.UserID)
+	targetRole := strings.TrimSpace(req.Role)
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+	switch targetRole {
+	case platformRoleUser, platformRoleSuperAdmin, platformRoleSystemAdmin:
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role"})
+		return
+	}
+
+	callerID, _ := types.UserIDFromContext(ctx)
+	// The role selector never edits the caller's own row: self-demotion (or
+	// self-promotion) would let one administrator strip the credentials they
+	// just used, and the UI renders the caller's role read-only for the same
+	// reason.
+	if callerID != "" && callerID == userID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot change your own role"})
+		return
+	}
+
+	user, err := h.userSvc.GetUserByID(ctx, userID)
+	if err != nil {
+		logger.Errorf(ctx, "Error fetching user %s for role change: %v", userID, err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+	if user == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	currentRole := platformRoleOf(user)
+	// Only a system administrator may grant or revoke the system-administrator
+	// role. A super admin can promote peers to super admin and demote them back
+	// to a regular user, but can never touch a system administrator row — which
+	// is also why those rows never appear in their user list.
+	//
+	// The marker is read from the request context because the operations-admin
+	// key is not part of the detached-context allowlist (see context_clone.go).
+	if !types.IsOperationsAdminFromContext(c.Request.Context()) &&
+		(currentRole == platformRoleSystemAdmin || targetRole == platformRoleSystemAdmin) {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Only a system administrator can manage the system administrator role",
+		})
+		return
+	}
+
+	if currentRole == targetRole {
+		// Idempotent: re-selecting the current role writes nothing but still
+		// leaves an audit trail so probing the endpoint is visible.
+		h.emitAdminAudit(ctx, platformRoleAuditAction(currentRole, targetRole), user, map[string]any{
+			"target_email":    user.Email,
+			"target_username": user.Username,
+			"role":            targetRole,
+			"idempotent":      true,
+		})
+		c.JSON(http.StatusOK, user.ToUserInfo())
+		return
+	}
+
+	// Step 1: leaving the system-administrator role drops the operations-admin
+	// flag through the repository's self/last-admin guards.
+	if user.IsOperationsAdmin && targetRole != platformRoleSystemAdmin {
+		revoked, revokeErr := h.userSvc.RevokeOperationsAdmin(ctx, user.ID, callerID)
+		if revokeErr != nil {
+			h.respondRoleChangeError(c, ctx, revokeErr)
+			return
+		}
+		if revoked != nil {
+			user = revoked
+		}
+	}
+
+	// Step 2: apply the flag owned by the target role.
+	switch targetRole {
+	case platformRoleSystemAdmin:
+		if !user.IsOperationsAdmin {
+			user.IsOperationsAdmin = true
+			if err := h.userSvc.UpdateUser(ctx, user); err != nil {
+				logger.Errorf(ctx, "Error promoting user %s to system admin: %v", user.ID, err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to change user role"})
+				return
+			}
+		}
+	case platformRoleSuperAdmin:
+		if !user.IsSystemAdmin {
+			user.IsSystemAdmin = true
+			if err := h.userSvc.UpdateUser(ctx, user); err != nil {
+				logger.Errorf(ctx, "Error promoting user %s to super admin: %v", user.ID, err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to change user role"})
+				return
+			}
+		}
+	case platformRoleUser:
+		if user.IsSystemAdmin {
+			revoked, revokeErr := h.userSvc.RevokeSystemAdmin(ctx, user.ID, callerID)
+			if revokeErr != nil {
+				h.respondRoleChangeError(c, ctx, revokeErr)
+				return
+			}
+			if revoked != nil {
+				user = revoked
+			}
+		}
+	}
+
+	logger.Infof(ctx, "User %s (ID: %s) role changed from %s to %s",
+		user.Username, user.ID, currentRole, targetRole)
+	h.emitAdminAudit(ctx, platformRoleAuditAction(currentRole, targetRole), user, map[string]any{
+		"target_email":    user.Email,
+		"target_username": user.Username,
+		"previous_role":   currentRole,
+		"role":            targetRole,
+		"idempotent":      false,
+	})
+	c.JSON(http.StatusOK, user.ToUserInfo())
+}
+
+// respondRoleChangeError maps the repository's role guards to HTTP responses
+// shared by the unified role endpoint's promote/demote steps.
+func (h *SystemHandler) respondRoleChangeError(c *gin.Context, ctx context.Context, err error) {
+	switch {
+	case errors.Is(err, repository.ErrCannotRevokeSelf):
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot change your own role"})
+	case errors.Is(err, repository.ErrLastOperationsAdmin):
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot revoke the last remaining system administrator"})
+	case errors.Is(err, repository.ErrLastSystemAdmin):
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot revoke the last remaining super administrator"})
+	case errors.Is(err, repository.ErrUserNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+	default:
+		logger.Errorf(ctx, "Error changing user role: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to change user role"})
+	}
+}
+
 // ListSystemAdminsResponse defines the response structure for listing system admins.
 // Total reflects the underlying COUNT(*), not just the page size, so the front
 // end can render pagination metadata without a follow-up call.
@@ -1535,7 +1751,8 @@ type ListAllUsersResponse struct {
 
 // ListUsers godoc
 // @Summary      List all platform users
-// @Description  Retrieve a paginated list of every user across tenants (SystemAdmin only).
+// @Description  Retrieve a paginated list of platform users across tenants (SystemAdmin only).
+// @Description  A system administrator sees every user; a super admin only sees super admins and regular users.
 // @Description  Supports `offset` (default 0) and `limit` (default 50, max 200).
 // @Description  Password/hashes are never serialised — only the redacted UserInfo shape.
 // @Tags         System Admin
@@ -1564,7 +1781,14 @@ func (h *SystemHandler) ListUsers(c *gin.Context) {
 		limit = 200
 	}
 
-	users, hasMore, err := h.userSvc.ListAllUsers(ctx, offset, limit)
+	// Visibility follows the viewer's platform role: system administrators
+	// (operations admins) see every account, while super admins must never see
+	// a system administrator row. The flag is read from the request context
+	// rather than the cloned one because the operations-admin marker is not
+	// part of the detached-context allowlist (see types/context_clone.go).
+	excludeOperationsAdmins := !types.IsOperationsAdminFromContext(c.Request.Context())
+
+	users, hasMore, err := h.userSvc.ListAllUsers(ctx, offset, limit, excludeOperationsAdmins)
 	if err != nil {
 		logger.Errorf(ctx, "Error listing users: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list users"})

@@ -149,10 +149,17 @@ func (r *userRepository) DeleteUser(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&types.User{}).Error
 }
 
-// ListUsers lists users with pagination
-func (r *userRepository) ListUsers(ctx context.Context, offset, limit int) ([]*types.User, error) {
+// ListUsers lists users with pagination.
+//
+// excludeOperationsAdmins drops system administrators (is_operations_admin)
+// from the query itself, so the filtered list still pages correctly when a
+// super admin — who must not see those accounts at all — is browsing.
+func (r *userRepository) ListUsers(ctx context.Context, offset, limit int, excludeOperationsAdmins bool) ([]*types.User, error) {
 	var users []*types.User
 	query := r.db.WithContext(ctx).Order("created_at DESC")
+	if excludeOperationsAdmins {
+		query = query.Where("is_operations_admin = ?", false)
+	}
 
 	if limit > 0 {
 		query = query.Limit(limit)

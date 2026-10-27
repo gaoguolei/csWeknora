@@ -1852,15 +1852,15 @@ const messages = {
       "loading": "Loading...",
       "referencedContent": "{count} related materials used",
       "deepThinking": "Deep thinking completed",
-      "knowledgeBaseQandA": "Knowledge Base Q&A",
-      "askKnowledgeBase": "Ask the knowledge base",
+      "knowledgeBaseQandA": "DevMind Q&A",
+      "askKnowledgeBase": "Ask the DevMind",
       "sourcesCount": "{count} sources",
       "pleaseEnterContent": "Please enter content!",
-      "pleaseUploadKnowledgeBase": "Please upload knowledge base first!",
+      "pleaseUploadKnowledgeBase": "Please upload DevMind first!",
       "replyingPleaseWait": "Replying, please try again later!",
       "createSessionFailed": "Failed to create session",
       "createSessionError": "Session creation error",
-      "unableToGetKnowledgeBaseId": "Unable to get knowledge base ID",
+      "unableToGetKnowledgeBaseId": "Unable to get DevMind ID",
       "summaryInProgress": "Summarizing answer…",
       "thinkingAlt": "Thinking in progress",
       "conversationTime": {
@@ -1888,7 +1888,7 @@ const messages = {
       "referencesDrawerToolsSection": "Tools",
       "referencesDrawerEmpty": "No sources available",
       "referenceChunkCount": "{count} chunk(s)",
-      "fallbackHint": "No relevant content found in knowledge base. Above is a direct response from the model.",
+      "fallbackHint": "No relevant content found in DevMind. Above is a direct response from the model.",
       "requestInfoTitle": "Request info",
       "requestInfoRequestId": "Request ID",
       "requestInfoMessageId": "Message ID",
@@ -1966,8 +1966,8 @@ const messages = {
       "contentLengthLabelSimple": "Content length:",
       "fullContentLabel": "Full content",
       "copyContent": "Copy content",
-      "knowledgeBaseCount": "{count} knowledge bases",
-      "noKnowledgeBases": "No knowledge bases available",
+      "knowledgeBaseCount": "{count} DevMind",
+      "noKnowledgeBases": "No DevMind available",
       "enterDescription": "Enter description",
       "rawOutputLabel": "Raw output",
       "wikiWritePageTitle": "Wiki Page Write",
@@ -1988,7 +1988,7 @@ const messages = {
       "wikiFieldNewSlug": "New slug",
       "wikiFieldAffectedPages": "Affected pages",
       "wikiAffectedCount": "{count} page link(s) updated",
-      "selectKnowledgeBaseWarning": "Please select at least one knowledge base",
+      "selectKnowledgeBaseWarning": "Please select at least one DevMind",
       "processError": "Processing error",
       "sessionExcerpt": "Session Excerpt",
       "noAnswerContent": "(No answer content)",
@@ -2013,7 +2013,7 @@ const messages = {
       "copySuccess": "Copied to clipboard",
       "copyFailed": "Copy failed",
       "emptyContentWarning": "Content is empty",
-      "editorOpened": "Editor opened, please select a knowledge base and save"
+      "editorOpened": "Editor opened, please select a DevMind and save"
     },
     "common": {
       "loading": "Loading...",
@@ -2033,7 +2033,7 @@ const messages = {
       "taskLabel": "Task:",
       "think": "Thinking",
       "copy": "Copy",
-      "addToKnowledgeBase": "Add to Knowledge Base",
+      "addToKnowledgeBase": "Add to DevMind",
       "artifactDrawer": {
         "buttonTitle": "View files generated in this reply",
         "title": "Generated files",
@@ -2183,7 +2183,7 @@ const messages = {
         "binarySuppressed": "Binary output omitted. Write files to the artifact directory to download them."
       },
       "summary": {
-        "searchKb": "Searched knowledge base <strong>{count}</strong> time(s)",
+        "searchKb": "Searched DevMind <strong>{count}</strong> time(s)",
         "thinking": "Thought <strong>{count}</strong> time(s)",
         "callTool": "Called {name}",
         "callTools": "Called tools {names}",
@@ -2196,7 +2196,7 @@ const messages = {
         "notFound": "Content not found",
         "loadFailed": "Failed to load",
         "chunkId": "Chunk ID",
-        "noKbForWiki": "Unable to identify associated knowledge base. Cannot open Wiki."
+        "noKbForWiki": "Unable to identify associated DevMind. Cannot open Wiki."
       },
       "toolSummary": {
         "getDocument": "Get document: {title}",
@@ -2240,23 +2240,23 @@ const messages = {
       "ragPipeline": {
         "understanding": "Understanding query...",
         "understandDone": "Query understood",
-        "searching": "Searching knowledge base...",
-        "searchingWithQuery": "Searching knowledge base: \"{query}\"",
+        "searching": "Searching DevMind...",
+        "searchingWithQuery": "Searching DevMind: \"{query}\"",
         "searchingWeb": "Searching the web...",
         "searchingWebWithQuery": "Searching the web: \"{query}\"",
-        "searchingMixed": "Searching knowledge base and web...",
-        "searchingMixedWithQuery": "Searching knowledge base and web: \"{query}\"",
+        "searchingMixed": "Searching DevMind and web...",
+        "searchingMixedWithQuery": "Searching DevMind and web: \"{query}\"",
         "searchDone": "Search complete",
-        "searchDoneWithQuery": "Searched knowledge base: \"{query}\"",
+        "searchDoneWithQuery": "Searched DevMind: \"{query}\"",
         "referencedDocs": "Cited <strong>{count}</strong> documents",
         "referencedWebs": "Cited <strong>{count}</strong> web results",
         "referencedDocAndWeb": "Cited <strong>{docCount}</strong> documents and <strong>{webCount}</strong> web results"
       },
       "toolStatus": {
         "calling": "Calling {name}...",
-        "searchKb": "Searching knowledge base",
-        "searchKbFailed": "Knowledge base search failed",
-        "searchMixed": "Searched knowledge base and web",
+        "searchKb": "Searching DevMind",
+        "searchKbFailed": "DevMind search failed",
+        "searchMixed": "Searched DevMind and web",
         "searchMixedFailed": "Search failed",
         "webSearch": "Web search",
         "webSearchFailed": "Web search failed",
@@ -2287,8 +2287,8 @@ const messages = {
         "failed": "Copy failed, please copy manually"
       },
       "saveToKb": {
-        "emptyContent": "Current response is empty, cannot save to knowledge base",
-        "editorOpened": "Editor opened, please select a knowledge base and save"
+        "emptyContent": "Current response is empty, cannot save to DevMind",
+        "editorOpened": "Editor opened, please select a DevMind and save"
       }
     },
     "input": {
@@ -2314,7 +2314,7 @@ const messages = {
       },
       "messages": {
         "enterContent": "Please enter content first!",
-        "selectKnowledge": "Please select a knowledge base first!",
+        "selectKnowledge": "Please select a DevMind first!",
         "replying": "Currently replying, please try again later!",
         "agentSwitchedOn": "Switched to Intelligent Reasoning",
         "agentSwitchedOff": "Switched to Quick Q&A",

@@ -299,6 +299,11 @@ func RegisterSystemAdminRoutes(
 		adminRoutes.POST("/revoke", handler.RevokeSystemAdmin)
 		adminRoutes.GET("/list", handler.ListSystemAdmins)
 		adminRoutes.GET("/users", handler.ListUsers)
+		// Unified role selector (普通用户 / 超级管理员 / 系统管理员). The group guard
+		// admits both platform roles; per-transition rules (a super admin may not
+		// touch the system-administrator role, nobody may change their own role)
+		// live in the handler.
+		adminRoutes.POST("/users/role", handler.SetUserRole)
 		adminRoutes.POST("/users/status", handler.SetUserStatus)
 		adminRoutes.POST("/users/reset-password", handler.ResetUserPassword)
 		adminRoutes.POST("/users/create", handler.CreateSystemUser)

@@ -16,16 +16,20 @@ import (
 // listUsersService is a minimal fake UserService for the ListUsers handler.
 type listUsersService struct {
 	interfaces.UserService
-	users   []*types.User
-	hasMore bool
-	err     error
-	gotOff  int
-	gotLim  int
+	users              []*types.User
+	hasMore            bool
+	err                error
+	gotOff             int
+	gotLim             int
+	gotExcludeOpsAdmin bool
 }
 
-func (s *listUsersService) ListAllUsers(_ context.Context, offset, limit int) ([]*types.User, bool, error) {
+func (s *listUsersService) ListAllUsers(
+	_ context.Context, offset, limit int, excludeOperationsAdmins bool,
+) ([]*types.User, bool, error) {
 	s.gotOff = offset
 	s.gotLim = limit
+	s.gotExcludeOpsAdmin = excludeOperationsAdmins
 	return s.users, s.hasMore, s.err
 }
 
@@ -79,6 +83,36 @@ func TestListUsers_RedactedAndPaginated(t *testing.T) {
 	}
 	if svc.gotOff != 10 || svc.gotLim != 50 {
 		t.Fatalf("service got wrong args: off=%d lim=%d", svc.gotOff, svc.gotLim)
+	}
+	// No operations-admin marker on the request context: the caller is a super
+	// admin, so system-administrator rows must be filtered out of the page.
+	if !svc.gotExcludeOpsAdmin {
+		t.Fatal("super admin caller must hide system administrator rows")
+	}
+}
+
+func TestListUsers_SystemAdminSeesEveryRole(t *testing.T) {
+	svc := &listUsersService{}
+	h := &SystemHandler{userSvc: svc}
+
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		ctx := context.WithValue(c.Request.Context(), types.OperationsAdminContextKey, true)
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
+	r.GET("/system/admin/users", h.ListUsers)
+
+	req := httptest.NewRequest(http.MethodGet, "/system/admin/users", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", w.Code, w.Body.String())
+	}
+	if svc.gotExcludeOpsAdmin {
+		t.Fatal("system administrator caller must see every role")
 	}
 }
 
