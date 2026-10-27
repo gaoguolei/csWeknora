@@ -95,15 +95,15 @@ const messages = {
       "enterDescription": "输入描述",
       "referencedContent": "引用了 {count} 个相关资料",
       "deepThinking": "深度思考完成",
-      "knowledgeBaseQandA": "知识库问答",
-      "askKnowledgeBase": "向知识库提问",
+      "knowledgeBaseQandA": "认知库问答",
+      "askKnowledgeBase": "向认知库提问",
       "sourcesCount": "{count} 个来源",
       "pleaseEnterContent": "请输入内容！",
-      "pleaseUploadKnowledgeBase": "请先上传知识库！",
+      "pleaseUploadKnowledgeBase": "请先上传认知库！",
       "replyingPleaseWait": "正在回复，请稍后再试！",
       "createSessionFailed": "创建会话失败",
       "createSessionError": "创建会话出错",
-      "unableToGetKnowledgeBaseId": "无法获取知识库ID",
+      "unableToGetKnowledgeBaseId": "无法获取认知库ID",
       "summaryInProgress": "正在总结答案……",
       "thinkingAlt": "正在思考",
       "conversationTime": {
@@ -127,11 +127,11 @@ const messages = {
       "referencesDrawerTitleTools": "工具结果",
       "referencesDrawerTitleMixed": "参考来源",
       "referencesDrawerWebSection": "网页",
-      "referencesDrawerDocsSection": "知识库文档",
+      "referencesDrawerDocsSection": "认知库文档",
       "referencesDrawerToolsSection": "工具",
       "referencesDrawerEmpty": "暂无参考来源",
       "referenceChunkCount": "{count}个片段",
-      "fallbackHint": "未从知识库中检索到相关内容，以上为模型直接回答",
+      "fallbackHint": "未从认知库中检索到相关内容，以上为模型直接回答",
       "requestInfoTitle": "请求信息",
       "requestInfoRequestId": "Request ID",
       "requestInfoMessageId": "消息 ID",
@@ -209,8 +209,8 @@ const messages = {
       "contentLengthLabelSimple": "内容长度:",
       "fullContentLabel": "完整内容",
       "copyContent": "复制内容",
-      "knowledgeBaseCount": "共 {count} 个知识库",
-      "noKnowledgeBases": "没有可用的知识库",
+      "knowledgeBaseCount": "共 {count} 个认知库",
+      "noKnowledgeBases": "没有可用的认知库",
       "rawOutputLabel": "原始输出",
       "wikiWritePageTitle": "Wiki 页面写入",
       "wikiReplaceTextTitle": "Wiki 文本替换",
@@ -230,7 +230,7 @@ const messages = {
       "wikiFieldNewSlug": "新路径",
       "wikiFieldAffectedPages": "受影响页面",
       "wikiAffectedCount": "{count} 个页面的链接已更新",
-      "selectKnowledgeBaseWarning": "请至少选择一个知识库",
+      "selectKnowledgeBaseWarning": "请至少选择一个认知库",
       "processError": "处理出错",
       "sessionExcerpt": "会话摘录",
       "noAnswerContent": "（无回答内容）",
@@ -255,7 +255,7 @@ const messages = {
       "copySuccess": "已复制到剪贴板",
       "copyFailed": "复制失败",
       "emptyContentWarning": "当前回答为空",
-      "editorOpened": "已打开编辑器，请选择知识库后保存"
+      "editorOpened": "已打开编辑器，请选择认知库后保存"
     },
     "common": {
       "loading": "加载中...",
@@ -275,7 +275,7 @@ const messages = {
       "taskLabel": "任务:",
       "think": "思考",
       "copy": "复制",
-      "addToKnowledgeBase": "添加到知识库",
+      "addToKnowledgeBase": "添加到认知库",
       "artifactDrawer": {
         "buttonTitle": "查看本次生成的文件",
         "title": "生成的文件",
@@ -375,7 +375,7 @@ const messages = {
         }
       },
       "tools": {
-        "searchKnowledge": "知识库检索",
+        "searchKnowledge": "认知库检索",
         "grepChunks": "搜索关键词",
         "webSearch": "网络搜索",
         "webFetch": "网页抓取",
@@ -425,7 +425,7 @@ const messages = {
         "binarySuppressed": "二进制输出已省略，请将文件写入产物目录后下载"
       },
       "summary": {
-        "searchKb": "检索知识库 <strong>{count}</strong> 次",
+        "searchKb": "检索认知库 <strong>{count}</strong> 次",
         "thinking": "思考 <strong>{count}</strong> 次",
         "callTool": "调用 {name}",
         "callTools": "调用工具 {names}",
@@ -438,7 +438,7 @@ const messages = {
         "notFound": "未找到内容",
         "loadFailed": "加载失败",
         "chunkId": "片段ID",
-        "noKbForWiki": "无法识别关联的知识库，无法打开 Wiki"
+        "noKbForWiki": "无法识别关联的认知库，无法打开 Wiki"
       },
       "toolSummary": {
         "getDocument": "获取文档：{title}",
@@ -482,23 +482,23 @@ const messages = {
       "ragPipeline": {
         "understanding": "正在理解问题...",
         "understandDone": "已完成问题理解",
-        "searching": "正在检索知识库...",
-        "searchingWithQuery": "正在检索知识库：「{query}」",
+        "searching": "正在检索认知库...",
+        "searchingWithQuery": "正在检索认知库：「{query}」",
         "searchingWeb": "正在检索网络...",
         "searchingWebWithQuery": "正在检索网络：「{query}」",
-        "searchingMixed": "正在检索知识库和网络...",
-        "searchingMixedWithQuery": "正在检索知识库和网络：「{query}」",
+        "searchingMixed": "正在检索认知库和网络...",
+        "searchingMixedWithQuery": "正在检索认知库和网络：「{query}」",
         "searchDone": "检索完成",
-        "searchDoneWithQuery": "检索知识库：「{query}」",
+        "searchDoneWithQuery": "检索认知库：「{query}」",
         "referencedDocs": "引用 <strong>{count}</strong> 篇文档",
         "referencedWebs": "引用 <strong>{count}</strong> 条网页",
         "referencedDocAndWeb": "引用 <strong>{docCount}</strong> 篇文档和 <strong>{webCount}</strong> 条网页"
       },
       "toolStatus": {
         "calling": "正在调用 {name}...",
-        "searchKb": "检索知识库",
-        "searchKbFailed": "检索知识库失败",
-        "searchMixed": "检索知识库和网络",
+        "searchKb": "检索认知库",
+        "searchKbFailed": "检索认知库失败",
+        "searchMixed": "检索认知库和网络",
         "searchMixedFailed": "检索失败",
         "webSearch": "网络搜索",
         "webSearchFailed": "网络搜索失败",
@@ -529,8 +529,8 @@ const messages = {
         "failed": "复制失败，请手动复制"
       },
       "saveToKb": {
-        "emptyContent": "当前回答为空，无法保存到知识库",
-        "editorOpened": "已打开编辑器，请选择知识库后保存"
+        "emptyContent": "当前回答为空，无法保存到认知库",
+        "editorOpened": "已打开编辑器，请选择认知库后保存"
       }
     },
     "input": {
@@ -556,7 +556,7 @@ const messages = {
       },
       "messages": {
         "enterContent": "请先输入内容!",
-        "selectKnowledge": "请先选择知识库!",
+        "selectKnowledge": "请先选择认知库!",
         "replying": "正在回复中，请稍后再试!",
         "agentSwitchedOn": "已切换到智能推理",
         "agentSwitchedOff": "已切换到快速问答",
@@ -1852,15 +1852,15 @@ const messages = {
       "loading": "Loading...",
       "referencedContent": "{count} related materials used",
       "deepThinking": "Deep thinking completed",
-      "knowledgeBaseQandA": "Knowledge Base Q&A",
-      "askKnowledgeBase": "Ask the knowledge base",
+      "knowledgeBaseQandA": "DevMind Q&A",
+      "askKnowledgeBase": "Ask the DevMind",
       "sourcesCount": "{count} sources",
       "pleaseEnterContent": "Please enter content!",
-      "pleaseUploadKnowledgeBase": "Please upload knowledge base first!",
+      "pleaseUploadKnowledgeBase": "Please upload DevMind first!",
       "replyingPleaseWait": "Replying, please try again later!",
       "createSessionFailed": "Failed to create session",
       "createSessionError": "Session creation error",
-      "unableToGetKnowledgeBaseId": "Unable to get knowledge base ID",
+      "unableToGetKnowledgeBaseId": "Unable to get DevMind ID",
       "summaryInProgress": "Summarizing answer…",
       "thinkingAlt": "Thinking in progress",
       "conversationTime": {
@@ -1888,7 +1888,7 @@ const messages = {
       "referencesDrawerToolsSection": "Tools",
       "referencesDrawerEmpty": "No sources available",
       "referenceChunkCount": "{count} chunk(s)",
-      "fallbackHint": "No relevant content found in knowledge base. Above is a direct response from the model.",
+      "fallbackHint": "No relevant content found in DevMind. Above is a direct response from the model.",
       "requestInfoTitle": "Request info",
       "requestInfoRequestId": "Request ID",
       "requestInfoMessageId": "Message ID",
@@ -1966,8 +1966,8 @@ const messages = {
       "contentLengthLabelSimple": "Content length:",
       "fullContentLabel": "Full content",
       "copyContent": "Copy content",
-      "knowledgeBaseCount": "{count} knowledge bases",
-      "noKnowledgeBases": "No knowledge bases available",
+      "knowledgeBaseCount": "{count} DevMind",
+      "noKnowledgeBases": "No DevMind available",
       "enterDescription": "Enter description",
       "rawOutputLabel": "Raw output",
       "wikiWritePageTitle": "Wiki Page Write",
@@ -1988,7 +1988,7 @@ const messages = {
       "wikiFieldNewSlug": "New slug",
       "wikiFieldAffectedPages": "Affected pages",
       "wikiAffectedCount": "{count} page link(s) updated",
-      "selectKnowledgeBaseWarning": "Please select at least one knowledge base",
+      "selectKnowledgeBaseWarning": "Please select at least one DevMind",
       "processError": "Processing error",
       "sessionExcerpt": "Session Excerpt",
       "noAnswerContent": "(No answer content)",
@@ -2013,7 +2013,7 @@ const messages = {
       "copySuccess": "Copied to clipboard",
       "copyFailed": "Copy failed",
       "emptyContentWarning": "Content is empty",
-      "editorOpened": "Editor opened, please select a knowledge base and save"
+      "editorOpened": "Editor opened, please select a DevMind and save"
     },
     "common": {
       "loading": "Loading...",
@@ -2033,7 +2033,7 @@ const messages = {
       "taskLabel": "Task:",
       "think": "Thinking",
       "copy": "Copy",
-      "addToKnowledgeBase": "Add to Knowledge Base",
+      "addToKnowledgeBase": "Add to DevMind",
       "artifactDrawer": {
         "buttonTitle": "View files generated in this reply",
         "title": "Generated files",
@@ -2183,7 +2183,7 @@ const messages = {
         "binarySuppressed": "Binary output omitted. Write files to the artifact directory to download them."
       },
       "summary": {
-        "searchKb": "Searched knowledge base <strong>{count}</strong> time(s)",
+        "searchKb": "Searched DevMind <strong>{count}</strong> time(s)",
         "thinking": "Thought <strong>{count}</strong> time(s)",
         "callTool": "Called {name}",
         "callTools": "Called tools {names}",
@@ -2196,7 +2196,7 @@ const messages = {
         "notFound": "Content not found",
         "loadFailed": "Failed to load",
         "chunkId": "Chunk ID",
-        "noKbForWiki": "Unable to identify associated knowledge base. Cannot open Wiki."
+        "noKbForWiki": "Unable to identify associated DevMind. Cannot open Wiki."
       },
       "toolSummary": {
         "getDocument": "Get document: {title}",
@@ -2240,23 +2240,23 @@ const messages = {
       "ragPipeline": {
         "understanding": "Understanding query...",
         "understandDone": "Query understood",
-        "searching": "Searching knowledge base...",
-        "searchingWithQuery": "Searching knowledge base: \"{query}\"",
+        "searching": "Searching DevMind...",
+        "searchingWithQuery": "Searching DevMind: \"{query}\"",
         "searchingWeb": "Searching the web...",
         "searchingWebWithQuery": "Searching the web: \"{query}\"",
-        "searchingMixed": "Searching knowledge base and web...",
-        "searchingMixedWithQuery": "Searching knowledge base and web: \"{query}\"",
+        "searchingMixed": "Searching DevMind and web...",
+        "searchingMixedWithQuery": "Searching DevMind and web: \"{query}\"",
         "searchDone": "Search complete",
-        "searchDoneWithQuery": "Searched knowledge base: \"{query}\"",
+        "searchDoneWithQuery": "Searched DevMind: \"{query}\"",
         "referencedDocs": "Cited <strong>{count}</strong> documents",
         "referencedWebs": "Cited <strong>{count}</strong> web results",
         "referencedDocAndWeb": "Cited <strong>{docCount}</strong> documents and <strong>{webCount}</strong> web results"
       },
       "toolStatus": {
         "calling": "Calling {name}...",
-        "searchKb": "Searching knowledge base",
-        "searchKbFailed": "Knowledge base search failed",
-        "searchMixed": "Searched knowledge base and web",
+        "searchKb": "Searching DevMind",
+        "searchKbFailed": "DevMind search failed",
+        "searchMixed": "Searched DevMind and web",
         "searchMixedFailed": "Search failed",
         "webSearch": "Web search",
         "webSearchFailed": "Web search failed",
@@ -2287,8 +2287,8 @@ const messages = {
         "failed": "Copy failed, please copy manually"
       },
       "saveToKb": {
-        "emptyContent": "Current response is empty, cannot save to knowledge base",
-        "editorOpened": "Editor opened, please select a knowledge base and save"
+        "emptyContent": "Current response is empty, cannot save to DevMind",
+        "editorOpened": "Editor opened, please select a DevMind and save"
       }
     },
     "input": {
@@ -2314,7 +2314,7 @@ const messages = {
       },
       "messages": {
         "enterContent": "Please enter content first!",
-        "selectKnowledge": "Please select a knowledge base first!",
+        "selectKnowledge": "Please select a DevMind first!",
         "replying": "Currently replying, please try again later!",
         "agentSwitchedOn": "Switched to Intelligent Reasoning",
         "agentSwitchedOff": "Switched to Quick Q&A",
