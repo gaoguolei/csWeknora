@@ -2212,6 +2212,7 @@ export default {
       waitingStatus: "승인 대기",
       targetWithTool: "{service} › {tool}",
       titleWithTarget: "검토 · {service} › {tool}",
+      titleWithTool: "검토 · {tool}",
       argsLabel: "인수",
       argsModified: "수정됨",
       countdownShort: "{seconds}초",

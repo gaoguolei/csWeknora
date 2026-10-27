@@ -2107,6 +2107,7 @@ export default {
       waitingStatus: "等待审核",
       targetWithTool: "{service} › {tool}",
       titleWithTarget: "人工审核 · {service} › {tool}",
+      titleWithTool: "人工审核 · {tool}",
       argsLabel: "调用参数",
       argsModified: "已修改",
       countdownShort: "{seconds}s",

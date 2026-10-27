@@ -24,6 +24,7 @@ interface PlanEvent {
 const props = defineProps<{
   messages: Array<{ id?: string; role?: string; is_completed?: boolean; agentEventStream?: unknown }>
   running: boolean
+  planMode?: boolean
 }>()
 const { t } = useI18n()
 const expanded = ref(false)
@@ -48,10 +49,9 @@ function resultPlan(event: PlanEvent) {
   return parseTaskPlan(Array.isArray(event.tool_data?.steps) ? event.tool_data : event.tool_data?.data)
 }
 
-// A follow-up or steer can add a user bubble and a new assistant segment before
-// that segment has any tools. Carry unfinished plans across those boundaries;
-// only real plan events can replace them. Completed/rejected plans end when the
-// next user request starts, so a new task never gets a placeholder checklist.
+// Approved unfinished plans carry across follow-ups while plan mode is selected.
+// Other checklists belong to their generating reply and expire when it finishes.
+// Completed/rejected approved plans end when the next user request starts.
 const planState = computed(() => {
   let snapshot: ReturnType<typeof parseTaskPlan> = null
   let approval: PlanEvent | null = null
@@ -107,6 +107,11 @@ const planState = computed(() => {
           && !(original.status === 'in_progress' && progress.status === 'pending')) original.status = progress.status
       }
     }
+    if (message.is_completed && (!approval || !props.planMode)) {
+      snapshot = null
+      approval = null
+      key = ''
+    }
   }
   return { plan: snapshot, approval, key }
 })
@@ -125,6 +130,7 @@ const completed = computed(() => plan.value?.steps.filter(step => step.status ==
 const total = computed(() => plan.value?.steps.length || 0)
 const allCompleted = computed(() => total.value > 0 && completed.value === total.value && !awaitingApproval.value && !rejected.value && !plan.value?.blockedReason)
 const visible = computed(() => !!plan.value && !allCompleted.value && !rejected.value
+  && (props.running || (props.planMode && planApproval.value?.resolved && planApproval.value.approved))
   && (!unavailable.value || planApproval.value?.resolved === true))
 const currentStep = computed(() => plan.value?.steps.find(step => step.status === 'in_progress'))
 watch(() => planState.value.key, () => { expanded.value = false })

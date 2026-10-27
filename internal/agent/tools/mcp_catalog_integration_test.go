@@ -166,8 +166,14 @@ func TestMCPProxyHTTPApprovalArgumentsAndImages(t *testing.T) {
 	require.False(t, result.Success)
 	require.NotEmpty(t, gate.request.ToolCallID)
 	require.Equal(t, int32(2), calls.Load(), "rejected manual approval must not reach the server")
+	meta.BypassApproval = true
+	gate.request = approval.PendingRequest{}
+	result = invoke(`{"count":2}`)
+	require.True(t, result.Success, result.Error)
+	require.Empty(t, gate.request.ToolCallID, "bypass mode must not request human approval")
+	require.Equal(t, int32(3), calls.Load())
 	gate.disabled = true
 	result = invoke(`{"count":2}`)
 	require.False(t, result.Success)
-	require.Equal(t, int32(2), calls.Load())
+	require.Equal(t, int32(3), calls.Load(), "bypass mode must still respect disabled tools")
 }

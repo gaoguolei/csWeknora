@@ -321,7 +321,8 @@
           </transition>
           <div v-if="!embeddedMode" id="chat-tool-approval-dock" class="tool-approval-dock" aria-live="polite" />
           <ChatTaskPlan v-if="!embeddedMode"
-            :messages="messagesList" :running="isReplying" />
+            :messages="messagesList" :running="isReplying"
+            :plan-mode="useSettingsStoreInstance.toolApprovalMode === 'plan'" />
           <InputField
             ref="inputFieldRef"
             :auto-focus="focusComposerOnMount"

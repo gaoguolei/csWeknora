@@ -2258,6 +2258,7 @@ export default {
       waitingStatus: "Ожидание проверки",
       targetWithTool: "{service} › {tool}",
       titleWithTarget: "Проверка · {service} › {tool}",
+      titleWithTool: "Проверка · {tool}",
       argsLabel: "Аргументы",
       argsModified: "Изменено",
       countdownShort: "{seconds} с",

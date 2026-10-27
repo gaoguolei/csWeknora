@@ -15,6 +15,11 @@ before(async () => {
   const mocks: Record<string, string> = {
     '@/api/mcp-service': 'export const requests = []; export async function resolveToolApproval(pendingId, body) { requests.push({pendingId, body}); }',
     '@/api/embed': 'export async function resolveEmbedToolApproval() { throw new Error("Unexpected embedded request"); }',
+    '@/composables/usePendingToolApproval': `
+      import { ref } from 'vue';
+      export const isUnavailableToolApproval = () => false;
+      export const usePendingToolApproval = () => ({ unavailable: ref(false), checking: ref(false), markUnavailable() {} });
+    `,
     'tdesign-vue-next': 'export const MessagePlugin = { success() {}, error(message) { throw new Error(message); } };',
   }
   server = await createServer({
@@ -70,4 +75,17 @@ test('approval and rejection submit decisions without replacing original argumen
   await rejected.state.submit('reject')
   assert.equal(approvals.requests[1].body.decision, 'reject')
   assert.equal(Object.hasOwn(approvals.requests[1].body, 'modified_args'), false)
+})
+
+test('built-in approval records omit the service name without leaving a dangling separator', async () => {
+  for (const approved of [true, false]) {
+    const { html } = await render({ resolved: true, approved })
+    assert.match(html, /人工审核 · 执行沙箱命令/)
+    assert.doesNotMatch(html, /WeKnora|›|\{service\}/)
+  }
+  const pending = await render()
+  assert.match(pending.html, /等待审核/)
+  assert.doesNotMatch(pending.html, /WeKnora|›|\{service\}/)
+  const external = await render({ serviceName: 'Orders', mcpToolName: 'lookup', resolved: true, approved: true })
+  assert.match(external.html, /Orders › lookup/)
 })

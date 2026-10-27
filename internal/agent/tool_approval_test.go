@@ -178,8 +178,8 @@ func TestManualApprovalBlocksExecutionUntilDecision(t *testing.T) {
 }
 
 func TestApprovalModeKeepsReadsAutomaticAndFailsClosedWithoutGate(t *testing.T) {
-	for _, mode := range []types.ToolApprovalMode{"", types.ToolApprovalAuto, types.ToolApprovalManual} {
-		for _, name := range []string{tools.ToolReadFile, tools.ToolShellExec} {
+	for _, mode := range []types.ToolApprovalMode{"", types.ToolApprovalAuto, types.ToolApprovalManual, types.ToolApprovalAcceptEdits, types.ToolApprovalBypass} {
+		for _, name := range []string{tools.ToolReadFile, tools.ToolShellExec, tools.ToolWriteSandboxFile} {
 			t.Run(string(mode)+"/"+name, func(t *testing.T) {
 				engine := newTestEngine(t, &mockChat{})
 				engine.config.ToolApprovalMode = mode
@@ -187,7 +187,7 @@ func TestApprovalModeKeepsReadsAutomaticAndFailsClosedWithoutGate(t *testing.T) 
 				tool := &approvalRecordingTool{BaseTool: tools.NewBaseTool(name, "", json.RawMessage(`{"type":"object"}`))}
 				engine.toolRegistry.RegisterTool(tool)
 				call := engine.runToolCall(context.Background(), types.LLMToolCall{ID: "call", Function: types.FunctionCall{Name: name, Arguments: `{}`}}, 0, 0, 0, "session", "answer")
-				blocked := mode == types.ToolApprovalManual && name == tools.ToolShellExec
+				blocked := (mode == types.ToolApprovalManual && name != tools.ToolReadFile) || (mode == types.ToolApprovalAcceptEdits && name == tools.ToolShellExec)
 				require.Equal(t, !blocked, tool.called)
 				require.Equal(t, !blocked, call.Result.Success)
 			})
@@ -224,4 +224,43 @@ func TestToolFailureAfterApprovalCanStillRecover(t *testing.T) {
 	require.Equal(t, 2, model.callCount)
 	require.True(t, state.IsComplete)
 	require.Equal(t, "The command failed.", state.FinalAnswer)
+}
+
+func TestBypassPermissionsCompletesWithAnOrdinaryUnfinishedChecklist(t *testing.T) {
+	model := &mockChat{responses: []mockResponse{
+		{chunks: []types.StreamResponse{{Done: true, FinishReason: "tool_calls", ToolCalls: []types.LLMToolCall{
+			{ID: "todo", Function: types.FunctionCall{Name: tools.ToolTodoWrite, Arguments: `{"task":"Build page","steps":[{"id":"1","description":"Build page","status":"in_progress"}]}`}},
+			{ID: "shell", Function: types.FunctionCall{Name: tools.ToolShellExec, Arguments: `{}`}},
+		}}}},
+		{chunks: []types.StreamResponse{{Content: "Done.", Done: true}}},
+	}}
+	engine := newTestEngine(t, model)
+	engine.config.ToolApprovalMode = types.ToolApprovalBypass
+	engine.toolRegistry = tools.NewToolRegistry()
+	engine.toolRegistry.RegisterTool(tools.NewTodoWriteTool())
+	shell := newCountingTool(tools.ToolShellExec)
+	engine.toolRegistry.RegisterTool(shell)
+	gate := approval.NewGate(nil, nil, nil)
+	engine.SetToolApprovalGate(gate)
+	approvals := 0
+	engine.eventBus.On(event.EventToolApprovalRequired, func(ctx context.Context, evt event.Event) error {
+		approvals++
+		request := evt.Data.(event.ToolApprovalRequiredData)
+		principal, _ := types.PrincipalFromContext(ctx)
+		return gate.Resolve(request.TenantID, principal.StorageID(), request.PendingID, approval.Decision{Approved: false})
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	state := &types.AgentState{}
+	_, err := engine.executeLoop(ctx, state, "start", emptyMessages(), nil, "session", "message")
+	require.NoError(t, err)
+	require.True(t, state.IsComplete)
+	require.Equal(t, "Done.", state.FinalAnswer)
+	require.Zero(t, approvals)
+	require.Equal(t, 1, shell.calls)
+	require.Len(t, state.RoundSteps[0].ToolCalls, 2)
+	result := state.RoundSteps[0].ToolCalls[0].Result
+	require.True(t, result.Success, result.Error)
+	require.Equal(t, false, result.Data["plan_approved"], "bypass todos must not become a persistent approved plan")
+	require.False(t, engine.planMustContinue(), "a stale ordinary checklist must not keep bypass execution alive")
 }

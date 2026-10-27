@@ -1920,6 +1920,7 @@ export default {
       "waitingStatus": "等待審核",
       "targetWithTool": "{service} › {tool}",
       "titleWithTarget": "人工審核 · {service} › {tool}",
+      "titleWithTool": "人工審核 · {tool}",
       "argsLabel": "呼叫參數",
       "argsModified": "已修改",
       "countdownShort": "{seconds}s",

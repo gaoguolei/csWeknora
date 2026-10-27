@@ -7188,6 +7188,7 @@ export default {
       waitingStatus: "Awaiting review",
       targetWithTool: "{service} › {tool}",
       titleWithTarget: "Review · {service} › {tool}",
+      titleWithTool: "Review · {tool}",
       argsLabel: "Arguments",
       argsModified: "Modified",
       countdownShort: "{seconds}s",

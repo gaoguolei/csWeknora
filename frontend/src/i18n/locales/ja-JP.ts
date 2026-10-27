@@ -7233,6 +7233,7 @@ export default {
       waitingStatus: "承認待ち",
       targetWithTool: "{service} › {tool}",
       titleWithTarget: "承認 · {service} › {tool}",
+      titleWithTool: "承認 · {tool}",
       argsLabel: "引数",
       argsModified: "変更あり",
       countdownShort: "{seconds}秒",
