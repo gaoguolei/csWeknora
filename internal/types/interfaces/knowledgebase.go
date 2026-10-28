@@ -241,6 +241,13 @@ type KnowledgeBaseRepository interface {
 	// must cap the result at types.ModelUsageListLimit; callers that need the
 	// untruncated size should use CountByModelID.
 	ListModelUsages(ctx context.Context, tenantID uint64, modelID string) ([]types.ModelUsageResource, error)
+	// UpdateModelReferences rewrites the summary / embedding model bindings of
+	// every active KB in the tenant. An empty argument leaves that column
+	// untouched. Used when the platform default models change, so the whole
+	// workspace keeps using one model per role.
+	UpdateModelReferences(
+		ctx context.Context, tenantID uint64, summaryModelID, embeddingModelID string,
+	) (int64, error)
 	// SetUserKBPin inserts or removes a row in user_kb_pins for the given
 	// (tenant, user, kb) triple. Returns the resulting pinned_at (nil when
 	// pinned=false) and an error. The tenant_id is captured to support

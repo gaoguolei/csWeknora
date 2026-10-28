@@ -42,23 +42,8 @@ const guideSteps = computed<SpotlightGuideStep[]>(() => {
       placement: 'right',
       before: () => focusAgentEditorSection('basic'),
     },
-    // 模型 / 网络搜索 / 附件 / 工具等分区已收归平台「智能体配置」，创建模式下
-    // 不再展示。这里全部标 optional：SpotlightGuide 找不到目标时会跳过，
-    // 用户就不会被指向一个空的锚点（步骤文案也随之一并跳过）。
-    {
-      key: 'navModel',
-      target: '[data-guide="agent-editor-nav-model"]',
-      placement: 'right',
-      before: () => focusAgentEditorSection('model'),
-      optional: true,
-    },
-    {
-      key: 'model',
-      target: '[data-guide="agent-create-model"]',
-      placement: 'right',
-      before: () => focusAgentEditorSection('model'),
-      optional: true,
-    },
+    // 模型 / 网络搜索 / 附件已收归平台「智能体配置」，编辑器不再展示这些分区，
+    // 引导里也不再有对应步骤。
     {
       key: 'navKnowledge',
       target: '[data-guide="agent-editor-nav-knowledge"]',
@@ -70,27 +55,6 @@ const guideSteps = computed<SpotlightGuideStep[]>(() => {
       target: '[data-guide="agent-create-knowledge"]',
       placement: 'right',
       before: () => focusAgentEditorSection('knowledge'),
-    },
-    {
-      key: 'navWebsearch',
-      target: '[data-guide="agent-editor-nav-websearch"]',
-      placement: 'right',
-      before: () => focusAgentEditorSection('websearch'),
-      optional: true,
-    },
-    {
-      key: 'navMultimodal',
-      target: '[data-guide="agent-editor-nav-multimodal"]',
-      placement: 'right',
-      before: () => focusAgentEditorSection('multimodal'),
-      optional: true,
-    },
-    {
-      key: 'multimodal',
-      target: '[data-guide="agent-create-multimodal"]',
-      placement: 'right',
-      before: () => focusAgentEditorSection('multimodal'),
-      optional: true,
     },
   ]
 

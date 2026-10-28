@@ -153,13 +153,12 @@ export const SUPER_ADMIN_ONLY_SECTIONS = new Set([
   'kb-advanced',
   'kb-faq',
   // 智能体配置（平台默认）分区键，与知识库同样是超管专有：模型 / 多轮对话 /
-  // 问题推荐 / 检索策略 / 网络搜索 / 附件上传。
+  // 检索策略 / 网络搜索 / 附件上传。
   // 需求把这些全部划给超级管理员（没有给运营管理员的项），所以统一走
-  // isSystemAdmin；「知识库检索」留给用户，不在这个集合里。
+  // isSystemAdmin；「知识库检索」和「问题推荐」留给用户，不在这个集合里。
   // 工具配置 / MCP 服务 / 技能是用户级配置，在创建智能体时设置，不属于平台默认。
   'agent-model',
   'agent-conversation',
-  'agent-suggestions',
   'agent-retrieval',
   'agent-websearch',
   'agent-multimodal',

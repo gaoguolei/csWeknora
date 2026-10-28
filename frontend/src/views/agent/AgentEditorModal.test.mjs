@@ -35,79 +35,21 @@ test('shows a post-create hint after the first successful save', () => {
   assert.match(source, /agent\.editor\.postCreateHint\.title/)
 })
 
-// Locate a settings row by the i18n key of its label and return the attributes
-// that sit before class="setting-row" — i.e. whatever v-if guards that row.
-// Anchoring on the label keeps these assertions stable across reformatting.
-function settingRowGuard(labelKey) {
-  const key = labelKey.replace(/\./g, '\\.')
-  const row = source.match(
-    new RegExp(
-      `<div([^>]*)class="setting-row">\\s*<div class="setting-info">\\s*<label>\\{\\{ \\$t\\('${key}'\\) \\}\\}`
-    )
-  )
-  assert.ok(row, `expected to find the ${labelKey} row`)
-  return row[1]
-}
-
-test('conversation settings stay reachable in smart-reasoning mode', () => {
-  // Agent mode keeps the section: it explains that history follows the context
-  // window and hosts retain_retrieval_history, so it must not be gated on mode.
-  assert.match(source, /v-show="currentSection === 'conversation'"/)
-  assert.doesNotMatch(source, /currentSection === 'conversation' && !isAgentMode/)
-
-  // The nav entry is pushed unconditionally; a re-introduced guard would indent it.
+test('platform-level sections are not exposed in the agent editor', () => {
+  // 模型 / 多轮对话 / 检索策略 / 网络搜索 / 附件上传已收归「设置 → 智能体配置」，
+  // 编辑器对任何角色都不再展示（项目经理第 11/12 条）。
   const navItems = source.match(/const navItems = computed\(\(\) => \{([\s\S]*?)^\}\);/m)?.[1]
   assert.ok(navItems, 'expected to find the nav items computed')
-  assert.match(navItems, /^  items\.push\(\{ key: 'conversation'/m)
-
-  // Switching to agent mode must not evict the user from the section.
-  // Tolerates the watch being dropped entirely by a later cleanup.
-  const modeWatch = source.match(/watch\(isAgentMode, \(isAgent\) => \{([\s\S]*?)^\}\);/m)?.[1] ?? ''
-  assert.doesNotMatch(modeWatch, /conversation/)
+  for (const key of ['model', 'conversation', 'retrieval', 'websearch', 'multimodal']) {
+    assert.doesNotMatch(navItems, new RegExp(`key: '${key}'`), `${key} must not be a nav entry`)
+    assert.doesNotMatch(source, new RegExp(`currentSection === '${key}'`), `${key} section must be gone`)
+  }
+  // 问题推荐仍是用户级配置，必须在编辑器里。
+  assert.match(navItems, /key: 'suggestions'/)
+  assert.match(source, /v-show="currentSection === 'suggestions'"/)
 })
 
-test('history turns stays hidden in smart-reasoning mode', () => {
-  // The agent path sizes history by the context window and never reads
-  // history_turns (session_agent_qa.go -> LoadAgentHistory), so an input there
-  // would change nothing. KnowledgeQA still caps its history by it.
-  const guard = settingRowGuard('agent.editor.historyTurns')
-  assert.match(guard, /v-if="!isAgentMode && formData\.config\.multi_turn_enabled"/)
-})
 
-test('multi-turn switch stays hidden in smart-reasoning mode', () => {
-  // CustomAgent.EnsureDefaults pins MultiTurnEnabled to true for smart-reasoning,
-  // so an editable switch would silently revert after save.
-  const guard = settingRowGuard('agent.editor.multiTurn')
-  assert.match(guard, /v-if="!isAgentMode"/)
-})
-
-test('query rewrite stays hidden in smart-reasoning mode', () => {
-  // enable_rewrite is consumed by the KnowledgeQA pipeline only.
-  const guard = settingRowGuard('agent.editor.enableRewrite')
-  assert.match(guard, /!isAgentMode/)
-})
-
-test('the section description matches what the mode actually shows', () => {
-  // The default copy mentions query rewriting, which agent mode does not show.
-  assert.match(source, /isAgentMode\.value\s*\?\s*t\('agentEditor\.desc\.conversationSectionAgent'\)/)
-  assert.match(source, /<p class="section-description">\{\{ conversationSectionDesc \}\}<\/p>/)
-})
-
-test('history turns can be raised beyond the old 20 cap', () => {
-  // KnowledgeQA history is capped by turns alone; 20 was too tight for the
-  // windows current models have.
-  const input = source.match(/<t-input-number v-model="formData\.config\.history_turns"[^>]*>/)
-  assert.ok(input, 'expected to find the history turns input')
-  assert.match(input[0], /:max="100"/)
-})
-
-test('retrieval retention is offered to agents that actually have a knowledge base', () => {
-  // retain_retrieval_history is read only by the agent path
-  // (internal/agent/observe.go) and only rewrites KB/Wiki tool results, so it
-  // is meaningless without a knowledge base.
-  const guard = settingRowGuard('agent.editor.retainRetrievalHistory')
-  assert.match(guard, /isAgentMode && hasKnowledgeBase/)
-})
 
 test('skills and sandbox share one editor section', () => {
   const navItems = source.match(/const navItems = computed\(\(\) => \{([\s\S]*?)^\}\);/m)?.[1]
@@ -116,7 +58,7 @@ test('skills and sandbox share one editor section', () => {
   assert.match(navItems, /icon: SKILL_ICON/)
   assert.doesNotMatch(navItems, /key: 'sandbox'/)
 
-  const capabilityGroup = source.match(/pickItems\(\['multimodal', 'tools', 'mcp', 'skills'\]\)/)
+  const capabilityGroup = source.match(/pickItems\(\['tools', 'mcp', 'skills'\]\)/)
   assert.ok(capabilityGroup, 'expected the capability group to list skills without a separate sandbox tab')
 
   assert.match(source, /v-show="currentSection === 'skills' && isAgentMode"/)
@@ -177,11 +119,10 @@ test('a skill whose previous version still runs stays selectable during and afte
   assert.match(source, /return skill\.upgradable \|\| Boolean\(skill\.servedNote\)/)
 })
 
-test('retrieval strategy settings are hidden in agent mode, where search_knowledge ignores them', () => {
-  // search_knowledge reads the global retrieval configuration; showing the
-  // per-agent thresholds in agent mode let users tune values with no effect.
-  assert.match(source, /v-show="currentSection === 'retrieval' && hasKnowledgeBase && !isAgentMode"/)
-  assert.match(source, /if \(hasKnowledgeBase\.value && !isAgentMode\.value\) \{\s*items\.push\(\{ key: 'retrieval'/)
-  const modeWatch = source.match(/watch\(isAgentMode, \(isAgent\) => \{([\s\S]*?)^\}\);/m)?.[1] ?? ''
-  assert.match(modeWatch, /isAgent && \([^)]*currentSection\.value === 'retrieval'/)
+test('retrieval strategy now lives in the platform agent settings', () => {
+  // search_knowledge reads the global retrieval configuration; the per-agent
+  // thresholds were removed from the editor together with the other
+  // platform-level sections.
+  assert.doesNotMatch(source, /currentSection === 'retrieval'/)
+  assert.doesNotMatch(source, /items\.push\(\{ key: 'retrieval'/)
 })

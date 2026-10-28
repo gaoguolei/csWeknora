@@ -9,6 +9,8 @@ import { filterModelsByType } from './modelSelectorFilter.ts'
 const selectorSource = readFileSync(new URL('./ModelSelector.vue', import.meta.url), 'utf8')
 const kbEditorSource = readFileSync(new URL('../views/knowledge/KnowledgeBaseEditorModal.vue', import.meta.url), 'utf8')
 const agentEditorSource = readFileSync(new URL('../views/agent/AgentEditorModal.vue', import.meta.url), 'utf8')
+// 附件上传（含 VLM 模型选择）已拆到独立分区组件，平台默认页复用同一份实现。
+const agentAttachmentSource = readFileSync(new URL('../views/agent/settings/AgentAttachmentSettings.vue', import.meta.url), 'utf8')
 const modelSettingsSource = readFileSync(new URL('../views/settings/ModelSettings.vue', import.meta.url), 'utf8')
 
 function model(overrides: Partial<ModelConfig> & Pick<ModelConfig, 'id' | 'type'>): ModelConfig {
@@ -43,7 +45,7 @@ test('VLM selection, knowledge-base and agent saves, and deletion preserve the s
   assert.match(selectorSource, /emit\('update:selectedModelId', value \|\| ''\)/)
   assert.match(kbEditorSource, /handleMultimodalVLLMChange[\s\S]*vllmModelId = modelId/)
   assert.match(kbEditorSource, /vlm_config = \{[\s\S]*model_id:[\s\S]*vllmModelId/)
-  assert.match(agentEditorSource, /model-type="VLLM"[\s\S]*formData\.config\.vlm_model_id[\s\S]*formData\.config\.vlm_model_id = val/)
+  assert.match(agentAttachmentSource, /model-type="VLLM"[\s\S]*config\.vlm_model_id[\s\S]*config\.vlm_model_id = val/)
   assert.match(agentEditorSource, /const payload = \{ \.\.\.formData\.value, config: serializeAgentPrompts/)
   assert.match(agentEditorSource, /updateAgent\(formData\.value\.id, payload\)/)
   assert.match(modelSettingsSource, /@confirm="deleteModel\(model\._modelType, model\.id\)"/)

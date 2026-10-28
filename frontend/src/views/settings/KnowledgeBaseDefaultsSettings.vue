@@ -269,7 +269,7 @@
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { MessagePlugin } from 'tdesign-vue-next'
+import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import ModelSelector from '@/components/ModelSelector.vue'
 import KBModelConfig from '@/views/knowledge/settings/KBModelConfig.vue'
 import KBChunkingSettings from '@/views/knowledge/settings/KBChunkingSettings.vue'
@@ -665,6 +665,56 @@ async function runAutoSave() {
 }
 
 watch(cfg, () => scheduleAutoSave(), { deep: true })
+
+// 切换嵌入模型会级联到全平台所有知识库，而旧向量与新模型不兼容（需要重新解析）。
+// 页面是防抖自动保存的，所以在写回之前先确认一次。
+let embeddingConfirmOpen = false
+let revertingEmbeddingModel = false
+
+function confirmEmbeddingModelSwitch(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const dialog = DialogPlugin.confirm({
+      header: t('kbDefaults.embeddingSwitchTitle'),
+      body: t('kbDefaults.embeddingSwitchBody'),
+      confirmBtn: t('common.confirm'),
+      cancelBtn: t('common.cancel'),
+      onConfirm: () => {
+        dialog.hide()
+        resolve(true)
+      },
+      onCancel: () => {
+        dialog.hide()
+        resolve(false)
+      },
+      onClose: () => {
+        dialog.hide()
+        resolve(false)
+      },
+    })
+  })
+}
+
+watch(
+  () => cfg.modelConfig.embeddingModelId,
+  async (next, previous) => {
+    if (revertingEmbeddingModel) {
+      revertingEmbeddingModel = false
+      return
+    }
+    if (!ready.value || !previous || !next || next === previous) return
+    if (embeddingConfirmOpen) return
+    embeddingConfirmOpen = true
+    clearAutosaveTimer()
+    const confirmed = await confirmEmbeddingModelSwitch()
+    embeddingConfirmOpen = false
+    if (!confirmed) {
+      revertingEmbeddingModel = true
+      cfg.modelConfig.embeddingModelId = previous
+      return
+    }
+    scheduleAutoSave()
+  },
+)
 
 onMounted(() => {
   void loadModels()

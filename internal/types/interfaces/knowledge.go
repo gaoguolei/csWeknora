@@ -261,6 +261,13 @@ type KnowledgeRepository interface {
 
 	// UpdateKnowledgeBatch updates knowledge items in batch
 	UpdateKnowledgeBatch(ctx context.Context, knowledgeList []*types.Knowledge) error
+	// UpdateEmbeddingModelForTenant rewrites the embedding model recorded on
+	// every active knowledge row in the tenant. Used after the platform default
+	// embedding model changes; callers must warn that existing vectors need
+	// re-indexing before retrieval can use the new model.
+	UpdateEmbeddingModelForTenant(
+		ctx context.Context, tenantID uint64, embeddingModelID string,
+	) (int64, error)
 	DeleteKnowledge(ctx context.Context, tenantID uint64, id string) error
 	DeleteKnowledgeList(ctx context.Context, tenantID uint64, ids []string) error
 	GetKnowledgeBatch(ctx context.Context, tenantID uint64, ids []string) ([]*types.Knowledge, error)

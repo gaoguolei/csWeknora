@@ -1000,6 +1000,9 @@ func (r *realKBRepo) ListUserKBPinIDs(_ context.Context, _ uint64, _ string) (ma
 func (r *realKBRepo) SetUserKBPin(_ context.Context, _ uint64, _ string, _ string, _ bool) (*time.Time, error) {
 	return nil, nil
 }
+func (r *realKBRepo) UpdateModelReferences(_ context.Context, _ uint64, _ string, _ string) (int64, error) {
+	return 0, nil
+}
 
 func insertGuardStore(t *testing.T, db *gorm.DB, id string, tenantID uint64) {
 	t.Helper()

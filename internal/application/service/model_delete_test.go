@@ -57,6 +57,12 @@ func (s *stubKBRepoForModelDelete) CountByModelID(context.Context, uint64, strin
 	return int64(len(s.usages)), s.usageErr
 }
 
+func (s *stubKBRepoForModelDelete) UpdateModelReferences(
+	context.Context, uint64, string, string,
+) (int64, error) {
+	return 0, nil
+}
+
 func (s *stubKBRepoForModelDelete) ListModelUsages(
 	context.Context, uint64, string,
 ) ([]types.ModelUsageResource, error) {
@@ -85,6 +91,11 @@ func (s *stubAgentRepoForModelDelete) ListAgentsByTenantID(context.Context, uint
 	return nil, nil
 }
 func (s *stubAgentRepoForModelDelete) UpdateAgent(context.Context, *types.CustomAgent) error {
+	return nil
+}
+func (s *stubAgentRepoForModelDelete) UpdateAgentConfig(
+	context.Context, string, uint64, types.CustomAgentConfig,
+) error {
 	return nil
 }
 func (s *stubAgentRepoForModelDelete) DeleteAgent(context.Context, string, uint64) error { return nil }

@@ -127,6 +127,11 @@ type CustomAgentRepository interface {
 	//   - Possible errors such as record not existing, database errors, etc.
 	UpdateAgent(ctx context.Context, agent *types.CustomAgent) error
 
+	// UpdateAgentConfig rewrites only the config column of one agent. Used by
+	// the platform-defaults sync, which must not clobber a name/avatar/prompt
+	// edit racing with it (a full-row Save would).
+	UpdateAgentConfig(ctx context.Context, id string, tenantID uint64, config types.CustomAgentConfig) error
+
 	// DeleteAgent deletes an agent record
 	// Parameters:
 	//   - ctx: Context information

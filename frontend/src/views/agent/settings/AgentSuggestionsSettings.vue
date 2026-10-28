@@ -201,6 +201,10 @@ const { t } = useI18n()
 // 直接读 config.question_suggestions.starters 会在未初始化时抛错。
 const qs = computed(() => props.config.question_suggestions!)
 
+// 追问推荐模型留空即可，后端会用本轮对话模型兜底。不在前端回填对话模型，
+// 否则编辑器新建时预选的对话模型会被一并写入，随后被平台默认覆盖掉对话模型，
+// 智能体就会同时引用两个模型，模型删除时被判定为两处引用。
+
 const suggestionTab = ref<'starters' | 'followUps'>('starters')
 
 const starterSuggestionModeOptions = computed(() => [

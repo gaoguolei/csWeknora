@@ -4174,7 +4174,10 @@ export default {
     "navGroup": "認知庫配置",
     "readonlyBanner": "僅超級管理員可編輯平台認知庫預設配置。",
     "modelDefaultDesc": "新建認知庫時預設選用的模型；留空則由使用者自行選擇。",
-    "appliesHint": "這些預設值將自動應用於此後新建的認知庫，已有認知庫不受影響。",
+    "appliesHint": "這些預設值將自動應用於此後新建的認知庫；模型類預設值儲存後還會同步到已有認知庫。",
+    "embeddingSwitchTitle": "切換嵌入模型",
+    "embeddingSwitchBody":
+      "切換後全平台所有認知庫將統一改用新模型，已有內容需要用新模型重新解析／向量化後才能正常檢索。確定切換嗎？",
     "save": "儲存預設配置",
     "saving": "儲存中…",
     "autoSaved": "已自動儲存",

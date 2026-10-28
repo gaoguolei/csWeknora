@@ -757,7 +757,6 @@ import ContextualGuide from '@/components/ContextualGuide.vue'
 import TenantModelsGuide from '@/components/TenantModelsGuide.vue'
 import { focusAgentEditorSection, markContextualGuideDone } from '@/config/contextualGuides'
 import { useTenantModelReadiness } from '@/composables/useTenantModelReadiness'
-import { useUIStore } from '@/stores/ui'
 import AgentAvatar from '@/components/AgentAvatar.vue'
 import ResourceListToolbar from '@/components/ResourceListToolbar.vue'
 import { matchesResourceQuery } from '@/utils/resourceListSearch'
@@ -779,7 +778,6 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
-const uiStore = useUIStore()
 const orgStore = useOrganizationStore()
 const chatResources = useChatResourcesStore()
 const { loaded: modelsReadyLoaded, isReadyForAgent } = useTenantModelReadiness()
@@ -1542,7 +1540,10 @@ const openCreateModal = () => {
 const handleCreateAgent = () => {
   if (!isReadyForAgent.value) {
     MessagePlugin.warning(t('contextualGuide.tenantModels.needChatModelFirst'))
-    uiStore.openSettings('models')
+    // 模型管理是平台超管专属页面：普通用户跳过去只会看到无权限空态。
+    if (authStore.isSystemAdmin) {
+      void router.push({ path: '/platform/settings', query: { section: 'models' } })
+    }
     return
   }
   markContextualGuideDone('agentList')

@@ -40,11 +40,6 @@
           <AgentConversationSettings :config="cfg" :is-agent-mode="true" :has-knowledge-base="true" />
         </div>
 
-        <!-- C 问题推荐 -->
-        <div v-show="activeSection === 'suggestions'" class="agent-defaults-block">
-          <AgentSuggestionsSettings :config="cfg" :all-models="allModels" @add-model="onAddModel" />
-        </div>
-
         <!-- E 检索策略 -->
         <div v-show="activeSection === 'retrieval'" class="agent-defaults-block">
           <AgentRetrievalSettings :config="cfg" :is-agent-mode="true" :has-faq-knowledge-base="true" />
@@ -87,7 +82,6 @@ import {
 import type { CustomAgentConfig } from '@/api/agent'
 import AgentModelSettings from '@/views/agent/settings/AgentModelSettings.vue'
 import AgentConversationSettings from '@/views/agent/settings/AgentConversationSettings.vue'
-import AgentSuggestionsSettings from '@/views/agent/settings/AgentSuggestionsSettings.vue'
 import AgentRetrievalSettings from '@/views/agent/settings/AgentRetrievalSettings.vue'
 import AgentWebSearchSettings from '@/views/agent/settings/AgentWebSearchSettings.vue'
 import AgentAttachmentSettings from '@/views/agent/settings/AgentAttachmentSettings.vue'
@@ -105,7 +99,6 @@ const PLATFORM_MANAGED_KEYS = [
   'max_completion_tokens', 'thinking', 'reasoning_effort', 'citation_enabled',
   'max_iterations', 'llm_call_timeout',
   'multi_turn_enabled', 'history_turns', 'retain_retrieval_history', 'enable_rewrite',
-  'question_suggestions',
   'enable_query_expansion', 'embedding_top_k', 'keyword_threshold', 'vector_threshold',
   'rerank_top_k', 'rerank_threshold', 'faq_priority_enabled', 'faq_direct_answer_threshold',
   'faq_score_boost', 'data_analysis_enabled',
@@ -190,22 +183,6 @@ function makeDefaults(): CustomAgentConfig {
     fallback_strategy: 'model',
     fallback_response: '',
     fallback_prompt: '',
-    question_suggestions: {
-      starters: { enabled: true, mode: 'hybrid', items: [], count: 6 },
-      follow_ups: {
-        enabled: false,
-        mode: 'hybrid',
-        count: 3,
-        model_id: '',
-        additional_instruction: '',
-        categories: ['clarify', 'deepen', 'action'],
-        max_context_turns: 2,
-        suppress_on_fallback: true,
-        suppress_when_answer_asks_question: true,
-        knowledge_fallback: true,
-        allow_regenerate: false,
-      },
-    },
   } as CustomAgentConfig
 }
 
@@ -334,12 +311,6 @@ async function load() {
           if (stored[key] !== undefined) {
             (cfg as Record<string, unknown>)[key] = stored[key]
           }
-        }
-        // 存过的 question_suggestions 可能缺子字段（旧数据/手工改的 JSON），
-        // 补回初值，避免复用的分区组件读到 undefined。
-        cfg.question_suggestions = {
-          ...makeDefaults().question_suggestions!,
-          ...(cfg.question_suggestions || {}),
         }
       } catch (e) {
         console.error('agentDefaults: malformed stored JSON, using defaults', e)

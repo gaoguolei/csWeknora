@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -65,6 +66,10 @@ type SystemHandler struct {
 	// unit tests, in which case only the legacy config is consulted.
 	storageBackendRepo interfaces.StorageBackendRepository
 	sandboxConfigSvc   sandboxConfigService
+	// platformDefaultsSync pushes a saved platform default (agent config / KB
+	// models) onto every existing workspace. Optional — nil disables the sync
+	// so partially wired unit tests keep compiling.
+	platformDefaultsSync *service.PlatformDefaultsSyncService
 	// startup snapshot for GET /system/capabilities; bound in router.NewRouter.
 	deploymentCapabilities DeploymentCapabilitiesData
 }
@@ -83,21 +88,23 @@ func NewSystemHandler(cfg *config.Config,
 	knowledgeSvc interfaces.KnowledgeService,
 	storageBackendRepo interfaces.StorageBackendRepository,
 	sandboxConfigSvc *service.TenantSandboxConfigService,
+	platformDefaultsSync *service.PlatformDefaultsSyncService,
 ) *SystemHandler {
 	return &SystemHandler{
-		cfg:                cfg,
-		neo4jDriver:        neo4jDriver,
-		documentReader:     documentReader,
-		tenantSvc:          tenantSvc,
-		userSvc:            userSvc,
-		systemSettingSvc:   systemSettingSvc,
-		modelCatalogSvc:    modelCatalogSvc,
-		apiKeySvc:          apiKeySvc,
-		auditSvc:           auditSvc,
-		taskInspector:      taskInspector,
-		knowledgeSvc:       knowledgeSvc,
-		storageBackendRepo: storageBackendRepo,
-		sandboxConfigSvc:   sandboxConfigSvc,
+		cfg:                  cfg,
+		neo4jDriver:          neo4jDriver,
+		documentReader:       documentReader,
+		tenantSvc:            tenantSvc,
+		userSvc:              userSvc,
+		systemSettingSvc:     systemSettingSvc,
+		modelCatalogSvc:      modelCatalogSvc,
+		apiKeySvc:            apiKeySvc,
+		auditSvc:             auditSvc,
+		taskInspector:        taskInspector,
+		knowledgeSvc:         knowledgeSvc,
+		storageBackendRepo:   storageBackendRepo,
+		sandboxConfigSvc:     sandboxConfigSvc,
+		platformDefaultsSync: platformDefaultsSync,
 	}
 }
 
@@ -2627,6 +2634,12 @@ func (h *SystemHandler) UpdateSystemSetting(c *gin.Context) {
 		return
 	}
 
+	// Only the platform defaults need a before/after diff for the sync below.
+	var previousRaw string
+	if h.platformDefaultsSync != nil &&
+		(key == types.AgentDefaultsKey || key == types.KBDefaultsKey) {
+		previousRaw = h.systemSettingRaw(ctx, key)
+	}
 	row, err := h.systemSettingSvc.Update(ctx, key, req.Value)
 	if err != nil {
 		// Whether this is "unknown key" / "type mismatch" / "DB error"
@@ -2635,8 +2648,90 @@ func (h *SystemHandler) UpdateSystemSetting(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	h.syncPlatformDefaults(ctx, key, previousRaw, row)
 	h.enrichSettingsModifiedBy(ctx, []*types.SystemSetting{row})
 	c.JSON(http.StatusOK, row)
+}
+
+// systemSettingRaw returns the stored raw value of a setting, or "" when the
+// key has no row yet. Used to diff a platform default before it is overwritten.
+func (h *SystemHandler) systemSettingRaw(ctx context.Context, key string) string {
+	if h.systemSettingSvc == nil {
+		return ""
+	}
+	row, err := h.systemSettingSvc.Get(ctx, key)
+	if err != nil || row == nil {
+		return ""
+	}
+	raw, err := row.AsString()
+	if err != nil {
+		return ""
+	}
+	return raw
+}
+
+// syncPlatformDefaults propagates a platform default the operator just saved to
+// the objects that already exist. Only a real change of a managed field is
+// applied: both defaults pages debounce-autosave (600ms), so an unconditional
+// rewrite would touch every workspace on each keystroke.
+func (h *SystemHandler) syncPlatformDefaults(
+	ctx context.Context, key, previousRaw string, row *types.SystemSetting,
+) {
+	if h.platformDefaultsSync == nil || row == nil {
+		return
+	}
+	currentRaw, err := row.AsString()
+	if err != nil {
+		return
+	}
+
+	switch key {
+	case types.AgentDefaultsKey:
+		previous := types.ParseAgentDefaultsConfig(previousRaw)
+		current := types.ParseAgentDefaultsConfig(currentRaw)
+		if current == nil || reflect.DeepEqual(previous, current) {
+			return
+		}
+		result, syncErr := h.platformDefaultsSync.ApplyAgentDefaults(ctx, current)
+		if syncErr != nil {
+			logger.Errorf(ctx, "Failed to sync agent platform defaults: %v", syncErr)
+			return
+		}
+		logger.Infof(ctx, "Agent platform defaults synced: tenants=%d agents=%d",
+			result.Tenants, result.Agents)
+
+	case types.KBDefaultsKey:
+		previous := types.ParseKBDefaultsConfig(previousRaw)
+		current := types.ParseKBDefaultsConfig(currentRaw)
+		if current == nil {
+			return
+		}
+		var prevSummary, prevEmbedding string
+		if previous != nil {
+			prevSummary = previous.SummaryModelID
+			prevEmbedding = previous.EmbeddingModelID
+		}
+		// Clear the field = leave existing KBs alone; only a newly chosen model
+		// is propagated.
+		summary := ""
+		if current.SummaryModelID != "" && current.SummaryModelID != prevSummary {
+			summary = current.SummaryModelID
+		}
+		embedding := ""
+		if current.EmbeddingModelID != "" && current.EmbeddingModelID != prevEmbedding {
+			embedding = current.EmbeddingModelID
+		}
+		if summary == "" && embedding == "" {
+			return
+		}
+		result, syncErr := h.platformDefaultsSync.ApplyKBModelDefaults(ctx, summary, embedding)
+		if syncErr != nil {
+			logger.Errorf(ctx, "Failed to sync KB platform models: %v", syncErr)
+			return
+		}
+		logger.Infof(ctx, "KB platform models synced: tenants=%d kbs=%d knowledges=%d",
+			result.Tenants, result.KnowledgeBases, result.Knowledges)
+	}
 }
 
 // ApplyDefaultStorageQuotaToAllTenants godoc

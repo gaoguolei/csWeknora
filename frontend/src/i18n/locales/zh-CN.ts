@@ -4483,7 +4483,10 @@ export default {
     navGroup: "认知库配置",
     readonlyBanner: "仅超级管理员可编辑平台认知库默认配置。",
     modelDefaultDesc: "新建认知库时默认选用的模型；留空则由用户自行选择。",
-    appliesHint: "这些默认值将自动应用于此后新建的认知库，已有认知库不受影响。",
+    appliesHint: "这些默认值将自动应用于此后新建的认知库；模型类默认值保存后还会同步到已有认知库。",
+    embeddingSwitchTitle: "切换嵌入模型",
+    embeddingSwitchBody:
+      "切换后全平台所有认知库将统一改用新模型，已有内容需要用新模型重新解析/向量化后才能正常检索。确定切换吗？",
     save: "保存默认配置",
     saving: "保存中…",
     autoSaved: "已自动保存",

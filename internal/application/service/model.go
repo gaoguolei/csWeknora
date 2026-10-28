@@ -567,7 +567,79 @@ func (s *modelService) DeleteModel(ctx context.Context, id string) error {
 	return nil
 }
 
+// getModelUsageDetails reports who references a model before it is deleted.
+//
+// A platform super administrator deletes global models, and those can be
+// referenced from any workspace, so for them the scan spans every tenant —
+// checking only the caller's workspace would let a model used elsewhere be
+// deleted (项目经理第 16 条「整个系统判断」). Everyone else stays tenant-scoped.
 func (s *modelService) getModelUsageDetails(
+	ctx context.Context, tenantID uint64, modelID string,
+) (types.ModelUsageDetails, error) {
+	if types.IsSystemAdminFromContext(ctx) && s.tenantService != nil {
+		if tenants, err := s.tenantService.ListAllTenants(ctx); err == nil && len(tenants) > 0 {
+			return s.getMultiTenantModelUsageDetails(ctx, tenants, modelID)
+		}
+	}
+	return s.getTenantModelUsageDetails(ctx, tenantID, modelID)
+}
+
+// getMultiTenantModelUsageDetails aggregates the per-tenant usage of a model,
+// deduplicating agents/knowledge bases (a built-in agent row is per tenant, so
+// its ID alone would collapse distinct rows) and capping the listed resources.
+func (s *modelService) getMultiTenantModelUsageDetails(
+	ctx context.Context, tenants []*types.Tenant, modelID string,
+) (types.ModelUsageDetails, error) {
+	details := types.ModelUsageDetails{
+		KnowledgeBases: make([]types.ModelUsageResource, 0),
+		Agents:         make([]types.ModelUsageResource, 0),
+		LongTermMemory: types.ModelUsageMemory{Bindings: make([]types.ModelUsageBinding, 0)},
+	}
+	seenKB := make(map[string]bool)
+	seenAgent := make(map[string]bool)
+	seenBinding := make(map[types.ModelUsageBinding]bool)
+
+	for _, tenant := range tenants {
+		if tenant == nil {
+			continue
+		}
+		part, err := s.getTenantModelUsageDetails(ctx, tenant.ID, modelID)
+		if err != nil {
+			return details, err
+		}
+		details.KnowledgeBaseTotal += part.KnowledgeBaseTotal
+		details.AgentTotal += part.AgentTotal
+
+		for _, kb := range part.KnowledgeBases {
+			if seenKB[kb.ID] {
+				continue
+			}
+			seenKB[kb.ID] = true
+			if len(details.KnowledgeBases) < types.ModelUsageListLimit {
+				details.KnowledgeBases = append(details.KnowledgeBases, kb)
+			}
+		}
+		for _, agent := range part.Agents {
+			if seenAgent[agent.ID] {
+				continue
+			}
+			seenAgent[agent.ID] = true
+			if len(details.Agents) < types.ModelUsageListLimit {
+				details.Agents = append(details.Agents, agent)
+			}
+		}
+		for _, binding := range part.LongTermMemory.Bindings {
+			if seenBinding[binding] {
+				continue
+			}
+			seenBinding[binding] = true
+			details.LongTermMemory.Bindings = append(details.LongTermMemory.Bindings, binding)
+		}
+	}
+	return details, nil
+}
+
+func (s *modelService) getTenantModelUsageDetails(
 	ctx context.Context, tenantID uint64, modelID string,
 ) (types.ModelUsageDetails, error) {
 	details := types.ModelUsageDetails{

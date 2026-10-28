@@ -134,3 +134,66 @@ func TestAgentDefaultsApplyToPointerFields(t *testing.T) {
 	assert.Nil(t, none.Thinking)
 	assert.False(t, none.WebSearchEnabled)
 }
+
+// OverrideTo is what the server uses once the editor no longer exposes these
+// settings: an existing agent's value must be replaced by the platform value,
+// not preserved like ApplyTo does.
+func TestAgentDefaultsOverrideToReplacesExistingValues(t *testing.T) {
+	on := true
+	off := false
+	temp := 0.2
+	cfg := &AgentDefaultsConfig{
+		ModelID:          "platform-llm",
+		Temperature:      &temp,
+		HistoryTurns:     8,
+		WebSearchEnabled: &on,
+		CitationEnabled:  &off,
+	}
+	target := &CustomAgentConfig{
+		ModelID:          "user-llm",
+		Temperature:      0.9,
+		HistoryTurns:     3,
+		WebSearchEnabled: true,
+		CitationEnabled:  &on,
+	}
+	cfg.OverrideTo(target)
+
+	assert.Equal(t, "platform-llm", target.ModelID)
+	assert.InDelta(t, 0.2, target.Temperature, 1e-9)
+	assert.Equal(t, 8, target.HistoryTurns)
+	assert.True(t, target.WebSearchEnabled)
+	require.NotNil(t, target.CitationEnabled)
+	assert.False(t, *target.CitationEnabled)
+}
+
+// Fields the operator left unset must survive an override: a partially
+// configured default must never wipe a working agent.
+func TestAgentDefaultsOverrideToLeavesUnsetFields(t *testing.T) {
+	cfg := &AgentDefaultsConfig{ModelID: "platform-llm"}
+	target := &CustomAgentConfig{
+		RerankModelID:    "keep-rerank",
+		Temperature:      0.9,
+		WebSearchEnabled: true,
+	}
+	cfg.OverrideTo(target)
+
+	assert.Equal(t, "platform-llm", target.ModelID)
+	assert.Equal(t, "keep-rerank", target.RerankModelID)
+	assert.InDelta(t, 0.9, target.Temperature, 1e-9)
+	assert.True(t, target.WebSearchEnabled)
+
+	var nilCfg *AgentDefaultsConfig
+	nilCfg.OverrideTo(target)
+	(&AgentDefaultsConfig{}).OverrideTo(nil)
+}
+
+// Question suggestions are user-level (per agent) and must not arrive from the
+// platform defaults any more.
+func TestAgentDefaultsDoNotCarryQuestionSuggestions(t *testing.T) {
+	cfg := ParseAgentDefaultsConfig(`{"question_suggestions":{"follow_ups":{"enabled":true}}}`)
+	require.NotNil(t, cfg)
+
+	target := &CustomAgentConfig{}
+	cfg.OverrideTo(target)
+	assert.Nil(t, target.QuestionSuggestions)
+}

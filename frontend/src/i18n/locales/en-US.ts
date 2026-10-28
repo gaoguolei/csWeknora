@@ -3736,7 +3736,10 @@ export default {
     modelDefaultDesc:
       "Models automatically selected for new DevMind; leave empty to let users choose.",
     appliesHint:
-      "These defaults apply to DevMind created from now on and do not affect existing ones.",
+      "These defaults apply to DevMind created from now on; model defaults are also synced to existing ones when saved.",
+    embeddingSwitchTitle: "Switch embedding model",
+    embeddingSwitchBody:
+      "All DevMind across the platform will switch to the new model. Existing content must be re-parsed and re-embedded before it can be retrieved. Switch anyway?",
     save: "Save Defaults",
     saving: "Saving…",
     autoSaved: "Auto-saved",

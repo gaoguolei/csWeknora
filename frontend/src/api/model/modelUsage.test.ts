@@ -100,11 +100,11 @@ test('keeps navigation and localization stable for all resource kinds', () => {
   )
   assert.deepEqual(
     modelUsageResourceRoute('agent', 'agent-1'),
-    { path: '/platform/agents', query: { edit: 'agent-1', section: 'model' } },
+    { path: '/platform/settings', query: { section: 'agent-model' } },
   )
   assert.deepEqual(
     modelUsageResourceRoute('agent', 'agent-1', ['vlm_model']),
-    { path: '/platform/agents', query: { edit: 'agent-1', section: 'multimodal' } },
+    { path: '/platform/settings', query: { section: 'agent-multimodal' } },
   )
   assert.deepEqual(
     modelUsageResourceRoute('agent', 'agent-1', ['follow_up_model']),

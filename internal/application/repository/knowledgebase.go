@@ -239,6 +239,29 @@ func (r *knowledgeBaseRepository) CountByModelID(
 	return count, err
 }
 
+// UpdateModelReferences rewrites the summary / embedding model of every active
+// KB in the tenant. An empty argument leaves that column untouched, so a partial
+// platform default never wipes a working binding.
+func (r *knowledgeBaseRepository) UpdateModelReferences(
+	ctx context.Context, tenantID uint64, summaryModelID, embeddingModelID string,
+) (int64, error) {
+	updates := map[string]any{}
+	if summaryModelID != "" {
+		updates["summary_model_id"] = summaryModelID
+	}
+	if embeddingModelID != "" {
+		updates["embedding_model_id"] = embeddingModelID
+	}
+	if len(updates) == 0 {
+		return 0, nil
+	}
+	res := r.db.WithContext(ctx).
+		Model(&types.KnowledgeBase{}).
+		Where("tenant_id = ?", tenantID).
+		Updates(updates)
+	return res.RowsAffected, res.Error
+}
+
 // ListModelUsages returns active knowledge bases that reference modelID. It
 // selects only the columns needed to identify the resource and its bindings;
 // GORM's default scope excludes soft-deleted rows.

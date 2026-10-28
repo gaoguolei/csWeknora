@@ -192,8 +192,10 @@ func (h *CustomAgentHandler) CreateAgent(c *gin.Context) {
 }
 
 // applyAgentPlatformDefaults reads the platform-wide default agent
-// configuration (system_settings "agent.default_config") and fills unset
-// fields on a freshly-bound create request. A nil service, a missing row or
+// configuration (system_settings "agent.default_config") and overrides the
+// platform-managed fields on a bound create/update request. The agent editor no
+// longer exposes these settings (项目经理第 11/12 条), so the platform value wins
+// even when an older client still sends its own. A nil service, a missing row or
 // malformed JSON are all treated as "no defaults" and leave the request
 // untouched.
 func (h *CustomAgentHandler) applyAgentPlatformDefaults(ctx context.Context, config *types.CustomAgentConfig) {
@@ -208,7 +210,7 @@ func (h *CustomAgentHandler) applyAgentPlatformDefaults(ctx context.Context, con
 	if err != nil {
 		return
 	}
-	types.ParseAgentDefaultsConfig(raw).ApplyTo(config)
+	types.ParseAgentDefaultsConfig(raw).OverrideTo(config)
 }
 
 // GetAgent godoc
@@ -421,6 +423,9 @@ func (h *CustomAgentHandler) UpdateAgent(c *gin.Context) {
 		c.Error(errors.NewBadRequestError("Invalid request parameters").WithDetails(err.Error()))
 		return
 	}
+	// 平台级配置（模型 / 多轮 / 检索 / 网络搜索 / 附件）只认全局默认值，
+	// 编辑器已不再提供修改入口，避免旧页面或 API 客户端把级联结果覆盖回去。
+	h.applyAgentPlatformDefaults(ctx, &req.Config)
 	if err := authorizeAgentKnowledgeScope(ctx, req.Config); err != nil {
 		c.Error(err)
 		return

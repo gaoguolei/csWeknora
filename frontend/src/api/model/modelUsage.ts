@@ -177,8 +177,17 @@ export function modelUsageResourceRoute(
   if (kind === 'knowledge_base') {
     return { path: `/platform/knowledge-bases/${encodeURIComponent(id)}` }
   }
+  const section = modelUsageAgentSection(bindings)
+  // 智能体的模型 / 附件上传已收归「设置 → 智能体配置」，编辑器不再提供入口；
+  // 只有问题推荐仍是用户级配置，继续在编辑器里打开。
+  if (section === 'suggestions') {
+    return {
+      path: '/platform/agents',
+      query: { edit: id, section },
+    }
+  }
   return {
-    path: '/platform/agents',
-    query: { edit: id, section: modelUsageAgentSection(bindings) },
+    path: '/platform/settings',
+    query: { section: section === 'multimodal' ? 'agent-multimodal' : 'agent-model' },
   }
 }

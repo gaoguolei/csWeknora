@@ -20,7 +20,6 @@ const AgentDefaultsKey = "agent.default_config"
 //	                 MaxCompletionTokens / Thinking / ReasoningEffort / CitationEnabled /
 //	                 MaxIterations / LLMCallTimeout
 //	B 多轮对话    -> MultiTurnEnabled / HistoryTurns / RetainRetrievalHistory / EnableRewrite
-//	C 问题推荐    -> QuestionSuggestions
 //	E 检索策略    -> EnableQueryExpansion / EmbeddingTopK / KeywordThreshold /
 //	                 VectorThreshold / RerankTopK / RerankThreshold / FAQ* / DataAnalysisEnabled
 //	F 网络搜索    -> WebSearch* / WebFetch*
@@ -29,15 +28,17 @@ const AgentDefaultsKey = "agent.default_config"
 //
 // Basic info (name/description/agent_mode/agent_type), prompts and the
 // knowledge-base scope (知识库检索, requirement item D) stay user-owned and are
-// deliberately NOT here. Tools (H), MCP services (I) and skills (J) are also
-// user-level: the user picks them when creating the agent, so the platform
-// default must not fill them.
+// deliberately NOT here. Question suggestions (C), tools (H), MCP services (I)
+// and skills (J) are also user-level: the user configures them per agent, so the
+// platform default must not carry or fill them.
 //
 // Every field is optional. Booleans are pointers so "the operator left it
 // unset" can be told apart from "the operator explicitly chose false"; the
 // remaining fields use their type's zero value as the "unset" marker. ApplyTo
-// only writes fields the caller left at that zero value, so a value the user
-// did set is never overwritten.
+// only writes fields the caller left at that zero value (used when an API client
+// supplies its own config); OverrideTo writes every field the operator did set
+// and is what the server uses for UI-created agents and for syncing existing
+// agents, because these settings are no longer editable per agent.
 type AgentDefaultsConfig struct {
 	// A: model settings.
 	ModelID                string   `json:"model_id,omitempty"`
@@ -56,9 +57,6 @@ type AgentDefaultsConfig struct {
 	HistoryTurns           int   `json:"history_turns,omitempty"`
 	RetainRetrievalHistory *bool `json:"retain_retrieval_history,omitempty"`
 	EnableRewrite          *bool `json:"enable_rewrite,omitempty"`
-
-	// C: question suggestions.
-	QuestionSuggestions *QuestionSuggestionConfig `json:"question_suggestions,omitempty"`
 
 	// E: retrieval strategy.
 	EnableQueryExpansion     *bool   `json:"enable_query_expansion,omitempty"`
@@ -153,11 +151,6 @@ func (d *AgentDefaultsConfig) ApplyTo(c *CustomAgentConfig) {
 	fillBool(&c.RetainRetrievalHistory, d.RetainRetrievalHistory)
 	fillBool(&c.EnableRewrite, d.EnableRewrite)
 
-	// ===== C: question suggestions =====
-	if c.QuestionSuggestions == nil && d.QuestionSuggestions != nil {
-		c.QuestionSuggestions = d.QuestionSuggestions
-	}
-
 	// ===== E: retrieval strategy =====
 	fillBool(&c.EnableQueryExpansion, d.EnableQueryExpansion)
 	if c.EmbeddingTopK == 0 {
@@ -213,6 +206,108 @@ func (d *AgentDefaultsConfig) ApplyTo(c *CustomAgentConfig) {
 	}
 }
 
+// OverrideTo writes every platform-managed field the operator actually set onto
+// c, regardless of what c currently holds. It is the counterpart of ApplyTo used
+// where the platform default is the single source of truth:
+//
+//   - creating or updating an agent through the API/UI: the editor no longer
+//     exposes these settings, so whatever an older client sends must not win;
+//   - syncing all existing agents after a super admin saves the defaults.
+//
+// Fields the operator left unset (zero value / nil pointer) are not touched, so
+// a partially configured default never wipes a working value.
+func (d *AgentDefaultsConfig) OverrideTo(c *CustomAgentConfig) {
+	if d == nil || c == nil {
+		return
+	}
+
+	// ===== A: model settings =====
+	overrideString(&c.ModelID, d.ModelID)
+	overrideString(&c.RerankModelID, d.RerankModelID)
+	overrideString(&c.QueryUnderstandModelID, d.QueryUnderstandModelID)
+	if d.Temperature != nil {
+		c.Temperature = *d.Temperature
+	}
+	if d.MaxCompletionTokens != 0 {
+		c.MaxCompletionTokens = d.MaxCompletionTokens
+	}
+	if d.Thinking != nil {
+		c.Thinking = d.Thinking
+	}
+	overrideString(&c.ReasoningEffort, d.ReasoningEffort)
+	if d.CitationEnabled != nil {
+		c.CitationEnabled = d.CitationEnabled
+	}
+	if d.MaxIterations != 0 {
+		c.MaxIterations = d.MaxIterations
+	}
+	if d.LLMCallTimeout != 0 {
+		c.LLMCallTimeout = d.LLMCallTimeout
+	}
+
+	// ===== B: multi-turn conversation =====
+	overrideBool(&c.MultiTurnEnabled, d.MultiTurnEnabled)
+	if d.HistoryTurns != 0 {
+		c.HistoryTurns = d.HistoryTurns
+	}
+	overrideBool(&c.RetainRetrievalHistory, d.RetainRetrievalHistory)
+	overrideBool(&c.EnableRewrite, d.EnableRewrite)
+
+	// ===== E: retrieval strategy =====
+	overrideBool(&c.EnableQueryExpansion, d.EnableQueryExpansion)
+	if d.EmbeddingTopK != 0 {
+		c.EmbeddingTopK = d.EmbeddingTopK
+	}
+	if d.KeywordThreshold != 0 {
+		c.KeywordThreshold = d.KeywordThreshold
+	}
+	if d.VectorThreshold != 0 {
+		c.VectorThreshold = d.VectorThreshold
+	}
+	if d.RerankTopK != 0 {
+		c.RerankTopK = d.RerankTopK
+	}
+	if d.RerankThreshold != 0 {
+		c.RerankThreshold = d.RerankThreshold
+	}
+	overrideBool(&c.FAQPriorityEnabled, d.FAQPriorityEnabled)
+	if d.FAQDirectAnswerThreshold != 0 {
+		c.FAQDirectAnswerThreshold = d.FAQDirectAnswerThreshold
+	}
+	if d.FAQScoreBoost != 0 {
+		c.FAQScoreBoost = d.FAQScoreBoost
+	}
+	overrideBool(&c.DataAnalysisEnabled, d.DataAnalysisEnabled)
+
+	// ===== F: web search =====
+	overrideBool(&c.WebSearchEnabled, d.WebSearchEnabled)
+	overrideString(&c.WebSearchProviderID, d.WebSearchProviderID)
+	if d.WebSearchMaxResults != 0 {
+		c.WebSearchMaxResults = d.WebSearchMaxResults
+	}
+	overrideBool(&c.WebFetchEnabled, d.WebFetchEnabled)
+	if d.WebFetchTopN != 0 {
+		c.WebFetchTopN = d.WebFetchTopN
+	}
+
+	// ===== G: attachment / multimodal =====
+	overrideBool(&c.ImageUploadEnabled, d.ImageUploadEnabled)
+	overrideString(&c.VLMModelID, d.VLMModelID)
+	overrideBool(&c.AttachmentImageUnderstanding, d.AttachmentImageUnderstanding)
+	if d.AttachmentOCRMaxPages != 0 {
+		c.AttachmentOCRMaxPages = d.AttachmentOCRMaxPages
+	}
+	overrideString(&c.ImageStorageProvider, d.ImageStorageProvider)
+	overrideBool(&c.AudioUploadEnabled, d.AudioUploadEnabled)
+	overrideString(&c.ASRModelID, d.ASRModelID)
+	if d.AttachmentParseWaitTimeoutSec != 0 {
+		c.AttachmentParseWaitTimeoutSec = d.AttachmentParseWaitTimeoutSec
+	}
+	if len(d.ChatParserEngineRules) > 0 {
+		c.ChatParserEngineRules = d.ChatParserEngineRules
+	}
+}
+
 // fillString writes def into *dst when dst is still empty and def is not.
 func fillString(dst *string, def string) {
 	if strings.TrimSpace(*dst) == "" && def != "" {
@@ -224,6 +319,21 @@ func fillString(dst *string, def string) {
 // set the default. A user who flipped the switch to true keeps their choice.
 func fillBool(dst *bool, def *bool) {
 	if !*dst && def != nil {
+		*dst = *def
+	}
+}
+
+// overrideString replaces *dst when the operator set a non-empty default.
+func overrideString(dst *string, def string) {
+	if strings.TrimSpace(def) != "" {
+		*dst = def
+	}
+}
+
+// overrideBool replaces *dst when the operator set the default at all — an
+// explicit false is a real choice and must win over a stored true.
+func overrideBool(dst *bool, def *bool) {
+	if def != nil {
 		*dst = *def
 	}
 }

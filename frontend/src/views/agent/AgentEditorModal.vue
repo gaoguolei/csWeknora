@@ -538,55 +538,8 @@
         </div>
       </div>
 
-      <!-- 模型配置 -->
-      <div v-if="canEditPlatform" v-show="currentSection === 'model'" class="section">
-        <AgentModelSettings
-          v-if="formData"
-          :config="formData.config"
-          :all-models="allModels"
-          :is-agent-mode="isAgentMode"
-          :highlighted-field="highlightedField"
-          :show-rerank-model-field="showRerankModelField"
-          :needs-rerank-model="needsRerankModel"
-          v-model:max-completion-tokens-mode="maxCompletionTokensMode"
-          :effective-default-max-completion-tokens="effectiveDefaultMaxCompletionTokens"
-          :has-selected-chat-model="!!selectedChatModel"
-          :selected-chat-model-can-think="selectedChatModelCanThink"
-          :selected-chat-model-always-thinks="selectedChatModelAlwaysThinks"
-          v-model:reasoning-effort-level="reasoningEffortLevel"
-          :reasoning-effort-options="reasoningEffortOptions"
-          :level-label-key="levelLabelKey"
-          :level-description-key="levelDescriptionKey"
-          v-model:max-iterations-mode="maxIterationsMode"
-          @add-model="handleAddModel"
-        />
-      </div>
-
-      <!-- 附件上传 -->
-      <div v-if="canEditPlatform" v-show="currentSection === 'multimodal'" class="section">
-        <AgentAttachmentSettings
-          v-if="formData"
-          :config="formData.config"
-          :all-models="allModels"
-          :image-storage-options="imageStorageOptions"
-          @add-model="handleAddModel"
-        />
-      </div>
-
-      <!-- 多轮对话。两种模式都保留本组：Agent 模式在这里说明历史按上下文窗口
-           自动管理，并承载跨轮保留检索结果；开关由 EnsureDefaults 强制开启，
-           故只在普通模式展示。 -->
-      <div v-if="canEditPlatform" v-show="currentSection === 'conversation'" class="section">
-        <AgentConversationSettings
-          v-if="formData"
-          :config="formData.config"
-          :is-agent-mode="isAgentMode"
-          :has-knowledge-base="hasKnowledgeBase"
-        />
-      </div>
-
-      <!-- 对话问题推荐 -->
-      <div v-if="canEditPlatform" v-show="currentSection === 'suggestions'" class="section">
+      <!-- 对话问题推荐：用户级配置，跟每个智能体绑定（需求第 13 条） -->
+      <div v-show="currentSection === 'suggestions'" class="section">
         <AgentSuggestionsSettings
           v-if="formData"
           :config="formData.config"
@@ -1031,26 +984,6 @@
         </div>
       </div>
 
-      <!-- 网络搜索配置 -->
-      <div v-if="canEditPlatform" v-show="currentSection === 'websearch'" class="section">
-        <AgentWebSearchSettings
-          v-if="formData"
-          :config="formData.config"
-          :web-search-provider-list="webSearchProviderList"
-        />
-      </div>
-
-      <!-- 检索策略（仅普通模式且有知识库能力时显示；Agent 模式的 search_knowledge
-           使用全局检索配置，这里的设置对它不生效） -->
-      <div v-if="canEditPlatform" v-show="currentSection === 'retrieval' && hasKnowledgeBase && !isAgentMode" class="section">
-        <AgentRetrievalSettings
-          v-if="formData"
-          :config="formData.config"
-          :is-agent-mode="isAgentMode"
-          :has-faq-knowledge-base="hasFaqKnowledgeBase"
-        />
-      </div>
-
       <!-- 共享管理（仅编辑模式且非内置智能体） -->
       <div v-if="editorMode === 'edit' && editorAgent?.id && !editorAgent?.is_builtin"
         v-show="currentSection === 'share'" class="section">
@@ -1136,11 +1069,9 @@ import { type AgentNotReadyReasonKey } from '@/utils/agent-readiness';
 import { normalizeLegacyToolNames } from '@/utils/legacy-tool-names';
 import { installSkillCatalog, type SkillCatalogItem } from '@/api/skill';
 import { installUpgradable, servedPreviousText, upgradeVersions } from '@/utils/skillUpgrade';
-import { type WebSearchProviderEntity } from '@/api/web-search-provider';
 import {
   isNamedSandboxBackend,
   type SandboxConfigRecord,
-  type StorageEngineStatusItem,
   type PromptTemplate,
   type PromptTemplatesConfig,
 } from '@/api/system';
@@ -1162,13 +1093,8 @@ import AgentShareSettings from '@/components/AgentShareSettings.vue';
 // 避免平台默认页和编辑器各维护一份。工具 / 技能两个分区内联在本文件里：
 // 它们与编辑器多处状态（沙箱列表、技能目录、安装进度）耦合，且属于用户级配置，
 // 只在创建 / 编辑智能体时出现，不进平台默认页。
-import AgentModelSettings from './settings/AgentModelSettings.vue';
-import AgentConversationSettings from './settings/AgentConversationSettings.vue';
 import AgentSuggestionsSettings from './settings/AgentSuggestionsSettings.vue';
 import AgentMcpSettings from './settings/AgentMcpSettings.vue';
-import AgentAttachmentSettings from './settings/AgentAttachmentSettings.vue';
-import AgentWebSearchSettings from './settings/AgentWebSearchSettings.vue';
-import AgentRetrievalSettings from './settings/AgentRetrievalSettings.vue';
 import { SKILL_ICON } from '@/types/mention';
 import { listEmbedChannels } from '@/api/embed';
 import { getRootZoom, rectToCssPx } from '@/utils/zoom';
@@ -1188,15 +1114,8 @@ import {
   type ToolText,
 } from '@/utils/agent-tool-list';
 import {
-  clampLevel,
-  levelDescriptionKey,
   levelEnablesThinking,
   levelFromLegacy,
-  levelLabelKey,
-  modelCanThink,
-  modelCannotDisableThinking,
-  optionsFor,
-  type ReasoningLevel,
 } from '@/utils/reasoningEffort';
 
 const uiStore = useUIStore();
@@ -1258,11 +1177,12 @@ const contentWrapperRef = ref<HTMLElement | null>(null);
 const highlightedField = ref<AgentNotReadyReasonKey | null>(null);
 let highlightClearTimer: ReturnType<typeof setTimeout> | null = null;
 
-const VALID_HIGHLIGHT_FIELDS: AgentNotReadyReasonKey[] = ['summary_model', 'rerank_model', 'allowed_tools'];
+// 只有工具分区还留在编辑器里；模型相关的「未就绪」原因已无法在编辑器内修复，
+// 由上层跳转到「设置 → 智能体配置」，这里不再处理。
+const VALID_HIGHLIGHT_FIELDS: AgentNotReadyReasonKey[] = ['allowed_tools'];
 
 const sectionForHighlightField = (field: AgentNotReadyReasonKey): string => {
-  if (field === 'allowed_tools') return 'tools';
-  return 'model';
+  return field === 'allowed_tools' ? 'tools' : 'basic';
 };
 
 const FIELD_FLASH_DURATION_MS = 2400;
@@ -1382,7 +1302,6 @@ const mcpOptions = computed<McpSelectOption[]>(() => {
 const showMcpServiceSelect = computed(() =>
   mcpOptions.value.length > 0 || (formData.value.config.mcp_services?.length ?? 0) > 0,
 );
-const webSearchProviderList = ref<WebSearchProviderEntity[]>([]);
 const skillCatalog = ref<SkillCatalogItem[]>([]);
 const catalogReady = ref(false);
 const installingCatalogId = ref('');
@@ -1676,22 +1595,6 @@ const selectedSandboxSummary = computed(() => {
   if (desc) parts.push(desc)
   return parts.filter(Boolean).join(' · ')
 })
-// 存储引擎可用状态（用于图片存储 provider 选择）
-const storageEngineStatus = ref<StorageEngineStatusItem[]>([]);
-const imageStorageOptions = computed(() => {
-  const statusMap: Record<string, boolean> = {};
-  for (const e of storageEngineStatus.value) {
-    statusMap[e.name] = e.available;
-  }
-  return [
-    { value: 'local', label: t('settings.storage.engineLocal'), disabled: false },
-    { value: 'minio', label: 'MinIO', disabled: statusMap.minio === false },
-    { value: 'cos', label: t('settings.storage.engineCos'), disabled: statusMap.cos === false },
-    { value: 'tos', label: t('settings.storage.engineTos'), disabled: statusMap.tos === false },
-    { value: 's3', label: 'Amazon S3', disabled: statusMap.s3 === false },
-    { value: 'oss', label: t('settings.storage.engineOss'), disabled: statusMap.oss === false },
-  ];
-});
 
 // 系统默认配置（用于内置智能体显示默认提示词）
 // Agent (smart-reasoning) 模式的默认系统提示词。直接从 prompt-templates
@@ -1710,19 +1613,7 @@ const defaultKeywordThreshold = ref(0.3);
 const defaultVectorThreshold = ref(0.5);
 const defaultRerankTopK = ref(5);
 const defaultRerankThreshold = ref(0.5);
-const defaultQuickAnswerMaxCompletionTokens = 2048;
-const defaultSmartReasoningMaxCompletionTokens = 4096;
-const defaultSandboxWriteMaxCompletionTokens = 24576;
 const defaultTemperature = ref(0.7);
-
-const defaultMaxCompletionTokensFor = (mode: string, sandboxConfigId?: string) => {
-  if (mode === 'smart-reasoning') {
-    return sandboxConfigId
-      ? defaultSandboxWriteMaxCompletionTokens
-      : defaultSmartReasoningMaxCompletionTokens;
-  }
-  return defaultQuickAnswerMaxCompletionTokens;
-};
 
 // 知识库相关工具列表（用于 watch(hasKnowledgeBase) 从"无"变"有"时 seed 默认工具）
 const knowledgeBaseTools = ['search_knowledge', 'read_document', 'list_documents'];
@@ -1806,11 +1697,6 @@ const hasRagKnowledgeBase = computed(() => {
   return kbsInScope.value.some(kb => kb.ragEnabled);
 });
 
-// ReRank 只作用于 RAG 知识库的召回结果：作用域内没有 RAG 知识库时不展示、
-// 也不加载这份配置。后续加入 RAG 知识库时字段才出现，留空则由后端回退到
-// 平台已配置的重排模型。
-const showRerankModelField = computed(() => hasRagKnowledgeBase.value);
-
 // 是否存在至少一个启用了 Wiki 能力的知识库
 const hasWikiKnowledgeBase = computed(() => {
   return kbsInScope.value.some(kb => kb.wikiEnabled);
@@ -1819,18 +1705,6 @@ const hasWikiKnowledgeBase = computed(() => {
 // 作用域内 RAG/Wiki 知识库数量（用于顶部状态栏）
 const ragKbCount = computed(() => kbsInScope.value.filter(kb => kb.ragEnabled).length);
 const wikiKbCount = computed(() => kbsInScope.value.filter(kb => kb.wikiEnabled).length);
-
-// 检测选择的知识库中是否包含 FAQ 类型
-const hasFaqKnowledgeBase = computed(() => {
-  if (kbSelectionMode.value === 'none') return false;
-  if (kbSelectionMode.value === 'all') {
-    // 全部知识库模式，检查是否有任何 FAQ 类型的知识库
-    return kbOptions.value.some(kb => kb.type === 'faq');
-  }
-  // 指定知识库模式，检查选中的知识库中是否有 FAQ 类型
-  const selectedKbIds = formData.value.config.knowledge_bases || [];
-  return kbOptions.value.some(kb => selectedKbIds.includes(kb.value) && kb.type === 'faq');
-});
 
 // 把"作用域内 KB 能力"聚合成一个 ScopeCapabilities 对象，交给
 // `evaluateToolRequirement` 统一判定；UI 上的所有可用性提示都应出自此处。
@@ -2047,13 +1921,11 @@ const rewriteSystemTextareaRef = ref<any>(null);
 const rewriteUserTextareaRef = ref<any>(null);
 const fallbackPromptTextareaRef = ref<any>(null);
 
-// 平台级配置（模型 / 多轮 / 推荐 / 检索 / 网络搜索 / 附件）
-// 已收归「设置 → 智能体配置」由超级管理员统一维护（需求第 23 项之二），
-// 编辑器只在编辑态对超管放行，用于个别智能体的偏离配置。运营管理员继承
-// isSystemAdmin，因此同样可见。工具 / MCP / 技能不在此列：它们是用户级配置，
-// 建智能体时由用户自己设置。
-const canEditPlatform = computed(() => authStore.isSystemAdmin);
-
+// 平台级配置（模型 / 多轮对话 / 检索策略 / 网络搜索 / 附件上传）只由超级管理员在
+// 「设置 → 智能体配置」统一维护，编辑器对任何角色都不再展示（项目经理第 11/12 条）；
+// 保存全局配置时后端会把托管字段同步到所有已有智能体。
+// 用户级配置留在编辑器里：基本信息、提示词、知识库检索、问题推荐（第 13 条）、
+// 工具配置 / MCP 服务 / 技能（第 14 条，每个智能体单独设置）。
 const navItems = computed(() => {
   const items: { key: string; icon: string; label: string; badge?: number }[] = [
     { key: 'basic', icon: 'info-circle', label: t('agent.editor.basicInfo') },
@@ -2071,28 +1943,9 @@ const navItems = computed(() => {
     items.push({ key: 'skills', icon: SKILL_ICON, label: t('agent.editor.skillsConfig') });
   }
 
-  // 其余配置分区（A 模型 / B 多轮 / C 推荐 / E 检索 / F 网络搜索 / G 附件）
-  // 统一在「设置 → 智能体配置」由超级管理员维护，新建时后端套用平台默认值。所以：
-  //   · 新建模式：不展示这些分区（用户只填基本信息 + 提示词 + 知识库检索）；
-  //   · 编辑模式：仅超级管理员可见，用于个别智能体的偏离配置。
-  if (editorMode.value !== 'edit' || !canEditPlatform.value) {
-    if (editorMode.value === 'edit' && editorAgent.value?.id && !editorAgent.value?.is_builtin && !authStore.isLiteMode) {
-      items.push({ key: 'share', icon: 'share', label: t('knowledgeEditor.sidebar.share') });
-    }
-    return items;
-  }
-
-  items.push({ key: 'model', icon: 'control-platform', label: t('agent.editor.modelConfig') });
+  // 问题推荐是用户级配置：跟每个智能体绑定，由用户在编辑器里单独设置（第 13 条）。
   items.push({ key: 'suggestions', icon: 'help-circle', label: t('agentEditor.questionSuggestions.navLabel') });
-  // 多轮对话（两种模式都需要：Agent 模式在这里说明历史自动管理、保留检索结果）
-  items.push({ key: 'conversation', icon: 'chat', label: t('agent.editor.conversationSettings') });
-  // 检索策略只作用于普通模式的问答流程；Agent 模式的检索工具不读这些设置，
-  // 显示出来只会让用户调了参数却没有任何效果。
-  if (hasKnowledgeBase.value && !isAgentMode.value) {
-    items.push({ key: 'retrieval', icon: 'search', label: t('agent.editor.retrievalStrategy') });
-  }
-  items.push({ key: 'websearch', icon: 'internet', label: t('agent.editor.webSearchConfig') });
-  items.push({ key: 'multimodal', icon: 'attach', label: t('agentEditor.imageUpload.navLabel') });
+
   // 发布（仅编辑模式）
   if (editorMode.value === 'edit' && editorAgent.value?.id && !editorAgent.value?.is_builtin && !authStore.isLiteMode) {
     items.push({ key: 'share', icon: 'share', label: t('knowledgeEditor.sidebar.share') });
@@ -2120,17 +1973,17 @@ const navGroups = computed(() => {
     {
       key: 'basic',
       label: t('agentEditor.navGroups.basic'),
-      items: pickItems(['basic', 'prompts', 'model', 'conversation', 'suggestions']),
+      items: pickItems(['basic', 'prompts', 'suggestions']),
     },
     {
       key: 'knowledge',
       label: t('agentEditor.navGroups.knowledge'),
-      items: pickItems(['knowledge', 'retrieval', 'websearch']),
+      items: pickItems(['knowledge']),
     },
     {
       key: 'capability',
       label: t('agentEditor.navGroups.capability'),
-      items: pickItems(['multimodal', 'tools', 'mcp', 'skills']),
+      items: pickItems(['tools', 'mcp', 'skills']),
     },
     {
       key: 'integration',
@@ -2287,38 +2140,6 @@ const agentMode = computed({
 
 const isAgentMode = computed(() => agentMode.value === 'smart-reasoning');
 
-const effectiveDefaultMaxCompletionTokens = computed(() =>
-  defaultMaxCompletionTokensFor(agentMode.value, formData.value.config.sandbox_config_id),
-);
-
-const maxCompletionTokensMode = computed({
-  get: () => (formData.value.config.max_completion_tokens > 0 ? 'custom' : 'default'),
-  set: (mode: 'default' | 'custom') => {
-    if (mode === 'default') {
-      formData.value.config.max_completion_tokens = 0;
-      return;
-    }
-    if (!formData.value.config.max_completion_tokens) {
-      formData.value.config.max_completion_tokens = effectiveDefaultMaxCompletionTokens.value;
-    }
-  },
-});
-
-const lastFiniteMaxIterations = ref(10);
-const maxIterationsMode = computed({
-  get: () => (formData.value.config.max_iterations < 0 ? 'unlimited' : 'limit'),
-  set: (mode: 'limit' | 'unlimited') => {
-    if (mode === 'unlimited') {
-      if (formData.value.config.max_iterations > 1) {
-        lastFiniteMaxIterations.value = formData.value.config.max_iterations;
-      }
-      formData.value.config.max_iterations = -1;
-      return;
-    }
-    const restored = lastFiniteMaxIterations.value > 1 ? lastFiniteMaxIterations.value : 10;
-    formData.value.config.max_iterations = restored;
-  },
-});
 
 const currentIntentTemplate = computed(() =>
   intentPromptTemplates.value.find((template) => template.id === selectedIntent.value),
@@ -2757,49 +2578,8 @@ const onAgentTypeChange = (val: AgentType) => {
   }
 };
 
-// 思考强度：reasoning_effort 为准，旧数据只有 thinking 布尔时按 true→auto / false→off 推导。
-// 写入时同步维护 thinking 布尔，保证旧后端 / 旧读取路径继续工作。
-const selectedChatModel = computed(() =>
-  allModels.value.find(model => model.id === formData.value.config.model_id),
-);
-const selectedChatModelCanThink = computed(() => modelCanThink(selectedChatModel.value?.capabilities));
-// 所选模型无法关闭思考（deepseek-reasoner / qwq-plus / gemini-3 等）时给出提示，
-// 否则下拉里没有「关闭」看起来像 bug。
-const selectedChatModelAlwaysThinks = computed(
-  () => modelCannotDisableThinking(selectedChatModel.value?.capabilities),
-);
-// 目录上报 capabilities 时严格按 thinking_levels 出选项（含「没有 off」这一事实）；
-// 没有 capabilities 的模型（本地 / Ollama / 模型列表未加载）才退回通用梯度。
-const reasoningEffortOptions = computed<ReasoningLevel[]>(() => optionsFor(selectedChatModel.value?.capabilities));
-const reasoningEffortLevel = computed<ReasoningLevel>({
-  get: () => levelFromLegacy(formData.value.config.thinking, formData.value.config.reasoning_effort),
-  set: (level: ReasoningLevel) => {
-    formData.value.config.reasoning_effort = level;
-    formData.value.config.thinking = levelEnablesThinking(level);
-  },
-});
-// 已存等级可能不在所选模型的可用集合里（换模型，或加载了一个旧智能体）：
-// 夹到可用集合上，并同步 thinking 布尔（由 setter 负责），避免界面显示「关闭」
-// 而后端其实没下发任何开关、模型照样思考。
-//
-// 只在模型真正解析出来之后才夹：模型列表异步加载期间 capabilities 还是 undefined，
-// 此时的通用梯度会把已保存的 max/xhigh 误降级成 auto。
-const clampReasoningEffortToModel = () => {
-  if (!selectedChatModel.value) return;
-  const clamped = clampLevel(reasoningEffortLevel.value, reasoningEffortOptions.value);
-  if (clamped !== reasoningEffortLevel.value) reasoningEffortLevel.value = clamped;
-};
-watch(
-  () => [
-    editorInitializing.value,
-    formData.value.config.model_id,
-    reasoningEffortOptions.value.join(','),
-  ].join('|'),
-  () => {
-    if (!editorInitializing.value) clampReasoningEffortToModel();
-  },
-  { immediate: true },
-);
+// 思考强度（reasoning_effort）是平台级配置，由「设置 → 智能体配置」统一维护，
+// 编辑器不再提供调整入口；加载旧数据时仍做一次兼容归一化（见 watch(props.visible)）。
 
 // 是否为内置智能体
 const isBuiltinAgent = computed(() => {
@@ -2815,9 +2595,6 @@ const systemPromptPlaceholder = computed(() => {
 const contextTemplatePlaceholder = computed(() => {
   return t('agent.editor.contextTemplatePlaceholder');
 });
-
-// 是否需要配置 ReRank 模型（也是该字段的展示条件）：仅当作用域内有 RAG 知识库时需要
-const needsRerankModel = computed(() => hasRagKnowledgeBase.value);
 
 // 作用域内新加入 RAG 知识库时才加载重排模型配置：此时补上平台默认 ReRank，
 // 与「加入 RAG 知识库后自动使用已配置的重排模型」保持一致。
@@ -2917,9 +2694,6 @@ watch(() => props.visible, async (val) => {
       isInitializing.value = true;
       agentData.config = hydrateAgentPromptRefs(agentData.config, promptTemplates.value);
       formData.value = agentData;
-      if (agentData.config.max_iterations > 1) {
-        lastFiniteMaxIterations.value = agentData.config.max_iterations;
-      }
       // 初始化知识库选择模式
       initKbSelectionMode();
       initMcpSelectionMode();
@@ -3012,9 +2786,8 @@ watch(() => props.visible, async (val) => {
       console.error('Failed to initialize agent editor', error);
     } finally {
       if (generation === editorInitializationGeneration && props.visible) {
-        // Model normalization and queued form watchers belong to initialization,
-        // so capture the baseline only after they have settled.
-        clampReasoningEffortToModel();
+        // Queued form watchers belong to initialization, so capture the baseline
+        // only after they have settled.
         await nextTick();
         if (generation !== editorInitializationGeneration || !props.visible) return;
         // 角色（或模式）可能让当前分区不在可见菜单里 —— 回退到基本信息，
@@ -3252,11 +3025,6 @@ watch(agentMode, (val, _oldVal) => {
 // `kb_selection_mode` 到 "selected"、但尚未勾具体 KB 的过渡期里静默丢失工具，
 // 对默认工具全是 wiki_* 的内置"维基问答"智能体尤为致命。
 watch(hasKnowledgeBase, (hasKB, oldHasKB) => {
-  // 如果当前在检索策略页面但没有知识库能力了，切换到基础设置
-  if (!hasKB && currentSection.value === 'retrieval') {
-    currentSection.value = 'basic';
-  }
-
   // 初始化期间或非 Agent 模式下不自动调整工具
   if (isInitializing.value || !isAgentMode.value) return;
 
@@ -3271,10 +3039,6 @@ watch(hasKnowledgeBase, (hasKB, oldHasKB) => {
 
 // 监听运行模式变化，自动切换页面
 watch(isAgentMode, (isAgent) => {
-  // 如果当前在高级设置或检索策略页面但切换到了Agent模式，切换到基础设置
-  if (isAgent && (currentSection.value === 'advanced' || currentSection.value === 'retrieval')) {
-    currentSection.value = 'basic';
-  }
   if (!isAgent && (currentSection.value === 'skills' || currentSection.value === 'sandbox')) {
     currentSection.value = 'basic';
   }
@@ -3286,14 +3050,10 @@ watch(() => uiStore.showSettingsModal, async (visible, prevVisible) => {
     try {
       await Promise.all([
         chatResources.ensureModels(true),
-        editorResources.ensureStorageEngine(true),
         chatResources.ensureSandboxConfigs(true),
       ]);
       if (chatResources.allModels.length > 0) {
         allModels.value = chatResources.allModels;
-      }
-      if (editorResources.storageStatus.length > 0) {
-        storageEngineStatus.value = editorResources.storageStatus;
       }
       await syncInstalledSkills(true);
     } catch (e) {
@@ -3391,10 +3151,6 @@ const loadDependencies = async () => {
     agentToolCatalog.value = editorResources.agentTools as AgentToolCatalog | null;
     applyPromptTemplateDefaults(editorResources.promptTemplates);
 
-    storageEngineStatus.value = editorResources.storageStatus;
-
-    webSearchProviderList.value = chatResources.webSearchProviders as WebSearchProviderEntity[];
-
     if (editorResources.placeholders) {
       placeholderData.value = editorResources.placeholders;
     }
@@ -3410,9 +3166,15 @@ const loadDependencies = async () => {
   }
 };
 
-// 跳转到模型管理页面添加模型
+// 跳转到「设置 → 模型」添加模型。设置是独立路由页面（不是弹窗），所以必须先
+// 导航过去，等页面挂载后再用 settings-nav 事件定位到对应模型类型。
 const handleAddModel = (subSection: string) => {
-  uiStore.openSettings('models', subSection);
+  void router.push('/platform/settings');
+  setTimeout(() => {
+    window.dispatchEvent(new CustomEvent('settings-nav', {
+      detail: { section: 'models', subsection: subSection },
+    }));
+  }, 100);
 };
 
 const handleClose = () => {
@@ -4287,23 +4049,8 @@ const handleSave = async () => {
     }
   }
 
-  // 模型 / 附件这些分区已收归平台默认。只有能编辑它们的超管（编辑态）才强制填写；
-// 普通用户建智能体时这些分区不可见，模型等由后端套用平台默认值（见
-// types.AgentDefaultsConfig.ApplyTo），不该因为隐藏分区而卡住保存。
-if (editorMode.value === 'edit' && canEditPlatform.value) {
-    if (!formData.value.config.model_id) {
-      MessagePlugin.error(t('agent.editor.modelRequired'));
-      currentSection.value = 'model';
-      return;
-    }
-
-    // 校验 VLM 模型（当图片上传启用时必填）
-    if (formData.value.config.image_upload_enabled && !formData.value.config.vlm_model_id) {
-      MessagePlugin.error(t('agentEditor.imageUpload.vlmModelRequired'));
-      currentSection.value = 'multimodal';
-      return;
-    }
-  }
+  // 模型 / 附件这些分区已收归「设置 → 智能体配置」，编辑器里对任何角色都不再展示，
+  // 模型等由后端套用平台默认值（见 types.AgentDefaultsConfig），不应因为隐藏分区而卡住保存。
 
   // ReRank 模型按运行范围按需使用：知识库范围为 none，或未启用
   // search_knowledge 时不需要；其余情况由对话入口在使用前给出明确提示。

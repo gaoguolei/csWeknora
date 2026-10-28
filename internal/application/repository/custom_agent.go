@@ -56,6 +56,18 @@ func (r *customAgentRepository) UpdateAgent(ctx context.Context, agent *types.Cu
 	return r.db.WithContext(ctx).Save(agent).Error
 }
 
+// UpdateAgentConfig rewrites only the config column, leaving name / avatar /
+// prompts and other columns untouched. Soft-deleted rows are excluded by the
+// model's default scope.
+func (r *customAgentRepository) UpdateAgentConfig(
+	ctx context.Context, id string, tenantID uint64, config types.CustomAgentConfig,
+) error {
+	return r.db.WithContext(ctx).
+		Model(&types.CustomAgent{}).
+		Where("id = ? AND tenant_id = ?", id, tenantID).
+		Update("config", config).Error
+}
+
 // DeleteAgent deletes an agent (soft delete)
 func (r *customAgentRepository) DeleteAgent(ctx context.Context, id string, tenantID uint64) error {
 	return r.db.WithContext(ctx).Where("id = ? AND tenant_id = ?", id, tenantID).Delete(&types.CustomAgent{}).Error

@@ -561,11 +561,11 @@ const isKbDefaultsSection = (key: string) => KB_DEFAULTS_KEYS.has(key);
 const kbDefaultsSectionFromKey = (key: string) =>
   KB_DEFAULTS_SUBSECTIONS.find((s) => s.key === key)?.section || "models";
 
-// 智能体配置（平台默认）分区：与知识库同样的做法 —— 编辑器里这些分区收归超管，
-// 管理员在这里统一维护，新建智能体时由后端套用。6 个 agent-* 键共用同一个
-// AgentDefaultsSettings 组件实例，切换分区时不卸载。权限见 settingsAccess.ts：
-// 全部归超级管理员（需求没给运营管理员的项），「知识库检索」留给用户，不在此列。
-// 工具配置 / MCP 服务 / 技能属于用户级配置，创建智能体时由用户自己设置，不在此维护。
+// 智能体配置（平台默认）分区：编辑器里这些分区对任何角色都不再展示，
+// 统一由超管在这里维护，保存时后端会同步到所有已有智能体。5 个 agent-* 键
+// 共用同一个 AgentDefaultsSettings 组件实例，切换分区时不卸载。权限见
+// settingsAccess.ts：全部归超级管理员；「知识库检索」和「问题推荐」留给用户，
+// 不在此列。工具配置 / MCP 服务 / 技能也是用户级配置，创建智能体时由用户自己设置。
 const AGENT_DEFAULTS_SUBSECTIONS: {
   key: string;
   icon: string;
@@ -574,7 +574,6 @@ const AGENT_DEFAULTS_SUBSECTIONS: {
 }[] = [
   { key: "agent-model", icon: "control-platform", labelKey: "agent.editor.modelConfig", section: "model" },
   { key: "agent-conversation", icon: "chat", labelKey: "agent.editor.conversationSettings", section: "conversation" },
-  { key: "agent-suggestions", icon: "help-circle", labelKey: "agentEditor.questionSuggestions.navLabel", section: "suggestions" },
   { key: "agent-retrieval", icon: "search", labelKey: "agent.editor.retrievalStrategy", section: "retrieval" },
   { key: "agent-websearch", icon: "internet", labelKey: "agent.editor.webSearchConfig", section: "websearch" },
   { key: "agent-multimodal", icon: "attach", labelKey: "agentEditor.imageUpload.navLabel", section: "multimodal" },

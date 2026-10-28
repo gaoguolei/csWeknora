@@ -379,6 +379,22 @@ func (r *knowledgeRepository) UpdateKnowledgeBatch(ctx context.Context, knowledg
 	return r.db.Debug().WithContext(ctx).Omit(omitFieldsOnUpdate...).Save(knowledgeList).Error
 }
 
+// UpdateEmbeddingModelForTenant rewrites the embedding model recorded on every
+// active knowledge row of a tenant. GORM's default scope excludes soft-deleted
+// rows.
+func (r *knowledgeRepository) UpdateEmbeddingModelForTenant(
+	ctx context.Context, tenantID uint64, embeddingModelID string,
+) (int64, error) {
+	if embeddingModelID == "" {
+		return 0, nil
+	}
+	res := r.db.WithContext(ctx).
+		Model(&types.Knowledge{}).
+		Where("tenant_id = ?", tenantID).
+		Update("embedding_model_id", embeddingModelID)
+	return res.RowsAffected, res.Error
+}
+
 // DeleteKnowledge deletes knowledge
 func (r *knowledgeRepository) DeleteKnowledge(ctx context.Context, tenantID uint64, id string) error {
 	return r.db.WithContext(ctx).Where("tenant_id = ? AND id = ?", tenantID, id).Delete(&types.Knowledge{}).Error

@@ -16,6 +16,7 @@ import { onBeforeRouteUpdate } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import type { SendMessageOptions } from '@/utils/questionOrigin'
 import { useSettingsStore } from '@/stores/settings'
+import { useAuthStore } from '@/stores/auth'
 import { useBrowserConnectionStore } from '@/stores/browserConnection'
 import { useUIStore } from '@/stores/ui'
 import BrowserIcon from '@/components/icons/BrowserIcon.vue'
@@ -92,6 +93,7 @@ import {
 const route = useRoute()
 const router = useRouter()
 const settingsStore = useSettingsStore()
+const authStore = useAuthStore()
 const browserConnection = useBrowserConnectionStore()
 const uiStore = useUIStore()
 const orgStore = useOrganizationStore()
@@ -3814,6 +3816,7 @@ defineExpose({
                   $t('conversationSettings.models.chatGroupLabel')
                 }}</span>
                 <button
+                  v-if="authStore.isSystemAdmin"
                   class="model-selector-add"
                   type="button"
                   @click="handleModelChange('__add_model__')"
