@@ -26,8 +26,10 @@
             </div>
             <p class="product-desc">
               {{ t('localBrowser.productDescription') }}
+              <!-- 私有化部署不跳转 GitHub 仓库；需要恢复时取消下面注释即可。
               <a class="product-link" href="https://github.com/Tencent/BrowserSkill" target="_blank"
                 rel="noopener noreferrer">GitHub<t-icon name="jump" size="12px" /></a>
+              -->
             </p>
           </div>
         </div>
