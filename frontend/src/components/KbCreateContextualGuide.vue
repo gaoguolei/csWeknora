@@ -17,7 +17,6 @@ import type { SpotlightGuideStep } from '@/types/spotlightGuide'
 const props = defineProps<{
   when: boolean
   isFaq: boolean
-  needsEmbedding: boolean
 }>()
 
 const active = ref(false)
@@ -47,77 +46,7 @@ const guideSteps = computed<SpotlightGuideStep[]>(() => {
     })
   }
 
-  steps.push(
-    {
-      key: 'navModels',
-      target: '[data-guide="kb-editor-nav-models"]',
-      placement: 'right',
-      before: () => focusKbEditorSection('models'),
-    },
-    {
-      key: 'llm',
-      target: '[data-guide="kb-create-llm"]',
-      placement: 'right',
-      before: () => focusKbEditorSection('models'),
-    },
-  )
-
-  if (props.needsEmbedding) {
-    steps.push({
-      key: 'embedding',
-      target: '[data-guide="kb-create-embedding"]',
-      placement: 'right',
-      before: () => focusKbEditorSection('models'),
-      optional: true,
-    })
-  }
-
-  if (!props.isFaq) {
-    steps.push(
-      {
-        key: 'parser',
-        target: '[data-guide="kb-editor-nav-parser"]',
-        placement: 'right',
-        before: () => focusKbEditorSection('parser'),
-        optional: true,
-      },
-      {
-        key: 'chunking',
-        target: '[data-guide="kb-editor-nav-chunking"]',
-        placement: 'right',
-        before: () => focusKbEditorSection('chunking'),
-        optional: true,
-      },
-      {
-        key: 'storage',
-        target: '[data-guide="kb-editor-nav-storage"]',
-        placement: 'right',
-        before: () => focusKbEditorSection('storage'),
-        optional: true,
-      },
-      {
-        key: 'navMultimodal',
-        target: '[data-guide="kb-editor-nav-multimodal"]',
-        placement: 'right',
-        before: () => focusKbEditorSection('multimodal'),
-        optional: true,
-      },
-      {
-        key: 'multimodalToggle',
-        target: '[data-guide="kb-create-multimodal-toggle"]',
-        placement: 'right',
-        before: () => focusKbEditorSection('multimodal'),
-        optional: true,
-      },
-      {
-        key: 'multimodalVllm',
-        target: '[data-guide="kb-create-multimodal-vllm"]',
-        placement: 'right',
-        before: () => focusKbEditorSection('multimodal'),
-        optional: true,
-      },
-    )
-  } else {
+  if (props.isFaq) {
     // 建库态的 FAQ 索引策略已内联到基本信息里（不再有侧栏 FAQ 分区）。
     steps.push({
       key: 'faq',

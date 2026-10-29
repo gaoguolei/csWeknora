@@ -8,7 +8,6 @@ const agentModelSettings = readFileSync(new URL('../views/agent/settings/AgentMo
 const agentAttachmentSettings = readFileSync(new URL('../views/agent/settings/AgentAttachmentSettings.vue', import.meta.url), 'utf8')
 const agentSuggestionsSettings = readFileSync(new URL('../views/agent/settings/AgentSuggestionsSettings.vue', import.meta.url), 'utf8')
 const kbModelConfig = readFileSync(new URL('../views/knowledge/settings/KBModelConfig.vue', import.meta.url), 'utf8')
-const kbEditor = readFileSync(new URL('../views/knowledge/KnowledgeBaseEditorModal.vue', import.meta.url), 'utf8')
 const uploadConfirm = readFileSync(new URL('../views/knowledge/components/UploadConfirmDialog.vue', import.meta.url), 'utf8')
 
 function modelSelectorTag(source: string, selectedModelBinding: string): string {
@@ -51,8 +50,7 @@ test('必填模型继续保持不可清空', () => {
   assertNotClearable(modelSelectorTag(agentModelSettings, 'config.model_id'))
   assertNotClearable(modelSelectorTag(agentAttachmentSettings, 'config.vlm_model_id'))
   assertNotClearable(modelSelectorTag(kbModelConfig, 'config.llmModelId'))
-  assertNotClearable(modelSelectorTag(kbEditor, 'formData.multimodalConfig.vllmModelId'))
-  assertNotClearable(modelSelectorTag(kbEditor, 'formData.asrConfig.modelId'))
+  // 平台「知识库设置」里清空 = 不设默认，所以图像/音频模型在那里是可清空的；不再断言。
   assertNotClearable(modelSelectorTag(uploadConfirm, 'uiState.multimodalConfig.vllmModelId'))
   assertNotClearable(modelSelectorTag(uploadConfirm, 'uiState.asrConfig.modelId'))
 })

@@ -260,9 +260,8 @@ const unsupportedFileTypes = computed<string[]>(() => {
 })
 
 const goToParserSettings = () => {
-  if (kbId.value) {
-    uiStore.openKBSettings(kbId.value, 'parser')
-  }
+  // 解析引擎已从建库/编辑弹窗移到平台「知识库设置」。
+  uiStore.openSettings('parser')
 }
 
 // Permission control: check if current user owns this KB or has edit/manage permission

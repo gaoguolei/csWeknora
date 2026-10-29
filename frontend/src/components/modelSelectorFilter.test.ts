@@ -7,7 +7,8 @@ import type { ModelConfig } from '@/api/model'
 import { filterModelsByType } from './modelSelectorFilter.ts'
 
 const selectorSource = readFileSync(new URL('./ModelSelector.vue', import.meta.url), 'utf8')
-const kbEditorSource = readFileSync(new URL('../views/knowledge/KnowledgeBaseEditorModal.vue', import.meta.url), 'utf8')
+// 知识库的图像/音频模型选择已收归平台「知识库设置」。
+const kbDefaultsSource = readFileSync(new URL('../views/settings/KnowledgeBaseDefaultsSettings.vue', import.meta.url), 'utf8')
 const agentEditorSource = readFileSync(new URL('../views/agent/AgentEditorModal.vue', import.meta.url), 'utf8')
 // 附件上传（含 VLM 模型选择）已拆到独立分区组件，平台默认页复用同一份实现。
 const agentAttachmentSource = readFileSync(new URL('../views/agent/settings/AgentAttachmentSettings.vue', import.meta.url), 'utf8')
@@ -43,8 +44,7 @@ test('VLLM selector keeps the standard model-name presentation without type suff
 test('VLM selection, knowledge-base and agent saves, and deletion preserve the selected model ID', () => {
   assert.match(selectorSource, /:key="model\.id"[\s\S]*:value="model\.id"/)
   assert.match(selectorSource, /emit\('update:selectedModelId', value \|\| ''\)/)
-  assert.match(kbEditorSource, /handleMultimodalVLLMChange[\s\S]*vllmModelId = modelId/)
-  assert.match(kbEditorSource, /vlm_config = \{[\s\S]*model_id:[\s\S]*vllmModelId/)
+  assert.match(kbDefaultsSource, /:selected-model-id="cfg\.multimodalConfig\.vllmModelId"[\s\S]*cfg\.multimodalConfig\.vllmModelId = v/)
   assert.match(agentAttachmentSource, /model-type="VLLM"[\s\S]*config\.vlm_model_id[\s\S]*config\.vlm_model_id = val/)
   assert.match(agentEditorSource, /const payload = \{ \.\.\.formData\.value, config: serializeAgentPrompts/)
   assert.match(agentEditorSource, /updateAgent\(formData\.value\.id, payload\)/)

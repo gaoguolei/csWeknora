@@ -249,284 +249,6 @@
         </div>
       </div>
 
-      <!-- 模型配置（仅超管及以上） -->
-      <div v-if="canEditPlatform" v-show="currentSection === 'models'" class="section">
-        <KBModelConfig
-          ref="modelConfigRef"
-          v-if="formData"
-          :config="formData.modelConfig"
-          :has-files="hasFiles"
-          :wiki-enabled="formData.indexingStrategy?.wikiEnabled"
-          :rag-enabled="formData.indexingStrategy?.vectorEnabled || formData.indexingStrategy?.keywordEnabled"
-          :all-models="allModels"
-          @update:config="handleModelConfigUpdate"
-        />
-      </div>
-
-      <!-- VectorStore 绑定（仅运营管理员） -->
-      <div v-if="canEditOps" v-show="currentSection === 'vectorStore'" class="section">
-        <KBVectorStoreSettings
-          v-if="formData"
-          :mode="editorMode"
-          :vector-store-id="formData.vectorStoreId"
-          :bound-source="formData.vectorStoreInfo?.source"
-          :bound-name="formData.vectorStoreInfo?.name"
-          :bound-engine-type="formData.vectorStoreInfo?.engineType"
-          :bound-status="formData.vectorStoreInfo?.status"
-          @update:vector-store-id="handleVectorStoreIdUpdate"
-        />
-      </div>
-
-      <!-- 解析引擎 -->
-      <div v-if="!isFAQ && formData && canEditOps && currentSection === 'parser'" class="section">
-        <KBParserSettings
-          :parser-engine-rules="formData.chunkingConfig.parserEngineRules"
-          @update:parser-engine-rules="handleParserEngineRulesUpdate"
-        />
-      </div>
-
-      <!-- 存储引擎 -->
-      <div v-if="!isFAQ && formData && canEditOps && currentSection === 'storage'" class="section">
-        <KBStorageSettings
-          :storage-backend-id="formData.storageBackendId"
-          :storage-provider="formData.storageProvider"
-          :has-files="editorMode === 'edit' && hasFiles"
-          @update:storage-backend-id="handleStorageBackendUpdate"
-          @update:storage-provider="handleStorageProviderUpdate"
-        />
-      </div>
-
-      <!-- 分块设置 -->
-      <div v-if="!isFAQ && canEditPlatform" v-show="currentSection === 'chunking'" class="section">
-        <KBChunkingSettings
-          v-if="formData"
-          :config="formData.chunkingConfig"
-          @update:config="handleChunkingConfigUpdate"
-        />
-      </div>
-
-      <!-- 多模态配置 -->
-      <div v-if="!isFAQ && canEditPlatform" v-show="currentSection === 'multimodal'" class="section">
-        <div v-if="formData" class="kb-multimodal-settings">
-          <div class="section-header">
-            <h2>{{ $t('knowledgeEditor.multimodal.title') }}</h2>
-            <p class="section-description">{{ $t('knowledgeEditor.multimodal.description') }}</p>
-          </div>
-
-          <div class="settings-group">
-            <!-- 多模态开关 -->
-            <div class="setting-row" data-guide="kb-create-multimodal-toggle">
-              <div class="setting-info">
-                <label>{{ $t('knowledgeEditor.advanced.multimodal.label') }}</label>
-                <p class="desc">{{ $t('knowledgeEditor.advanced.multimodal.description') }}</p>
-              </div>
-              <div class="setting-control">
-                <t-switch
-                  v-model="formData.multimodalConfig.enabled"
-                  @change="handleMultimodalToggle"
-                  size="medium"
-                />
-              </div>
-            </div>
-
-            <!-- VLLM 模型选择（多模态启用时） -->
-            <div v-if="formData.multimodalConfig.enabled" class="setting-row"
-              data-guide="kb-create-multimodal-vllm">
-              <div class="setting-info">
-                <label>{{ $t('knowledgeEditor.advanced.multimodal.vllmLabel') }} <span class="required">*</span></label>
-                <p class="desc">{{ $t('knowledgeEditor.advanced.multimodal.vllmDescription') }}</p>
-              </div>
-              <div class="setting-control">
-                <ModelSelector
-                  model-type="VLLM"
-                  :selected-model-id="formData.multimodalConfig.vllmModelId"
-                  :all-models="allModels"
-                  @update:selected-model-id="handleMultimodalVLLMChange"
-                  @add-model="handleAddVLLMModel"
-                  :placeholder="$t('knowledgeEditor.advanced.multimodal.vllmPlaceholder')"
-                />
-              </div>
-            </div>
-
-            <div v-if="formData.multimodalConfig.enabled" class="setting-row">
-              <div class="setting-info">
-                <label>{{ $t('knowledgeEditor.advanced.multimodal.descriptionLanguageLabel') }}</label>
-                <p class="desc">{{ $t('knowledgeEditor.advanced.multimodal.descriptionLanguageDescription') }}</p>
-              </div>
-              <div class="setting-control">
-                <t-select v-model="formData.multimodalConfig.descriptionLanguage" clearable
-                  :placeholder="$t('knowledgeEditor.advanced.multimodal.descriptionLanguageAuto')">
-                  <t-option value="Chinese" :label="$t('language.zhCN')" />
-                  <t-option value="English" :label="$t('language.enUS')" />
-                  <t-option value="Korean" :label="$t('language.koKR')" />
-                  <t-option value="Russian" :label="$t('language.ruRU')" />
-                </t-select>
-              </div>
-            </div>
-
-            <div v-if="formData.multimodalConfig.enabled" class="setting-row setting-row-vertical">
-              <div class="setting-info">
-                <label>{{ $t('knowledgeEditor.advanced.multimodal.customInstructionsLabel') }}</label>
-                <p class="desc">{{ $t('knowledgeEditor.advanced.multimodal.customInstructionsDescription') }}</p>
-              </div>
-              <div class="setting-control setting-control-full">
-                <t-textarea v-model="formData.multimodalConfig.customInstructions"
-                  :placeholder="$t('knowledgeEditor.advanced.multimodal.customInstructionsPlaceholder')"
-                  :maxlength="4000" :autosize="{ minRows: 3, maxRows: 8 }" />
-              </div>
-            </div>
-
-            <!-- 图片向量：默认关闭，显式开启才为图片单独编码、检索时召回 -->
-            <div v-if="formData.multimodalConfig.enabled" class="setting-row">
-              <div class="setting-info">
-                <label>{{ $t('knowledgeEditor.advanced.multimodal.imageVectorLabel') }}</label>
-                <p class="desc">{{ $t('knowledgeEditor.advanced.multimodal.imageVectorDescription') }}</p>
-                <p v-if="formData.imageVectorEnabled && !embeddingTakesImages" class="desc desc-warning">
-                  {{ $t('knowledgeEditor.advanced.multimodal.imageVectorModelUnsupported') }}
-                </p>
-              </div>
-              <div class="setting-control">
-                <t-switch v-model="formData.imageVectorEnabled" size="medium" />
-              </div>
-            </div>
-
-            <div v-if="formData.multimodalConfig.enabled" class="setting-row">
-              <div class="setting-info">
-                <label>{{ $t('knowledgeEditor.advanced.multimodal.imageAttrsLabel') }}</label>
-                <p class="desc">{{ $t('knowledgeEditor.advanced.multimodal.imageAttrsDescription') }}</p>
-              </div>
-              <t-switch v-model="formData.imageAttrsEnabled" size="medium" />
-            </div>
-
-            <div v-if="formData.multimodalConfig.enabled && formData.imageAttrsEnabled"
-              class="setting-row setting-row-vertical">
-              <div class="setting-info">
-                <label>{{ $t('knowledgeEditor.advanced.multimodal.imageAttrsSchemaLabel') }}</label>
-                <!-- 实现说明（不放 UI）：面板完全由后端属性注册表驱动 —— 属性名、说明、每个取值的
-                     含义都随 schema 端点下发，前端只按属性名覆盖翻译。所以新增属性仍是
-                     「后端加一行 / 前端自动跟随」，属性集合随版本演进不需要改这里。 -->
-                <p class="desc">{{ $t('knowledgeEditor.advanced.multimodal.imageAttrsSchemaDescription') }}</p>
-              </div>
-              <div class="image-attr-panel">
-                <ul v-if="imageAttrDisplays.length" class="image-attr-list">
-                  <li v-for="attr in imageAttrDisplays" :key="attr.name" class="image-attr-row">
-                    <div class="image-attr-head">
-                      <span class="image-attr-label">{{ attr.label }}</span>
-                      <code class="image-attr-name">{{ attr.name }}</code>
-                    </div>
-                    <p v-if="attr.description" class="image-attr-desc">{{ attr.description }}</p>
-                    <ul class="image-attr-value-list">
-                      <li v-for="v in attr.values" :key="v.value" class="image-attr-value">
-                        <code>{{ v.value }}</code>
-                        <span class="image-attr-value-label">{{ v.label }}</span>
-                      </li>
-                    </ul>
-                  </li>
-                </ul>
-                <div class="image-attr-section">
-                  <div class="setting-info">
-                    <label>{{ $t('knowledgeEditor.advanced.multimodal.imageAttrsOcrConditions') }}</label>
-                    <p class="desc">{{ $t('knowledgeEditor.advanced.multimodal.imageAttrsOcrConditionsDesc') }}</p>
-                  </div>
-                  <ul class="image-attr-condition-list">
-                    <li v-for="(cond, i) in imageAttrConditionDisplays" :key="i" class="image-attr-condition">
-                      <span class="image-attr-condition-label">{{ cond.label }}</span>
-                      <code class="image-attr-condition-raw">{{ cond.raw }}</code>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <!-- 观察失败兜底：与上方整块开关同级（不再嵌在属性面板里）。
-                   开关仍包在 setting-control 里，与其它开关行共用同一套
-                   右对齐 / 垂直居中 / 预留右列的排版，避免顶到行首 -->
-              <div class="setting-row">
-                <div class="setting-info">
-                  <label>{{ $t('knowledgeEditor.advanced.multimodal.imageAttrsOcrOnUnobserved') }}</label>
-                  <p class="desc">{{ $t('knowledgeEditor.advanced.multimodal.imageAttrsOcrOnUnobservedDesc') }}</p>
-                </div>
-                <div class="setting-control">
-                  <t-switch v-model="formData.imageActions.ocr.on_unobserved" size="medium" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 音频处理（ASR）设置 -->
-      <div v-if="!isFAQ && canEditPlatform" v-show="currentSection === 'asr'" class="section">
-        <div v-if="formData" class="kb-multimodal-settings">
-          <div class="section-header">
-            <h2>{{ $t('knowledgeEditor.asr.title') }}</h2>
-            <p class="section-description">{{ $t('knowledgeEditor.asr.description') }}</p>
-          </div>
-
-          <div class="settings-group">
-            <!-- ASR 开关 -->
-            <div class="setting-row">
-              <div class="setting-info">
-                <label>{{ $t('knowledgeEditor.asr.label') }}</label>
-                <p class="desc">{{ $t('knowledgeEditor.asr.desc') }}</p>
-              </div>
-              <div class="setting-control">
-                <t-switch
-                  v-model="formData.asrConfig.enabled"
-                  size="medium"
-                />
-              </div>
-            </div>
-
-            <!-- ASR 模型选择 -->
-            <div v-if="formData.asrConfig.enabled" class="setting-row">
-              <div class="setting-info">
-                <label>{{ $t('knowledgeEditor.asr.modelLabel') }} <span class="required">*</span></label>
-                <p class="desc">{{ $t('knowledgeEditor.asr.modelDescription') }}</p>
-              </div>
-              <div class="setting-control">
-                <ModelSelector
-                  model-type="ASR"
-                  :selected-model-id="formData.asrConfig.modelId"
-                  :all-models="allModels"
-                  @update:selected-model-id="(val: string) => { if (formData) formData.asrConfig.modelId = val }"
-                  @add-model="handleAddASRModel"
-                  :placeholder="$t('knowledgeEditor.asr.modelPlaceholder')"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 知识图谱 -->
-      <div v-if="!isFAQ && canEditPlatform && currentSection === 'graph'" class="section">
-        <GraphSettings
-          v-if="formData"
-          :graph-extract="formData.nodeExtractConfig"
-          :model-id="formData.modelConfig.llmModelId"
-          :all-models="allModels"
-          @update:graphExtract="handleNodeExtractUpdate"
-        />
-      </div>
-
-      <!-- 高级设置 -->
-      <div v-if="!isFAQ && canEditPlatform" v-show="currentSection === 'advanced'" class="section">
-        <KBAdvancedSettings
-          ref="advancedSettingsRef"
-          v-if="formData"
-          :question-generation="formData.questionGenerationConfig"
-          :auto-tag="formData.autoTagConfig"
-                    :profile-config="formData.profileConfig"
-          :rag-enabled="formData.indexingStrategy?.vectorEnabled || formData.indexingStrategy?.keywordEnabled"
-          :all-models="allModels"
-          :table-metadata-instructions="formData.chunkingConfig.tableMetadataInstructions"
-          @update:question-generation="handleQuestionGenerationUpdate"
-          @update:auto-tag="(value) => { if (formData) formData.autoTagConfig = value }"
-                    @update:profile-config="(value) => { if (formData) formData.profileConfig = value }"
-          @update:table-metadata-instructions="(value: string) => { if (formData) formData.chunkingConfig.tableMetadataInstructions = value }"
-        />
-      </div>
-
       <!-- 共享设置（仅编辑模式） -->
       <div v-if="editorMode === 'edit' && activeKbId && currentSection === 'share'" class="section">
         <KBShareSettings :kb-id="activeKbId" :can-share="canShareKB" />
@@ -567,8 +289,7 @@
     </template>
   </SettingsModalShell>
 
-  <KbCreateContextualGuide :when="visible && editorMode === 'create'" :is-faq="isFAQ"
-    :needs-embedding="kbCreateNeedsEmbedding" />
+  <KbCreateContextualGuide :when="visible && editorMode === 'create'" :is-faq="isFAQ" />
 </template>
 
 <script setup lang="ts">
@@ -593,7 +314,6 @@ import {
   type KnowledgeBaseProfile,
 } from '@/api/knowledge-base'
 import { buildImageProcessingConfig } from '@/utils/imageProcessingConfig'
-import { imageAttrDisplay, imageAttrConditionDisplay } from '@/utils/imageAttrDisplay'
 
 // The image-attribute registry, fetched from the backend (single source of
 // truth). Falls back to the static registry until the endpoint answers.
@@ -615,14 +335,6 @@ import { copyWithToast } from '@/utils/clipboard'
 import { useEditorResourcesStore } from '@/stores/editorResources'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
-import KBModelConfig from './settings/KBModelConfig.vue'
-import KBParserSettings from './settings/KBParserSettings.vue'
-import KBStorageSettings from './settings/KBStorageSettings.vue'
-import KBChunkingSettings from './settings/KBChunkingSettings.vue'
-import KBVectorStoreSettings from './settings/KBVectorStoreSettings.vue'
-import KBAdvancedSettings from './settings/KBAdvancedSettings.vue'
-import ModelSelector from '@/components/ModelSelector.vue'
-import GraphSettings from './settings/GraphSettings.vue'
 import KBShareSettings from './settings/KBShareSettings.vue'
 import KnowledgeBaseActivitySettings from './settings/KnowledgeBaseActivitySettings.vue'
 import { useI18n } from 'vue-i18n'
@@ -631,22 +343,7 @@ const uiStore = useUIStore()
 const authStore = useAuthStore()
 const chatResources = useChatResourcesStore()
 const editorResources = useEditorResourcesStore()
-const { t, te } = useI18n()
-
-// The attribute panel and the OCR conditions are both rendered from the
-// registry, in the operator's language: the registry supplies the wording and
-// the i18n overlay translates it, so a new backend attribute shows up here
-// without a frontend change.
-const imageAttrDisplays = computed(() =>
-  displaySchema.value.attributes.map((attr) => imageAttrDisplay(attr, t, te)),
-)
-// The conditions the knowledge base actually runs with: a list customised through the
-// API is shown as is, otherwise mergeImageActions filled in the default.
-const imageAttrConditionDisplays = computed(() =>
-  (formData.value.imageActions as ImageActionsConfig).ocr.on.map((cond) =>
-    imageAttrConditionDisplay(cond, displaySchema.value, t, te),
-  ),
-)
+const { t } = useI18n()
 
 // Props
 const props = defineProps<{
@@ -748,32 +445,8 @@ const canViewActivity = computed(() => {
   return isKbOwner.value || authStore.hasRole('admin')
 })
 
-// 编辑弹窗与平台「知识库设置」一致地按角色分区：
-//  · 超管及以上（isSystemAdmin，运营管理员继承）：模型配置 / 分块 / 图像 / 音频 / 图谱 / 高级；
-//  · 仅运营管理员（isOperationsAdmin，连超管也不显示）：向量存储 / 解析引擎 / 存储引擎；
-//  · 基本信息、FAQ、共享、活动对所有可编辑者保留。
-const canEditPlatform = computed(() => authStore.isSystemAdmin)
-const canEditOps = computed(() => authStore.isOperationsAdmin)
-// 用户是否在分块设置中手动改过任何值。一旦为 true，就不再根据索引策略自动调整默认分块参数。
-const chunkingDirty = ref(false)
-
-// 仅 Wiki 索引模式下的分块预设：更大 chunk、无 overlap、关闭父子分块。
-// 该预设只在「创建模式」下、且用户尚未手动调整分块参数时生效，避免覆盖既有 KB 的配置。
-const WIKI_ONLY_CHUNKING_PRESET = {
-  chunkSize: 2048,
-  chunkOverlap: 0,
-  enableParentChild: false,
-} as const
-
-// Non-Wiki-only fallback. Mirrors chunker.DefaultChunkSize and
-// DefaultChunkOverlap on the backend so a freshly created KB uses
-// the same numbers whether the editor sets them or the splitter
-// falls back to its package defaults.
-const DEFAULT_CHUNKING_PRESET = {
-  chunkSize: 512,
-  chunkOverlap: 80,
-  enableParentChild: true,
-} as const
+// 模型 / 分块 / 图像 / 音频 / 图谱 / 高级 / 存储等分区只在平台「知识库设置」维护，
+// 弹窗里对任何角色都不再展示，因此不再按角色分支。
 
 // 这些分区的操作在点击时即时生效（共享 / 活动记录），不经过底部「保存」，
 // 因此底部只显示「关闭」并提示，避免用户以为需要再点保存或以为「取消」能撤销。
@@ -786,47 +459,12 @@ const isInstantSection = computed(() => INSTANT_SECTIONS.has(currentSection.valu
 const formData = ref<any>(null)
 
 const navItems = computed(() => {
-  // 建库模式：模型/向量存储/解析引擎/分块/图像/音频/图谱/高级/存储 统一在
-  // 平台「知识库设置」默认页维护，建库时由后端自动引用；问答类型专属的
-  // FAQ 索引策略在建库与编辑都内联在基本信息里（见上方内联块），
-  // 因此新建仅展示基本信息，不展示其余分区。
-  if (editorMode.value === 'create') {
-    return [{ key: 'basic', icon: 'info-circle', label: t('knowledgeEditor.sidebar.basic') }]
-  }
+  // 建库与编辑都只保留基本信息：模型/向量存储/解析引擎/分块/图像/音频/图谱/高级/存储
+  // 统一在平台「知识库设置」维护，建库时由后端自动引用；问答类型专属的 FAQ 索引策略
+  // 在建库与编辑都内联在基本信息里（见上方内联块）。
   const items: { key: string; icon: string; label: string; badge?: number }[] = [
     { key: 'basic', icon: 'info-circle', label: t('knowledgeEditor.sidebar.basic') },
   ]
-  // 以下分区按超管 / 运营管理员权限隐藏入口（非权限者菜单不展示，内容也不渲染）。
-  if (canEditPlatform.value) {
-    items.push({ key: 'models', icon: 'control-platform', label: t('knowledgeEditor.sidebar.models') })
-  }
-  if (canEditOps.value) {
-    // VectorStore binding section — edit mode shows the bound store read-only
-    // with an immutability hint.
-    items.push({ key: 'vectorStore', icon: 'data-base', label: t('knowledgeEditor.sidebar.vectorStore') })
-  }
-  // 问答库没有解析/分块/多模态/图谱等处理管线，仅保留通用区块。
-  if (formData.value?.type !== 'faq') {
-    if (canEditOps.value) {
-      items.push({ key: 'parser', icon: 'file-search', label: t('settings.parserEngine') })
-    }
-    if (canEditPlatform.value) {
-      items.push(
-        { key: 'multimodal', icon: 'image', label: t('knowledgeEditor.sidebar.multimodal') },
-        { key: 'asr', icon: 'sound', label: t('knowledgeEditor.sidebar.asr') }
-      )
-    }
-    if (canEditOps.value) {
-      items.push({ key: 'storage', icon: 'cloud', label: t('knowledgeEditor.sidebar.storage') })
-    }
-    if (canEditPlatform.value) {
-      items.push(
-        { key: 'chunking', icon: 'file-copy', label: t('knowledgeEditor.sidebar.chunking') },
-        { key: 'graph', icon: 'chart-bubble', label: t('knowledgeEditor.sidebar.graph') },
-        { key: 'advanced', icon: 'setting', label: t('knowledgeEditor.sidebar.advanced') }
-      )
-    }
-  }
   if (editorMode.value === 'edit' && activeKbId.value && !authStore.isLiteMode) {
     items.push({ key: 'share', icon: 'share', label: t('knowledgeEditor.sidebar.share') })
   }
@@ -845,17 +483,7 @@ const navGroups = computed(() => {
     {
       key: 'basic',
       label: t('knowledgeEditor.navGroups.basic'),
-      items: pickItems(['basic', 'models', 'vectorStore']),
-    },
-    {
-      key: 'processing',
-      label: t('knowledgeEditor.navGroups.processing'),
-      items: pickItems(['parser', 'chunking', 'multimodal', 'asr', 'graph', 'advanced']),
-    },
-    {
-      key: 'data',
-      label: t('knowledgeEditor.navGroups.data'),
-      items: pickItems(['storage']),
+      items: pickItems(['basic']),
     },
     {
       key: 'integration',
@@ -882,24 +510,7 @@ function ensureVisibleSection() {
   }
 }
 
-// 模型配置引用
-const modelConfigRef = ref<InstanceType<typeof KBModelConfig>>()
-const advancedSettingsRef = ref<InstanceType<typeof KBAdvancedSettings>>()
-
-// 图片向量只在向量模型能处理图片时生效；模型列表里查不到（未加载、跨租户共享）时
-// 不报警，后端会按实际模型判断。
-const embeddingTakesImages = computed(() => {
-  const id = formData.value?.modelConfig.embeddingModelId
-  const model = id ? allModels.value.find((m) => m.id === id) : undefined
-  return !model || !!model.capabilities?.input?.includes('image')
-})
 const isFAQ = computed(() => formData.value?.type === 'faq')
-
-const kbCreateNeedsEmbedding = computed(() => {
-  if (!formData.value || formData.value.type === 'faq') return false
-  const s = formData.value.indexingStrategy
-  return Boolean(s?.vectorEnabled || s?.keywordEnabled)
-})
 
 const applyDefaultModelsIfEmpty = () => {
   if (!formData.value || editorMode.value !== 'create') return
@@ -1215,13 +826,6 @@ const loadKBData = async (
   }
 }
 
-// 处理配置更新
-const handleModelConfigUpdate = (config: any) => {
-  if (formData.value) {
-    formData.value.modelConfig = { ...config }
-  }
-}
-
 // 粒度选择器：从 formData.wikiConfig 读出并规范化，未知值回退到 'standard'，
 // 与后端 WikiExtractionGranularity.Normalize() 的契约保持一致。
 const resolvedGranularity = computed<'focused' | 'standard' | 'exhaustive'>(() => {
@@ -1271,14 +875,6 @@ const toggleWikiIndexing = () => {
   formData.value.indexingStrategy.wikiEnabled = !formData.value.indexingStrategy.wikiEnabled
 }
 
-const handleChunkingConfigUpdate = (config: any) => {
-  if (formData.value) {
-    formData.value.chunkingConfig = { ...config }
-    // 用户已经手动触达分块设置，后续索引策略切换不再覆盖这些值
-    chunkingDirty.value = true
-  }
-}
-
 // 判断当前是否为「仅 Wiki 索引」：只开了 Wiki，关了向量/关键词检索
 const isWikiOnlyStrategy = computed(() => {
   const s = formData.value?.indexingStrategy
@@ -1286,62 +882,31 @@ const isWikiOnlyStrategy = computed(() => {
   return !!s.wikiEnabled && !s.vectorEnabled && !s.keywordEnabled
 })
 
-// 仅在创建模式、用户未改过分块设置时，随索引策略自动应用/撤销 Wiki-only 预设。
-// 编辑模式严格保持后端已有配置不变，避免误改。
+// 仅 Wiki 索引模式下的分块预设：更大 chunk、无 overlap、关闭父子分块。
+const WIKI_ONLY_CHUNKING_PRESET = {
+  chunkSize: 2048,
+  chunkOverlap: 0,
+  enableParentChild: false,
+} as const
+
+// 与后端 chunker.DefaultChunkSize / DefaultChunkOverlap 对齐的普通预设。
+const DEFAULT_CHUNKING_PRESET = {
+  chunkSize: 512,
+  chunkOverlap: 80,
+  enableParentChild: true,
+} as const
+
+// 创建模式下随索引策略应用/撤销 Wiki-only 分块预设；编辑模式严格保持
+// 后端已有配置不变，避免误改。
 watch(isWikiOnlyStrategy, (wikiOnly) => {
   if (editorMode.value !== 'create') return
   if (!formData.value) return
-  if (chunkingDirty.value) return
   const preset = wikiOnly ? WIKI_ONLY_CHUNKING_PRESET : DEFAULT_CHUNKING_PRESET
   formData.value.chunkingConfig = {
     ...formData.value.chunkingConfig,
     ...preset,
   }
 })
-
-const handleParserEngineRulesUpdate = (rules: any[]) => {
-  if (formData.value) {
-    formData.value.chunkingConfig.parserEngineRules = rules?.length ? rules : undefined
-  }
-}
-
-const handleMultimodalToggle = () => {
-  if (formData.value && !formData.value.multimodalConfig.enabled) {
-    formData.value.multimodalConfig.vllmModelId = ''
-  }
-}
-
-const handleMultimodalVLLMChange = (modelId: string) => {
-  if (formData.value) {
-    formData.value.multimodalConfig.vllmModelId = modelId
-  }
-}
-
-const handleAddVLLMModel = () => {
-  uiStore.openSettings('models', 'vllm')
-}
-
-const handleAddASRModel = () => {
-  uiStore.openSettings('models', 'asr')
-}
-
-const handleAddWikiModel = () => {
-  uiStore.openSettings('models', 'knowledgeqa')
-}
-
-const handleStorageProviderUpdate = (value: string) => {
-  if (formData.value) {
-    formData.value.storageProvider = editorMode.value === 'create'
-      ? editorResources.resolveUsableStorageProvider(value || tenantDefaultStorageProvider.value)
-      : (value || tenantDefaultStorageProvider.value || 'local')
-  }
-}
-
-const handleStorageBackendUpdate = (value: string) => {
-  if (formData.value) {
-    formData.value.storageBackendId = value
-  }
-}
 
 async function loadTenantDefaultStorageProvider(force = false) {
   try {
@@ -1362,22 +927,6 @@ function resolvedStorageProvider(): string {
   }
   if (explicit) return explicit
   return tenantDefaultStorageProvider.value || 'local'
-}
-
-const handleVectorStoreIdUpdate = (id: string) => {
-  if (formData.value) {
-    // Empty string here means "use system default" (env-store fallback).
-    // The create-payload assembly below converts this back to `omit` so
-    // the backend stores NULL — keeping the wire shape identical to
-    // pre-Phase-2 clients.
-    formData.value.vectorStoreId = id || ''
-  }
-}
-
-const handleQuestionGenerationUpdate = (config: any) => {
-  if (formData.value) {
-    formData.value.questionGenerationConfig = { ...config }
-  }
 }
 
 // Regenerate the AI description now (synchronous: one aggregation + one
@@ -1409,12 +958,6 @@ const handleAdoptProfileGist = () => {
   MessagePlugin.success(t('knowledgeEditor.basic.profile.adopted'))
 }
 
-const handleNodeExtractUpdate = (config: any) => {
-  if (formData.value) {
-    formData.value.nodeExtractConfig = { ...config }
-  }
-}
-
 // 验证表单
 const validateForm = (): boolean => {
   if (!formData.value) return false
@@ -1436,46 +979,8 @@ const validateForm = (): boolean => {
     }
   }
 
-  // 验证模型/多模态配置——仅编辑态且当前用户可编辑这些超管分区时才强制。
-  // 建库态、以及无权查看模型分区的普通成员：这些分区已从菜单隐藏，模型等
-  // 由平台「知识库设置」默认值套用，不应强制校验（否则会卡在隐藏分区无法保存）。
-  if (editorMode.value === 'edit' && canEditPlatform.value) {
-    // embedding 模型仅在检索索引启用时必须
-    const needsEmbedding = formData.value.indexingStrategy?.vectorEnabled || formData.value.indexingStrategy?.keywordEnabled
-    if (needsEmbedding && !formData.value.modelConfig.embeddingModelId) {
-      MessagePlugin.warning(t('knowledgeEditor.indexing.embeddingRequired'))
-      currentSection.value = 'models'
-      return false
-    }
-
-    if (!formData.value.modelConfig.llmModelId) {
-      MessagePlugin.warning(t('knowledgeEditor.messages.summaryRequired'))
-      currentSection.value = 'models'
-      return false
-    }
-
-    // 验证多模态配置（如果启用）
-    if (formData.value.multimodalConfig.enabled && !formData.value.multimodalConfig.vllmModelId) {
-      MessagePlugin.warning(t('knowledgeEditor.messages.multimodalInvalid'))
-      currentSection.value = 'multimodal'
-      return false
-    }
-
-    // 图谱启用时必须完整，否则后端会以 "text cannot be empty" 拒绝整次保存。
-    // 这种半成品配置通常来自平台默认值（开关已开、内容未填）。
-    const graph = formData.value.nodeExtractConfig
-    if (
-      graph.enabled &&
-      (!graph.text.trim() ||
-        graph.tags.length === 0 ||
-        graph.nodes.length === 0 ||
-        graph.relations.length === 0)
-    ) {
-      MessagePlugin.warning(t('knowledgeEditor.messages.graphIncomplete'))
-      currentSection.value = 'graph'
-      return false
-    }
-  }
+  // 模型 / 多模态 / 图谱等配置已从弹窗移到平台「知识库设置」，这里不再校验：
+  // 用户看不到也无权修改，卡在隐藏分区会让他们无法保存。
 
   // 问答库的索引策略内联在基本信息里（建库与编辑同一入口），
   // 缺失时回到基本信息让用户补选。
@@ -1637,19 +1142,6 @@ const buildSubmitData = () => {
     }
   }
 
-  // Always persist extract_config so the toggle state from GraphSettings is saved,
-  // regardless of whether the graph indexing strategy is currently enabled.
-  if (formData.value.nodeExtractConfig) {
-    data.extract_config = {
-      enabled: !!formData.value.nodeExtractConfig.enabled,
-      text: formData.value.nodeExtractConfig.text || '',
-      tags: formData.value.nodeExtractConfig.tags || [],
-      nodes: formData.value.nodeExtractConfig.nodes || [],
-      relations: formData.value.nodeExtractConfig.relations || [],
-      custom_instructions: formData.value.nodeExtractConfig.customInstructions || ''
-    }
-  }
-
   // 建库模式：模型/向量存储/解析引擎/分块/图像/音频/图谱/高级/存储等分区，
   // 已从建库菜单移除，统一由平台「知识库设置」默认页维护。这里不下发这些
   // 字段，后端 ApplyTo 会套用平台默认值（仅填空字段，API/MCP 显式值优先）。
@@ -1808,19 +1300,8 @@ const doSubmit = async () => {
         }
       }
 
-      // 图谱分区只对平台管理员可见。普通成员不发送 nodeExtract（后端按
-      // 「保持不变」处理），否则存量的不完整图谱配置会让整次保存失败，
-      // 而他们又看不到也无法修复该分区。
-      if (canEditPlatform.value) {
-        config.nodeExtract = {
-          enabled: data.extract_config?.enabled || false,
-          text: data.extract_config?.text || '',
-          tags: data.extract_config?.tags || [],
-          nodes: data.extract_config?.nodes || [],
-          relations: data.extract_config?.relations || [],
-          customInstructions: data.extract_config?.custom_instructions || ''
-        }
-      }
+      // 图谱配置只在平台「知识库设置」维护，这里不发送 nodeExtract：
+      // 后端按「保持不变」处理，避免存量的不完整配置让整次保存失败。
 
       await updateKBConfig(kbId, config)
       MessagePlugin.success(t('knowledgeEditor.messages.updateSuccess'))
@@ -1897,7 +1378,6 @@ const resetState = () => {
   initialIndexingStrategy.value = null
   saving.value = false
   loading.value = false
-  chunkingDirty.value = false
   kbCreatorId.value = ''
   kbTenantId.value = 0
 }
