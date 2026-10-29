@@ -10,7 +10,7 @@
         <p>{{ t('graphSettings.disabledWarning') }}</p>
       </div>
       <t-button
-        v-if="!embedded"
+        v-if="!embedded && DOCS_LINKS_ENABLED"
         size="small"
         theme="primary"
         variant="outline"
@@ -320,7 +320,7 @@ import { useI18n } from 'vue-i18n'
 import { extractTextRelations, fabriText, fabriTag, type Node, type Relation } from '@/api/initialization'
 import { useEditorResourcesStore } from '@/stores/editorResources'
 import { useAuthStore } from '@/stores/auth'
-import { docsUrl } from '@/utils/docsUrl'
+import { DOCS_LINKS_ENABLED, docsUrl } from '@/utils/docsUrl'
 
 const { t } = useI18n()
 const authStore = useAuthStore()

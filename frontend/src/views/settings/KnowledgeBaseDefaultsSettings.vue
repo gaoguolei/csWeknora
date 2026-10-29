@@ -201,39 +201,8 @@
           />
         </div>
 
-        <!-- I-1 FAQ 设置（紧跟高级设置）：问答型知识库专属，建库时由后端套用 -->
-        <div v-show="activeSection === 'faq'" class="kb-defaults-block kb-faq-settings">
-          <div class="section-header">
-            <h2>{{ $t('kbDefaults.faqTitle') }}</h2>
-            <p class="section-description">{{ $t('kbDefaults.faqHint') }}</p>
-          </div>
-          <div class="settings-group">
-            <div class="setting-row">
-              <div class="setting-info">
-                <label>{{ $t('knowledgeEditor.faq.indexModeLabel') }} <span class="required">*</span></label>
-                <p class="desc">{{ $t('knowledgeEditor.faq.indexModeDescription') }}</p>
-              </div>
-              <div class="setting-control">
-                <t-radio-group v-model="cfg.faqConfig.indexMode">
-                  <t-radio-button value="question_only">{{ $t('knowledgeEditor.faq.modes.questionOnly') }}</t-radio-button>
-                  <t-radio-button value="question_answer">{{ $t('knowledgeEditor.faq.modes.questionAnswer') }}</t-radio-button>
-                </t-radio-group>
-              </div>
-            </div>
-            <div class="setting-row">
-              <div class="setting-info">
-                <label>{{ $t('knowledgeEditor.faq.questionIndexModeLabel') }} <span class="required">*</span></label>
-                <p class="desc">{{ $t('knowledgeEditor.faq.questionIndexModeDescription') }}</p>
-              </div>
-              <div class="setting-control">
-                <t-radio-group v-model="cfg.faqConfig.questionIndexMode">
-                  <t-radio-button value="combined">{{ $t('knowledgeEditor.faq.modes.combined') }}</t-radio-button>
-                  <t-radio-button value="separate">{{ $t('knowledgeEditor.faq.modes.separate') }}</t-radio-button>
-                </t-radio-group>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- FAQ 索引策略不在这里：它在建库时由创建者在弹窗内自选（所有成员可用），
+             不是平台全局默认值。 -->
 
         <!-- J 存储引擎（仅运营管理员可见，超管不显示） -->
         <div v-if="canOpsEdit" v-show="activeSection === 'storage'" class="kb-defaults-block">
@@ -361,10 +330,6 @@ interface ProfileUI {
   modelId: string
   customInstructions: string
 }
-interface FAQConfigUI {
-  indexMode: string
-  questionIndexMode: string
-}
 interface KBDocDefaults {
   modelConfig: ModelConfigUI
   chunkingConfig: ChunkingConfigUI
@@ -376,8 +341,6 @@ interface KBDocDefaults {
   questionGenerationConfig: QuestionGenerationUI
   autoTagConfig: AutoTagUI
   profileConfig: ProfileUI
-  // FAQ 索引策略（问答型知识库专属，入口在高级设置下方）。
-  faqConfig: FAQConfigUI
   // Ops-admin-only platform defaults (C/D/J).
   vectorStoreId: string
   storageBackendId: string
@@ -410,9 +373,6 @@ function makeDefaults(): KBDocDefaults {
     questionGenerationConfig: { enabled: true, questionCount: 3, customInstructions: '' },
     autoTagConfig: { enabled: false, modelId: '', maxTags: 3, skipIfTagged: true },
     profileConfig: { enabled: false, modelId: '', customInstructions: '' },
-    // Mirror KnowledgeBase.EnsureDefaults() for FAQ knowledge bases so the page
-    // shows the value a fresh FAQ KB would actually get.
-    faqConfig: { indexMode: 'question_answer', questionIndexMode: 'combined' },
     vectorStoreId: '',
     storageBackendId: '',
     storageProvider: '',
@@ -487,10 +447,6 @@ function toStorageShape(): Record<string, unknown> {
       enabled: !!cfg.profileConfig.enabled,
       model_id: cfg.profileConfig.modelId || '',
       custom_instructions: cfg.profileConfig.customInstructions || '',
-    },
-    faq_config: {
-      index_mode: cfg.faqConfig.indexMode || '',
-      question_index_mode: cfg.faqConfig.questionIndexMode || '',
     },
     // Ops-admin-only (C/D/J). Parser rules ride inside chunking_config above.
     vector_store_id: cfg.vectorStoreId || '',
@@ -576,13 +532,6 @@ function fromStorageShape(raw: Record<string, any>) {
       enabled: !!pf.enabled,
       modelId: pf.model_id || '',
       customInstructions: pf.custom_instructions || '',
-    }
-  }
-  const faq = raw.faq_config
-  if (faq) {
-    cfg.faqConfig = {
-      indexMode: faq.index_mode || cfg.faqConfig.indexMode,
-      questionIndexMode: faq.question_index_mode || cfg.faqConfig.questionIndexMode,
     }
   }
   // Ops-admin-only (C/D/J).
@@ -782,51 +731,6 @@ onUnmounted(() => {
 
 .kb-defaults-block {
   padding: 4px 0 24px;
-}
-
-// FAQ 设置页：横排 label/说明 + 右侧分段选择，行间用分隔线形成列表节奏。
-.kb-faq-settings {
-  .section-header {
-    margin-bottom: 12px;
-  }
-
-  .settings-group {
-    border-top: 1px solid var(--td-component-stroke);
-  }
-
-  .setting-row {
-    align-items: center;
-    padding: 18px 0;
-    border-bottom: 1px solid var(--td-component-stroke);
-
-    &:last-child {
-      padding-bottom: 0;
-      border-bottom: none;
-    }
-  }
-
-  .setting-info {
-    flex: 0 1 56%;
-    max-width: 56%;
-  }
-
-  .setting-control {
-    flex: 0 0 300px;
-    max-width: 44%;
-    align-items: center;
-    justify-content: flex-end;
-
-    // 两行分段选择统一宽度、按钮等分，左右边缘对齐更整齐。
-    :deep(.t-radio-group) {
-      display: flex;
-      width: 100%;
-    }
-
-    :deep(.t-radio-button) {
-      flex: 1;
-      justify-content: center;
-    }
-  }
 }
 
 .kb-inline-section {

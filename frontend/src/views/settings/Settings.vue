@@ -553,7 +553,6 @@ const KB_DEFAULTS_SUBSECTIONS: {
   { key: "kb-audio", icon: "sound", labelKey: "knowledgeEditor.sidebar.asr", section: "audio" },
   { key: "kb-graph", icon: "chart-bubble", labelKey: "knowledgeEditor.sidebar.graph", section: "graph" },
   { key: "kb-advanced", icon: "setting", labelKey: "knowledgeEditor.sidebar.advanced", section: "advanced" },
-  { key: "kb-faq", icon: "help-circle", labelKey: "knowledgeEditor.sidebar.faq", section: "faq" },
   { key: "kb-storage", icon: "cloud", labelKey: "knowledgeEditor.sidebar.storage", section: "storage" },
 ];
 const KB_DEFAULTS_KEYS = new Set(KB_DEFAULTS_SUBSECTIONS.map((s) => s.key));

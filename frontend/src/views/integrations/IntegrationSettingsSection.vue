@@ -7,6 +7,7 @@
           <p class="section-description">
             {{ $t('agentEditor.im.description') }}
             <a
+              v-if="DOCS_LINKS_ENABLED"
               :href="docsUrl('imIntegration')"
               target="_blank"
               rel="noopener noreferrer"
@@ -62,7 +63,7 @@ import ChromeExtensionLanding from '@/views/integrations/ChromeExtensionLanding.
 import ClawSkillLanding from '@/views/integrations/ClawSkillLanding.vue'
 import CliIntegrationLanding from '@/views/integrations/CliIntegrationLanding.vue'
 import type { IntegrationTab } from '@/config/integrations'
-import { docsUrl } from '@/utils/docsUrl'
+import { DOCS_LINKS_ENABLED, docsUrl } from '@/utils/docsUrl'
 
 const filterAgentId = ref('')
 

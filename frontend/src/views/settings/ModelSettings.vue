@@ -27,6 +27,7 @@
                   }}
                 </p>
                 <a
+                  v-if="DOCS_LINKS_ENABLED"
                   class="doc-link"
                   :href="docsUrl('models')"
                   target="_blank"
@@ -508,7 +509,7 @@ import { useUIStore } from '@/stores/ui'
 import { focusKbEditorSection } from '@/config/contextualGuides'
 import { useChatResourcesStore } from '@/stores/chatResources'
 import { useModelProvidersStore } from '@/stores/modelProviders'
-import { docsUrl } from '@/utils/docsUrl'
+import { DOCS_LINKS_ENABLED, docsUrl } from '@/utils/docsUrl'
 import { matchesResourceQuery } from '@/utils/resourceListSearch'
 import {
   formatContextWindow,

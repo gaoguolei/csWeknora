@@ -2,6 +2,11 @@
 export const DOCS_BASE_URL = 'https://weknora.weixin.qq.com/docs/'
 
 /**
+ * 需要恢复时改回true
+ */
+export const DOCS_LINKS_ENABLED = false
+
+/**
  * Doc pages linked from the UI, as website-docs paths without the `.md`
  * suffix. docsUrl.test.ts checks each one (and its anchor) still exists.
  */

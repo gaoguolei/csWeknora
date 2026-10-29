@@ -610,7 +610,13 @@
               <p v-if="specCompatError" class="form-desc form-desc--error">{{ $t('model.editor.advanced.compat.invalid') }}: {{ specCompatError }}</p>
               <p v-else class="form-desc">
                 {{ $t('model.editor.advanced.compat.desc') }}
-                <a :href="COMPAT_DOC_URL" target="_blank" rel="noopener noreferrer" class="compat-doc-link">
+                <a
+                  v-if="DOCS_LINKS_ENABLED"
+                  :href="COMPAT_DOC_URL"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="compat-doc-link"
+                >
                   {{ $t('model.editor.advanced.compat.docLink') }}
                   <t-icon name="jump" size="12px" />
                 </a>
@@ -665,7 +671,7 @@ import CredentialResource, {
 } from '@/components/credentials/CredentialResource.vue'
 import { shouldShowOllamaUnavailableTip } from '@/components/modelEditorSourceState'
 import { WEKNORA_CLOUD_PROVIDER, WKC_MODEL_KINDS, WKC_MODEL_NAME_BY_KIND } from '@/utils/weknoraCloudModels'
-import { docsUrl } from '@/utils/docsUrl'
+import { DOCS_LINKS_ENABLED, docsUrl } from '@/utils/docsUrl'
 
 interface CustomHeaderItem {
   key: string

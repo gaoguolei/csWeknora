@@ -154,7 +154,13 @@
                   ? $t('settings.sandbox.secretConfigured')
                   : $t('settings.sandbox.cubeApiKeyOptional') }}
               </p>
-              <a class="inline-guide-link" :href="clusterGuideUrl" target="_blank" rel="noopener noreferrer">
+              <a
+                v-if="DOCS_LINKS_ENABLED"
+                class="inline-guide-link"
+                :href="clusterGuideUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <t-icon name="link" />
                 {{ $t('settings.sandbox.cubeApiKeyWhere') }}
               </a>
@@ -364,7 +370,13 @@
           </div>
         </div>
 
-        <a class="inline-guide-link" :href="clusterGuideUrl" target="_blank" rel="noopener noreferrer">
+        <a
+          v-if="DOCS_LINKS_ENABLED"
+          class="inline-guide-link"
+          :href="clusterGuideUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <t-icon name="link" />
           {{ $t('settings.sandbox.howToBuildTemplate') }}
         </a>
@@ -751,7 +763,7 @@ import { useI18n } from 'vue-i18n'
 import SettingDrawer from '@/components/settings/SettingDrawer.vue'
 import SandboxBackendBadge from '@/components/settings/SandboxBackendBadge.vue'
 import { useDeploymentCapabilitiesStore } from '@/stores/deploymentCapabilities'
-import { docsUrl } from '@/utils/docsUrl'
+import { DOCS_LINKS_ENABLED, docsUrl } from '@/utils/docsUrl'
 import {
   checkSandboxConfig,
   createSandboxConfig,

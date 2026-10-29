@@ -129,10 +129,11 @@ export const OPERATIONS_ADMIN_ONLY_SECTIONS = new Set([
  * longer see the page at all.
  *
  * kb-defaults: the platform-wide default knowledge-base configuration (models,
- * chunking, image, audio, graph, advanced, FAQ) that the KB editor no longer
+ * chunking, image, audio, graph, advanced) that the KB editor no longer
  * exposes. Backed by system_settings "knowledge_base.default_config", whose
  * PUT route is SystemAdmin-gated; operations admins also see it because they
- * inherit isSystemAdmin.
+ * inherit isSystemAdmin. FAQ 索引策略不在此列：它在建库时由创建者在弹窗里
+ * 自选，对所有成员开放，不是平台全局默认值。
  */
 export const SUPER_ADMIN_ONLY_SECTIONS = new Set([
   'envvars',
@@ -144,14 +145,13 @@ export const SUPER_ADMIN_ONLY_SECTIONS = new Set([
   // 兜底渲染「无权限」空态。
   'memory',
   // 知识库配置（平台默认）提升到设置主侧栏后拆成的独立分区键：模型 / 分块 /
-  // 图像 / 音频 / 图谱 / 高级 / FAQ，仅超管（及其继承者运营管理员）可见。
+  // 图像 / 音频 / 图谱 / 高级，仅超管（及其继承者运营管理员）可见。
   'kb-models',
   'kb-chunking',
   'kb-image',
   'kb-audio',
   'kb-graph',
   'kb-advanced',
-  'kb-faq',
   // 智能体配置（平台默认）分区键，与知识库同样是超管专有：模型 / 多轮对话 /
   // 检索策略 / 网络搜索 / 附件上传。
   // 需求把这些全部划给超级管理员（没有给运营管理员的项），所以统一走

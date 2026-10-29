@@ -8,7 +8,13 @@
         :style="{ zIndex }"
         @click.self="emit('close')"
       >
-        <div class="settings-modal" role="dialog" aria-modal="true" :aria-label="title">
+        <div
+          class="settings-modal"
+          :class="{ 'is-single-pane': hideSidebar }"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="title"
+        >
           <div
             v-if="loading"
             class="editor-initializing"
@@ -41,7 +47,7 @@
           </button>
 
           <div class="settings-container">
-            <aside class="settings-sidebar">
+            <aside v-if="!hideSidebar" class="settings-sidebar">
               <div class="sidebar-header">
                 <h2 class="sidebar-title">{{ title }}</h2>
                 <slot name="sidebar-header-extra" />
@@ -83,6 +89,11 @@
             </aside>
 
             <div class="settings-content">
+              <!-- 单栏模式：侧边栏隐藏后标题改在内容区顶部展示 -->
+              <div v-if="hideSidebar" class="settings-inline-header">
+                <h2 class="sidebar-title">{{ title }}</h2>
+                <slot name="sidebar-header-extra" />
+              </div>
               <div class="settings-body">
                 <slot />
               </div>
@@ -142,6 +153,8 @@ withDefaults(
     overlayClass?: string;
     navGuide?: string;
     navItemGuidePrefix?: string;
+    /** 隐藏左侧导航栏，内容占满整个面板（用于只有一个分区的简单表单弹窗） */
+    hideSidebar?: boolean;
   }>(),
   {
     modelValue: "",
@@ -151,6 +164,7 @@ withDefaults(
     overlayClass: "",
     navGuide: "",
     navItemGuidePrefix: "",
+    hideSidebar: false,
   },
 );
 
@@ -197,6 +211,11 @@ function showBadge(item: SettingsModalNavItem): boolean {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+
+    // 单栏模式（无侧边栏）：收窄面板，避免表单被拉得过宽。
+    &.is-single-pane {
+      max-width: 880px;
+    }
   }
 
   .editor-initializing {
@@ -379,6 +398,12 @@ function showBadge(item: SettingsModalNavItem): boolean {
     &.nav-badge-count {
       min-width: 20px;
     }
+  }
+
+  .settings-inline-header {
+    flex-shrink: 0;
+    padding: 24px 32px 16px;
+    border-bottom: 1px solid var(--td-component-stroke);
   }
 
   .settings-content {

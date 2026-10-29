@@ -139,13 +139,15 @@
             <p class="migration-error-desc">{{ $t('system.dbMigrationFailedDesc') }}</p>
             <pre class="migration-error-detail">{{ systemInfo.db_migration_error }}</pre>
             <div class="migration-error-actions">
+              <!-- 排障文档入口：私有化部署不跳转官方文档 -->
               <t-link
+                v-if="DOCS_LINKS_ENABLED"
                 theme="primary"
                 :href="troubleshootingDocsURL"
                 target="_blank"
                 rel="noopener noreferrer"
               >{{ $t('system.dbMigrationViewDocs') }}</t-link>
-              <span class="migration-error-actions-sep">·</span>
+              <span v-if="DOCS_LINKS_ENABLED" class="migration-error-actions-sep">·</span>
               <t-link
                 theme="primary"
                 :href="reportIssueURL"
@@ -199,7 +201,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { SystemInfo } from '@/api/system'
 import { useEditorResourcesStore } from '@/stores/editorResources'
 import { useI18n } from 'vue-i18n'
-import { docsUrl } from '@/utils/docsUrl'
+import { DOCS_LINKS_ENABLED, docsUrl } from '@/utils/docsUrl'
 
 const { t, locale } = useI18n()
 

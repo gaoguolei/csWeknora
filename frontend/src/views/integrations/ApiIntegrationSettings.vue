@@ -75,7 +75,8 @@
           </div>
         </template>
 
-        <div class="row row--doc">
+        <!-- 接口文档入口：私有化部署不跳转官方文档，整行不渲染 -->
+        <div v-if="DOCS_LINKS_ENABLED" class="row row--doc">
           <div class="row-info">
             <label>{{ $t('tenant.api.docLabel') }}</label>
             <p>
@@ -702,7 +703,7 @@ import {
 } from '@/config/apiKeyCapabilities'
 import { normalizeAPIKeyKnowledgeBaseIDs } from './apiKeyScope'
 import { consumeApiPlaygroundSSE } from './apiPlaygroundSSE'
-import { docsUrl } from '@/utils/docsUrl'
+import { DOCS_LINKS_ENABLED, docsUrl } from '@/utils/docsUrl'
 
 const { t } = useI18n()
 

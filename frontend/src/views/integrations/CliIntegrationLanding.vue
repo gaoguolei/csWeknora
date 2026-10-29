@@ -6,6 +6,7 @@
   >
     <template #actions>
       <IntegrationExternalCta
+        v-if="DOCS_LINKS_ENABLED"
         :label="$t('integrations.cli.docs')"
         :hint="$t('integrations.cli.docsHint')"
         @click="openDocs"
@@ -95,6 +96,7 @@ import { copyWithToast } from "@/utils/clipboard";
 import IntegrationLandingLayout from "./IntegrationLandingLayout.vue";
 import IntegrationExternalCta from "./IntegrationExternalCta.vue";
 import { buildCLIConnectCommand } from "./cliIntegration";
+import { DOCS_LINKS_ENABLED } from "@/utils/docsUrl";
 
 const { apiBaseUrlDisplay } = useApiBaseUrlDisplay();
 const steps = computed(() => [

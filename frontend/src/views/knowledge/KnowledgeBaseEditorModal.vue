@@ -2,12 +2,14 @@
   <SettingsModalShell :visible="visible"
     :title="editorMode === 'create' ? $t('knowledgeEditor.titleCreate') : $t('knowledgeEditor.titleEdit')"
     v-model="currentSection" :nav-groups="navGroups" :loading="loading" :z-index="1000"
+    :hide-sidebar="editorMode === 'create'"
     nav-guide="kb-editor-sidebar" nav-item-guide-prefix="kb-editor-nav" @close="modalShell.requestClose">
     <div class="content-wrapper">
       <!-- 基本信息 -->
       <div v-show="currentSection === 'basic'" class="section">
         <div v-if="formData" class="section-content">
-          <div class="section-header">
+          <!-- 建库态已由弹窗头部展示「新建认知库」，不再重复「基本信息」标题 -->
+          <div v-if="editorMode !== 'create'" class="section-header">
             <h3 class="section-title">{{ $t('knowledgeEditor.basic.title') }}</h3>
             <p class="section-desc">{{ $t('knowledgeEditor.basic.description') }}</p>
           </div>
@@ -37,6 +39,27 @@
                 <t-radio-button value="faq">{{ $t('knowledgeEditor.basic.typeFAQ') }}</t-radio-button>
               </t-radio-group>
               <p class="form-tip">{{ $t('knowledgeEditor.basic.typeDescription') }}</p>
+            </div>
+
+            <!-- FAQ 索引策略（问答类型专属）：紧跟类型选择，建库与编辑都在这里
+                 由用户自行设置（所有成员可改），侧栏不再单设 FAQ 分区。 -->
+            <div v-if="isFAQ" class="faq-inline-settings" data-guide="kb-create-faq">
+              <div class="form-item">
+                <label class="form-label required">{{ $t('knowledgeEditor.faq.indexModeLabel') }}</label>
+                <t-radio-group v-model="formData.faqConfig.indexMode">
+                  <t-radio-button value="question_only">{{ $t('knowledgeEditor.faq.modes.questionOnly') }}</t-radio-button>
+                  <t-radio-button value="question_answer">{{ $t('knowledgeEditor.faq.modes.questionAnswer') }}</t-radio-button>
+                </t-radio-group>
+                <p class="form-tip">{{ $t('knowledgeEditor.faq.indexModeDescription') }}</p>
+              </div>
+              <div class="form-item">
+                <label class="form-label required">{{ $t('knowledgeEditor.faq.questionIndexModeLabel') }}</label>
+                <t-radio-group v-model="formData.faqConfig.questionIndexMode">
+                  <t-radio-button value="combined">{{ $t('knowledgeEditor.faq.modes.combined') }}</t-radio-button>
+                  <t-radio-button value="separate">{{ $t('knowledgeEditor.faq.modes.separate') }}</t-radio-button>
+                </t-radio-group>
+                <p class="form-tip">{{ $t('knowledgeEditor.faq.questionIndexModeDescription') }}</p>
+              </div>
             </div>
 
             <!-- 索引策略 (紧跟类型选择) -->
@@ -252,41 +275,6 @@
           :bound-status="formData.vectorStoreInfo?.status"
           @update:vector-store-id="handleVectorStoreIdUpdate"
         />
-      </div>
-
-      <!-- FAQ 配置 -->
-      <div v-if="isFAQ && formData" v-show="currentSection === 'faq'" class="section">
-        <div class="section-content">
-          <div class="section-header">
-            <h3 class="section-title">{{ $t('knowledgeEditor.faq.title') }}</h3>
-            <p class="section-desc">{{ $t('knowledgeEditor.faq.description') }}</p>
-          </div>
-          <div class="section-body">
-            <div class="form-item">
-              <label class="form-label required">{{ $t('knowledgeEditor.faq.indexModeLabel') }}</label>
-              <t-radio-group
-                v-model="formData.faqConfig.indexMode"
-              >
-                <t-radio-button value="question_only">{{ $t('knowledgeEditor.faq.modes.questionOnly') }}</t-radio-button>
-                <t-radio-button value="question_answer">{{ $t('knowledgeEditor.faq.modes.questionAnswer') }}</t-radio-button>
-              </t-radio-group>
-              <p class="form-tip">{{ $t('knowledgeEditor.faq.indexModeDescription') }}</p>
-            </div>
-            <div class="form-item">
-              <label class="form-label required">{{ $t('knowledgeEditor.faq.questionIndexModeLabel') }}</label>
-              <t-radio-group
-                v-model="formData.faqConfig.questionIndexMode"
-              >
-                <t-radio-button value="combined">{{ $t('knowledgeEditor.faq.modes.combined') }}</t-radio-button>
-                <t-radio-button value="separate">{{ $t('knowledgeEditor.faq.modes.separate') }}</t-radio-button>
-              </t-radio-group>
-              <p class="form-tip">{{ $t('knowledgeEditor.faq.questionIndexModeDescription') }}</p>
-            </div>
-            <div class="faq-guide">
-              <p>{{ $t('knowledgeEditor.faq.entryGuide') }}</p>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- 解析引擎 -->
@@ -798,9 +786,10 @@ const isInstantSection = computed(() => INSTANT_SECTIONS.has(currentSection.valu
 const formData = ref<any>(null)
 
 const navItems = computed(() => {
-  // 建库模式：模型/向量存储/解析引擎/分块/图像/音频/图谱/高级/存储，以及
-  // 问答类型专属的 FAQ 索引策略，均统一在平台「知识库设置」默认页维护，
-  // 建库时由后端自动引用，因此新建仅展示基本信息，不展示其余分区。
+  // 建库模式：模型/向量存储/解析引擎/分块/图像/音频/图谱/高级/存储 统一在
+  // 平台「知识库设置」默认页维护，建库时由后端自动引用；问答类型专属的
+  // FAQ 索引策略在建库与编辑都内联在基本信息里（见上方内联块），
+  // 因此新建仅展示基本信息，不展示其余分区。
   if (editorMode.value === 'create') {
     return [{ key: 'basic', icon: 'info-circle', label: t('knowledgeEditor.sidebar.basic') }]
   }
@@ -816,9 +805,8 @@ const navItems = computed(() => {
     // with an immutability hint.
     items.push({ key: 'vectorStore', icon: 'data-base', label: t('knowledgeEditor.sidebar.vectorStore') })
   }
-  if (formData.value?.type === 'faq') {
-    items.push({ key: 'faq', icon: 'help-circle', label: t('knowledgeEditor.sidebar.faq') })
-  } else {
+  // 问答库没有解析/分块/多模态/图谱等处理管线，仅保留通用区块。
+  if (formData.value?.type !== 'faq') {
     if (canEditOps.value) {
       items.push({ key: 'parser', icon: 'file-search', label: t('settings.parserEngine') })
     }
@@ -857,7 +845,7 @@ const navGroups = computed(() => {
     {
       key: 'basic',
       label: t('knowledgeEditor.navGroups.basic'),
-      items: pickItems(['basic', 'models', 'vectorStore', 'faq']),
+      items: pickItems(['basic', 'models', 'vectorStore']),
     },
     {
       key: 'processing',
@@ -927,17 +915,11 @@ const applyDefaultModelsIfEmpty = () => {
 
 watch(
   () => formData.value?.type,
-  (newType, oldType) => {
+  (newType) => {
     if (!formData.value) return
-    if (newType === 'faq') {
-      if (!formData.value.faqConfig) {
-        formData.value.faqConfig = { indexMode: 'question_only', questionIndexMode: 'separate' }
-      }
-      if (!['basic', 'models', 'faq'].includes(currentSection.value)) {
-        currentSection.value = 'faq'
-      }
-    } else if (oldType === 'faq' && currentSection.value === 'faq') {
-      currentSection.value = 'basic'
+    // 切到问答类型时补齐 FAQ 索引策略默认值（基本信息内联展示）。
+    if (newType === 'faq' && !formData.value.faqConfig) {
+      formData.value.faqConfig = { indexMode: 'question_answer', questionIndexMode: 'combined' }
     }
   }
 )
@@ -948,9 +930,11 @@ const initFormData = (type: 'document' | 'faq' = 'document') => {
     type,
     name: '',
     description: '',
+    // 建库时用户在基本信息里自选 FAQ 索引策略（默认值镜像后端
+    // KnowledgeBase.EnsureDefaults()，保持未手动修改时的行为不变）。
     faqConfig: {
-      indexMode: 'question_only',
-      questionIndexMode: 'separate'
+      indexMode: 'question_answer',
+      questionIndexMode: 'combined'
     },
     modelConfig: {
       llmModelId: '',
@@ -1493,15 +1477,14 @@ const validateForm = (): boolean => {
     }
   }
 
-  // 新建模式不再收集 FAQ 索引策略（改由平台「知识库设置」默认值提供），
-  // 只有编辑已有问答库时才校验该字段。
+  // 问答库的索引策略内联在基本信息里（建库与编辑同一入口），
+  // 缺失时回到基本信息让用户补选。
   if (
-    editorMode.value === 'edit' &&
     formData.value.type === 'faq' &&
     !formData.value.faqConfig?.indexMode
   ) {
     MessagePlugin.warning(t('knowledgeEditor.messages.indexModeRequired'))
-    currentSection.value = 'faq'
+    currentSection.value = 'basic'
     return false
   }
 
@@ -1668,10 +1651,10 @@ const buildSubmitData = () => {
   }
 
   // 建库模式：模型/向量存储/解析引擎/分块/图像/音频/图谱/高级/存储等分区，
-  // 以及问答类型的 FAQ 索引策略，已从建库菜单移除，统一由平台「知识库设置」
-  // 默认页维护。这里不下发这些字段，后端 ApplyTo 会套用平台默认值（仅填空
-  // 字段，API/MCP 显式值优先）。保留基本信息：name/description/type、索引策略
-  // indexing_strategy、Wiki 开关 wiki_config。
+  // 已从建库菜单移除，统一由平台「知识库设置」默认页维护。这里不下发这些
+  // 字段，后端 ApplyTo 会套用平台默认值（仅填空字段，API/MCP 显式值优先）。
+  // 保留基本信息：name/description/type、索引策略 indexing_strategy、Wiki 开关
+  // wiki_config，以及问答库建库时用户自选的 faq_config。
   if (editorMode.value === 'create') {
     const platformManaged = [
       'chunking_config',
@@ -1681,7 +1664,7 @@ const buildSubmitData = () => {
       'asr_config',
       'storage_backend_id', 'storage_provider_config', 'storage_config',
       'question_generation_config', 'auto_tag_config', 'profile_config',
-      'extract_config', 'faq_config',
+      'extract_config',
     ]
     for (const key of platformManaged) {
       delete (data as Record<string, unknown>)[key]
@@ -2316,14 +2299,9 @@ watch(() => chatResources.allModels, (list) => {
   color: var(--td-text-color-placeholder);
 }
 
-.faq-guide {
-  margin-top: 20px;
-  padding: 12px 16px;
-  border-radius: var(--app-radius-md);
-  background: var(--td-bg-color-secondarycontainer);
-  color: var(--td-text-color-secondary);
-  font-size: var(--app-text-md);
-  line-height: 20px;
+// 建库时内联的 FAQ 索引策略：紧跟类型选择，与文档库的「索引策略」同位。
+.faq-inline-settings {
+  margin-bottom: 16px;
 }
 
 // 过渡动画

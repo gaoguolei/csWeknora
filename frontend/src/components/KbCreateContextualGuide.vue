@@ -118,11 +118,12 @@ const guideSteps = computed<SpotlightGuideStep[]>(() => {
       },
     )
   } else {
+    // 建库态的 FAQ 索引策略已内联到基本信息里（不再有侧栏 FAQ 分区）。
     steps.push({
       key: 'faq',
-      target: '[data-guide="kb-editor-nav-faq"]',
+      target: '[data-guide="kb-create-faq"]',
       placement: 'right',
-      before: () => focusKbEditorSection('faq'),
+      before: () => focusKbEditorSection('basic'),
       optional: true,
     })
   }

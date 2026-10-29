@@ -281,6 +281,7 @@
       <p class="section-description">
         {{ $t("tenantMember.sectionDescription") }}
         <a
+          v-if="DOCS_LINKS_ENABLED"
           class="doc-link"
           :href="docsUrl('tenantAuth')"
           target="_blank"
@@ -868,7 +869,7 @@ import {
   revokeInvitation,
   type TenantInvitation,
 } from "@/api/tenant/invitations";
-import { docsUrl } from "@/utils/docsUrl";
+import { DOCS_LINKS_ENABLED, docsUrl } from "@/utils/docsUrl";
 import {
   listAuditLog,
   type AuditLog,
