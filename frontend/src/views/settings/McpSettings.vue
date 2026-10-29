@@ -268,6 +268,12 @@ defineExpose({ openAdd: handleAdd })
 
 .mcp-settings {
   width: 100%;
+  // 与技能管理页同理：外层 .content-wrapper--resource-list 是 overflow: hidden，
+  // 页面得自己建滚动容器，否则服务一多就被裁掉且看不到滚动条。
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .section-header {
@@ -295,6 +301,24 @@ defineExpose({ openAdd: handleAdd })
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   gap: 10px;
   align-items: stretch;
+  // 列表自身可滚动（配合上面 .mcp-settings 的 flex 列）；
+  // align-content: start 避免行高被拉满整个容器。
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  align-content: start;
+  padding-right: 4px;
+  padding-bottom: 40px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--td-gray-color-5);
+    border-radius: 3px;
+  }
 }
 
 .service-card {

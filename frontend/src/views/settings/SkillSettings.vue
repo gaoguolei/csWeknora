@@ -1378,6 +1378,13 @@ onUnmounted(() => {
 
 .skill-settings {
   width: 100%;
+  // 设置弹窗里由列表区自己滚动：外层 .content-wrapper--resource-list 是
+  // overflow: hidden，这里不限定高度、列表不建滚动容器的话，技能一多就会被裁掉，
+  // 右侧也不会出现任何滚动条。
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .skill-settings__scripts-off {
@@ -1469,6 +1476,24 @@ onUnmounted(() => {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   gap: 12px;
   align-items: stretch;
+  // 列表自身可滚动（配合上面 .skill-settings 的 flex 列）；
+  // align-content: start 避免行高被拉满整个容器。
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  align-content: start;
+  padding-right: 4px;
+  padding-bottom: 40px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--td-gray-color-5);
+    border-radius: 3px;
+  }
 }
 
 .skill-card {
