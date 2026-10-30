@@ -301,8 +301,7 @@ defineExpose({ openAdd: handleAdd })
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   gap: 10px;
   align-items: stretch;
-  // 列表自身可滚动（配合上面 .mcp-settings 的 flex 列）；
-  // align-content: start 避免行高被拉满整个容器。
+  grid-auto-rows: max-content;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -325,7 +324,8 @@ defineExpose({ openAdd: handleAdd })
   display: flex;
   flex-direction: column;
   min-width: 0;
-  height: 100%;
+  // 同行等高由 .services-grid 的 align-items: stretch 负责，不能再写 height: 100%，
+  // 否则卡片高度会脱离内容，底部状态行被 overflow 裁掉。
   padding: 0;
   overflow: hidden;
   border: 1px solid var(--td-component-stroke);

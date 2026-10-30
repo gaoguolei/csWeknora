@@ -1478,6 +1478,7 @@ onUnmounted(() => {
   align-items: stretch;
   // 列表自身可滚动（配合上面 .skill-settings 的 flex 列）；
   // align-content: start 避免行高被拉满整个容器。
+  grid-auto-rows: max-content;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
