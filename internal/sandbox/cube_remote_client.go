@@ -29,6 +29,7 @@ type CubeRemoteClient struct {
 	client        *cubesandbox.Client
 	sandboxDomain string
 	httpTimeout   time.Duration
+	capacityWait  time.Duration
 
 	// wsDialer supplies the shared transport and routing domain for project previews.
 	wsDialer *WebsocketDialer
@@ -56,6 +57,10 @@ func NewCubeRemoteClientWithPool(
 ) (*CubeRemoteClient, error) {
 	if config == nil {
 		return nil, errors.New("cube remote client config is required")
+	}
+	capacityWait, err := cubeCapacityWaitFromEnv()
+	if err != nil {
+		return nil, err
 	}
 	httpTimeout := config.CubeHTTPTimeout
 	if httpTimeout <= 0 {
@@ -106,6 +111,7 @@ func NewCubeRemoteClientWithPool(
 		),
 		sandboxDomain: config.CubeSandboxDomain,
 		httpTimeout:   httpTimeout,
+		capacityWait:  capacityWait,
 		wsDialer:      wsDialer,
 		inboundTokens: pool.InboundTokens(),
 	}, nil
@@ -543,9 +549,10 @@ func (c *CubeRemoteClient) Create(
 			"autoResume": autoResume,
 		}
 	}
-	sb, err := c.client.Create(ctx, opts)
+	sb, err := waitForCubeCapacity(ctx, "Create", c.capacityWait, 2*time.Second,
+		func(callCtx context.Context) (*cubesandbox.Sandbox, error) { return c.client.Create(callCtx, opts) })
 	if err != nil {
-		return nil, normalizeCubeError("Create", err)
+		return nil, err
 	}
 	if sb == nil || sb.SandboxID == "" {
 		return nil, errors.New("cube api: create sandbox: empty sandboxID")
@@ -566,9 +573,12 @@ func (c *CubeRemoteClient) Connect(
 	if sandboxID == "" {
 		return nil, cubeInvalidRequest("Connect", "sandbox ID is required", nil)
 	}
-	sb, err := c.client.Connect(ctx, sandboxID)
+	sb, err := waitForCubeCapacity(ctx, "Connect", c.capacityWait, 2*time.Second,
+		func(callCtx context.Context) (*cubesandbox.Sandbox, error) {
+			return c.client.Connect(callCtx, sandboxID)
+		})
 	if err != nil {
-		return nil, normalizeCubeError("Connect", err)
+		return nil, err
 	}
 	if sb == nil || sb.SandboxID == "" {
 		return nil, NewRemoteError(
@@ -692,12 +702,16 @@ func (c *CubeRemoteClient) Exec(
 		request.User = DefaultSandboxExecUser
 	}
 
-	execCtx := ctx
-	cancel := func() {}
-	if request.Timeout > 0 {
-		execCtx, cancel = context.WithTimeout(ctx, request.Timeout)
-	}
+	// Always own a cancellable context, including commands with no explicit
+	// timeout, so the keepalive stops as soon as execution returns.
+	execCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	if request.Timeout > 0 {
+		var timeoutCancel context.CancelFunc
+		execCtx, timeoutCancel = context.WithTimeout(execCtx, request.Timeout)
+		defer timeoutCancel()
+	}
+	c.StartTTLRefresh(execCtx, handle)
 
 	line := request.Command
 	if !request.Shell {
@@ -1186,6 +1200,16 @@ func normalizeCubeError(op string, err error) error {
 		case errors.As(err, &apiErr):
 			kind = httpErrorKind(op, apiErr.StatusCode)
 			status = apiErr.StatusCode
+			// CubeMaster's scheduler rejects before allocation with 130597.
+			// Some CubeAPI versions surface it as HTTP 500 rather than 429.
+			// Restrict this to admission operations and explicit rejection;
+			// ordinary 5xx and transport failures must not retry Create.
+			if (op == "Create" || op == "Connect") && (status == 500 || status == 503) {
+				message := strings.ToLower(strings.TrimSpace(apiErr.Message))
+				if message == "no more resource" || (strings.Contains(message, "130597") && strings.Contains(message, "no more resource")) {
+					kind = RemoteErrorKindCapacity
+				}
+			}
 		case errors.As(err, &netErr) && netErr.Timeout():
 			kind = RemoteErrorKindTimeout
 		case errors.As(err, &netErr):

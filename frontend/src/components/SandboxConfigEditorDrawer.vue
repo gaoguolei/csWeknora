@@ -403,7 +403,7 @@
               <t-form-item :label="$t('settings.sandbox.sandboxTtl')"
                 :tips="$t('settings.sandbox.sandboxTtlHelp')">
                 <t-input-number v-if="backend === 'cube'" v-model="cube.cube_sandbox_ttl_seconds"
-                  :min="0" theme="column" placeholder="1800" />
+                  :min="0" theme="column" placeholder="300" />
                 <t-input-number v-else v-model="e2b.e2b_sandbox_ttl_seconds" :min="0"
                   theme="column" placeholder="300" />
               </t-form-item>

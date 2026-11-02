@@ -88,10 +88,9 @@ const (
 	// DefaultCubeSandboxDomain is the sandbox routing domain configured on
 	// CubeProxy (matches CUBE_API_SANDBOX_DOMAIN in the Cube deployment).
 	DefaultCubeSandboxDomain = "cube.app"
-	// DefaultCubeSandboxTTL is the Cube-side sandbox lifetime hint (in seconds)
-	// requested at creation; the sandbox is torn down by CubeMaster if the
-	// client goes silent for longer than this value.
-	DefaultCubeSandboxTTL = 30 * time.Minute
+	// DefaultCubeSandboxTTL pauses idle sessions promptly. Active commands and
+	// terminals renew their TTL; pause retains disk and Connect resumes it.
+	DefaultCubeSandboxTTL = 5 * time.Minute
 	// DefaultCubeHTTPTimeout bounds a single HTTP call to the CubeAPI
 	// (excluding user script execution which has its own per-call timeout).
 	DefaultCubeHTTPTimeout = 30 * time.Second

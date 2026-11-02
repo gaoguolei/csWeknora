@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/Tencent/WeKnora/internal/types"
+	cubesandbox "github.com/tencentcloud/CubeSandbox/sdk/go"
 )
 
 const (
@@ -578,4 +579,58 @@ func newIntegrationManager(t *testing.T) *SessionBoundManager {
 // when resolving session-scoped operations.
 func integrationTenantContext(parent context.Context) context.Context {
 	return context.WithValue(parent, types.TenantIDContextKey, uint64(1))
+}
+
+// Creates and deletes only its own disposable sandbox. No existing session is
+// paused or removed. Run explicitly with the integration build tag.
+func TestCubePauseResumeWorkspaceIntegration(t *testing.T) {
+	cfg := integrationConfig(t)
+	cfg.CubeAPIKey = os.Getenv("CUBE_API_KEY")
+	cfg.AllowPrivateEndpoints = true
+	client, err := NewCubeRemoteClient(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	handle, err := client.Create(ctx, RemoteCreateRequest{
+		TemplateID: cfg.CubeTemplate,
+		Metadata:   map[string]string{"weknora_capacity_probe": "pause-resume"},
+		Timeout:    RemoteTimeoutPolicy{Mode: RemoteTimeoutExplicit, Value: 5 * time.Minute, Action: RemoteOnTimeoutPause, AutoResume: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, stop := context.WithTimeout(context.Background(), time.Minute)
+		defer stop()
+		if err := client.Delete(cleanupCtx, handle.ID()); err != nil {
+			t.Errorf("delete probe %s: %v", handle.ID(), err)
+		}
+	})
+	target := "/workspace/.weknora-capacity-probe.txt"
+	payload := []byte("workspace survives pause and resume\n")
+	if err := client.WriteFile(ctx, handle, target, payload); err != nil {
+		t.Fatal(err)
+	}
+	wait := true
+	if err := handle.(*cubeRemoteHandle).sb.Pause(ctx, cubesandbox.PauseOptions{Wait: &wait, Timeout: time.Minute}); err != nil {
+		t.Fatal(err)
+	}
+	t.Log("disposable sandbox reached paused state")
+	resumed, err := client.Connect(ctx, RemoteConnectRequest{SandboxID: handle.ID()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resumed.ID() != handle.ID() {
+		t.Fatal("resume changed sandbox identity")
+	}
+	content, err := client.ReadFile(ctx, resumed, target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(payload, content) {
+		t.Fatal("workspace file did not survive pause/resume")
+	}
+	t.Log("same sandbox resumed; workspace file preserved")
 }
