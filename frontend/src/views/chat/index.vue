@@ -648,8 +648,8 @@ const workspaceRevision = ref(0);
 const workspacePath = ref("");
 const workspaceFileView = ref("source");
 const workspaceRuns = computed(() => collectWorkspaceRuns(messagesList));
-// Only a newly started conversation may reveal the panel on its first live
-// file output. History restore, stream reattachment and later sends never arm it.
+// A coding send may reveal the panel when workspace output arrives.
+// History restore and stream reattachment never arm it.
 let workspaceAutoRevealPending = false;
 // Collect this turn's signals to select its final result in an already open panel.
 let workspaceTurnSignals = [];
@@ -715,10 +715,11 @@ function openCompletedWorkspacePanel() {
     !decision ||
     composerMode.value === 'chat' ||
     props.embeddedMode ||
-    !sandboxPanel.visible.value ||
+    (!sandboxPanel.visible.value && !workspaceAutoRevealPending) ||
     !sandboxPanel.autoOpenAllowed.value
   )
     return;
+  workspaceAutoRevealPending = false;
   if (decision.path && decision.path !== workspacePath.value) {
     workspacePath.value = decision.path;
     workspaceRevision.value++;
@@ -1623,7 +1624,7 @@ const {
   onTurnComplete: (message) => {
     void loadFollowUpSuggestions(message, true);
     void flushSteerAfterTurn(persistedAssistantId(message));
-    // 已展开的面板在本轮结束后聚焦产物，收起的面板保持收起。
+    // 本轮产出可自动展开；用户在本轮手动关闭后保持收起。
     openCompletedWorkspacePanel();
   },
 });
@@ -2055,6 +2056,8 @@ const sendMsg = async (
 ) => {
   if (composerLocked.value) return;
   workspaceTurnSignals = [];
+  workspaceAutoRevealPending = !props.embeddedMode && composerMode.value === 'coding';
+  if (workspaceAutoRevealPending) sandboxPanel.autoOpenAllowed.value = true;
   const intent = workspaceIntentFromPrompt(
     value,
     workspaceIntent(route.query.mode),
@@ -2495,8 +2498,6 @@ onMounted(async () => {
   isReplying.value = false;
 
   if (firstQuery.value) {
-    workspaceAutoRevealPending = !props.embeddedMode;
-    sandboxPanel.autoOpenAllowed.value = true;
     scrollLock.value = true;
     historyLoading.value = false;
     if (firstModelId.value) {
