@@ -961,6 +961,7 @@ func TestSessionFileLookupsReportReclaimedSandbox(t *testing.T) {
 		Config:          cfg,
 		Client:          client,
 		Store:           store,
+		Checker:         &fakeSessionExistenceChecker{exists: true},
 		SkipHealthProbe: true,
 	})
 	require.NoError(t, err)
@@ -973,11 +974,13 @@ func TestSessionFileLookupsReportReclaimedSandbox(t *testing.T) {
 	// binding row survives, which is exactly the production shape: Cube's TTL
 	// removes the sandbox while Redis keeps the pointer to it.
 	_, err = store.Create(ctx, key, SessionSandboxBinding{
-		Version:   1,
-		Provider:  client.Provider(),
-		TenantID:  10000,
-		SessionID: key.SessionID,
-		SandboxID: created.ID(),
+		Version:    1,
+		Provider:   client.Provider(),
+		TenantID:   10000,
+		SessionID:  key.SessionID,
+		SandboxID:  created.ID(),
+		TemplateID: cfg.CubeTemplate,
+		CreatedAt:  time.Now().UTC(),
 	})
 	require.NoError(t, err)
 	client.mu.Lock()

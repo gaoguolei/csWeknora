@@ -1,4 +1,4 @@
-import { del, get, post } from "../../utils/request";
+import { del, get, post, put } from "../../utils/request";
 
 export type SteerDelivery = 'inject' | 'after'
 
@@ -57,4 +57,14 @@ export async function listSteerSession(session_id: string) {
 /** Drop a queued overlay item so it is neither injected nor sent as a follow-up. */
 export async function removeSteerSession(session_id: string, steer_id: string) {
   return del(`/api/v1/sessions/${session_id}/steer/${steer_id}`);
+}
+
+export type ToolApprovalMode = 'auto' | 'manual' | 'accept_edits' | 'plan' | 'bypass'
+
+export async function updateToolApprovalMode(sessionId: string, mode: ToolApprovalMode, assistantMessageId?: string) {
+  return put<{ success: boolean; data: { mode: ToolApprovalMode; applied: boolean } }>(
+    `/api/v1/sessions/${encodeURIComponent(sessionId)}/tool-approval-mode`,
+    { mode, expected_assistant_message_id: assistantMessageId },
+    { timeout: 10_000 },
+  )
 }

@@ -1158,7 +1158,7 @@ func (s *agentService) registerTools(
 		// If no knowledge and no web search, todo_write is not useful for a
 		// simple chat. Coding sessions and an explicit Plan selection keep their
 		// task list inside the existing Agent loop.
-		if !config.WebSearchEnabled && !config.CodingMode && config.ToolApprovalMode != types.ToolApprovalPlan {
+		if !config.WebSearchEnabled && !config.CodingMode && config.ToolApprovalMode != types.ToolApprovalPlan && config.ToolApprovalPolicy == nil {
 			kbTools[tools.ToolTodoWrite] = true
 		}
 
@@ -1283,7 +1283,7 @@ func (s *agentService) registerTools(
 			toolToRegister = tools.NewSequentialThinkingTool()
 		case tools.ToolTodoWrite:
 			toolToRegister = tools.NewTodoWriteTool()
-			if config.CodingMode || config.ToolApprovalMode == types.ToolApprovalPlan {
+			if config.CodingMode || config.ToolApprovalMode == types.ToolApprovalPlan || config.ToolApprovalPolicy != nil {
 				toolToRegister = tools.NewExecutionTodoWriteTool()
 			}
 		case tools.ToolSearchKnowledge:

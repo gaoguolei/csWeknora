@@ -84,6 +84,8 @@ func (e *AgentEngine) approveTaskPlan(ctx context.Context, name string, args jso
 		ServiceName: "WeKnora", MCPToolName: "approve_plan", RegisteredToolName: agenttools.ToolTodoWrite,
 		Description: "Review and approve the proposed task plan before execution.",
 		Args:        args, ToolCallID: meta.ToolCallID,
+		Policy:          e.config.ToolApprovalPolicy,
+		CanSkipApproval: func(mode types.ToolApprovalMode) bool { return mode != types.ToolApprovalPlan },
 	})
 	if err != nil {
 		return nil, fmt.Errorf("task plan approval failed: %w", err)

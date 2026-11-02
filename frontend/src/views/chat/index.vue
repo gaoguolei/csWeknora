@@ -525,7 +525,6 @@ import {
   lastWorkspaceSignal,
 } from "@/utils/workspaceEvents";
 import BrowserTaskPreview from "./components/BrowserTaskPreview.vue";
-import { deleteMessageArtifact } from "@/api/chat";
 import {
   collectSessionArtifacts,
   markSessionArtifactDeleted,
@@ -1036,35 +1035,6 @@ async function refreshTestReportArtifacts() {
   }
 }
 
-// Auto-delete old workspace-source.zip artifacts, keeping only the latest.
-watch(
-  () => sessionArtifacts.value,
-  (artifacts) => {
-    const zips = artifacts.filter(
-      (a) => a.file_name === "workspace-source.zip",
-    );
-    if (zips.length <= 1) return;
-    // Messages are ordered oldest-first, so the last entry is the newest backup.
-    // Delete each older row individually: the library endpoint defaults to
-    // all_versions, which would also remove the latest backup we keep.
-    const older = zips.slice(0, -1);
-    for (const old of older) {
-      const sid = session_id.value;
-      if (!sid || !old.messageId) continue;
-      deleteMessageArtifact(sid, old.messageId, old.index, false)
-        .then(() => {
-          // Tombstone the row so the panel drops it without a refetch. The
-          // flag is keyed by message+index, so it stays valid even when a
-          // newer zip arrives while this delete is in flight.
-          markSessionArtifactDeleted(messagesList, old.messageId, old.index);
-        })
-        .catch(() => {
-          // best-effort: if the delete fails the stale zip stays in the list
-        });
-    }
-  },
-  { deep: true },
-);
 // The panel already deleted the file server side; flag it in the loaded
 // history so the computed drops it without reloading the conversation.
 function handleArtifactDeleted({ messageId, index }) {
@@ -2411,6 +2381,11 @@ watch(error, (newError) => {
 });
 
 onChunk((data) => {
+  if (!props.embeddedMode && data.response_type === 'tool_approval_mode_applied') {
+    const mode = data.data?.tool_approval_mode;
+    if (['auto', 'manual', 'accept_edits', 'plan', 'bypass'].includes(mode))
+      useSettingsStoreInstance.toolApprovalMode = mode;
+  }
   const workspaceSignal = !props.embeddedMode
     ? workspaceToolSignal(data)
     : null;

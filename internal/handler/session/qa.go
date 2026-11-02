@@ -58,6 +58,7 @@ type qaRequestContext struct {
 	summaryModelID        string
 	reasoningEffort       string
 	toolApprovalMode      types.ToolApprovalMode
+	toolApprovalPolicy    *types.ToolApprovalPolicy
 	localBrowserEnabled   bool
 	webSearchEnabled      bool
 	mentionedItems        types.MentionedItems
@@ -115,6 +116,7 @@ func (rc *qaRequestContext) buildQARequest() *types.QARequest {
 		SummaryModelID:      rc.summaryModelID,
 		ReasoningEffort:     rc.reasoningEffort,
 		ToolApprovalMode:    rc.toolApprovalMode,
+		ToolApprovalPolicy:  rc.toolApprovalPolicy,
 		CustomAgent:         rc.customAgent,
 		SharedAgentReadOnly: rc.sharedAgentReadOnly,
 		KnowledgeBaseIDs:    rc.knowledgeBaseIDs,
@@ -815,6 +817,11 @@ func (h *Handler) setupSSEStream(reqCtx *qaRequestContext, generateTitle bool, m
 		reqCtx.assistantMessage,
 	)
 
+	// A per-turn policy is shared with the engine and the distributed control watcher.
+	if reqCtx.toolApprovalPolicy == nil {
+		reqCtx.toolApprovalPolicy = types.NewToolApprovalPolicy(reqCtx.toolApprovalMode)
+	}
+
 	// Setup stop event handler
 	h.setupStopEventHandler(eventBus, reqCtx.sessionID, reqCtx.session.TenantID, reqCtx.assistantMessage, cancel)
 
@@ -827,7 +834,11 @@ func (h *Handler) setupSSEStream(reqCtx *qaRequestContext, generateTitle bool, m
 	// background goroutine, whereas AgentQA blocks until done). Use a
 	// connection-independent context derived from baseCtx so it survives the
 	// client disconnect.
-	h.startStopWatcher(logger.CloneContext(baseCtx), reqCtx.sessionID, reqCtx.assistantMessage.ID, eventBus)
+	h.startStopWatcher(logger.CloneContext(baseCtx), reqCtx.sessionID, reqCtx.assistantMessage.ID, eventBus,
+		func(ctx context.Context, mode types.ToolApprovalMode) {
+			reqCtx.toolApprovalPolicy.Set(mode)
+			h.persistLastRequestState(ctx, reqCtx, qaModeAgent)
+		})
 
 	// Setup stream handler
 	streamCtx.streamHandler = h.setupStreamHandler(asyncCtx, reqCtx.sessionID, reqCtx.assistantMessage.ID,
@@ -1239,6 +1250,10 @@ func (h *Handler) holdQATurn(ctx context.Context, reqCtx *qaRequestContext) (fun
 func (h *Handler) executeQA(reqCtx *qaRequestContext, mode qaMode, generateTitle bool) {
 	ctx := reqCtx.ctx
 	sessionID := reqCtx.sessionID
+
+	if reqCtx.toolApprovalPolicy == nil {
+		reqCtx.toolApprovalPolicy = types.NewToolApprovalPolicy(reqCtx.toolApprovalMode)
+	}
 
 	// Persist the input-bar state used for this request so reopening the
 	// session can rehydrate agent / model / KB / web-search / MCP selections.
@@ -1951,8 +1966,16 @@ func (h *Handler) persistLastRequestState(parentCtx context.Context, reqCtx *qaR
 		LocalBrowserEnabled: reqCtx.localBrowserEnabled,
 	}
 
-	if err := h.sessionService.UpdateSessionLastRequestState(ctx, reqCtx.sessionID, state); err != nil {
-		logger.Warnf(ctx, "persist last_request_state failed for session %s: %v", reqCtx.sessionID, err)
+	persist := func(mode types.ToolApprovalMode) {
+		state.ToolApprovalMode = mode
+		if err := h.sessionService.UpdateSessionLastRequestState(ctx, reqCtx.sessionID, state); err != nil {
+			logger.Warnf(ctx, "persist last_request_state failed for session %s: %v", reqCtx.sessionID, err)
+		}
+	}
+	if reqCtx.toolApprovalPolicy != nil {
+		reqCtx.toolApprovalPolicy.WithMode(persist)
+	} else {
+		persist(reqCtx.toolApprovalMode)
 	}
 }
 
@@ -2137,4 +2160,11 @@ func (h *Handler) recordAnswerSources(ctx context.Context, assistantMessage *typ
 		})
 	}
 	h.memoryService.RecordAnswerSources(ctx, refs)
+}
+
+func (rc *qaRequestContext) currentToolApprovalMode() types.ToolApprovalMode {
+	if rc.toolApprovalPolicy != nil {
+		return rc.toolApprovalPolicy.Current()
+	}
+	return rc.toolApprovalMode
 }

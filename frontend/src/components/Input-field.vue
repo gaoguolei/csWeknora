@@ -3690,7 +3690,8 @@ defineExpose({
           </t-tooltip>
 
           <ToolApprovalModeSelector v-if="!embeddedMode && isAgentEnabled"
-            :disabled="composerLocked || isReplying" />
+            :session-id="sessionId" :assistant-message-id="assistantMessageId"
+            :disabled="composerLocked || (isReplying && !assistantMessageId)" />
 
           <!-- 模型显示 -->
           <t-tooltip

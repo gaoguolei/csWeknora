@@ -947,6 +947,8 @@ func (h *Handler) claimNextSteerFollowUp(
 		prevReqCtx.sessionID, len(backlog), len(injected))
 
 	followUp := *prevReqCtx
+	followUp.toolApprovalMode = prevReqCtx.currentToolApprovalMode()
+	followUp.toolApprovalPolicy = nil
 	followUp.ctx = ctx
 	followUp.query = first.Content
 	followUp.userInput = first.Content

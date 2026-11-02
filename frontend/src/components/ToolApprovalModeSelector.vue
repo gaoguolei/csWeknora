@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { MessagePlugin } from 'tdesign-vue-next'
+import { updateToolApprovalMode } from '@/api/chat/steer'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
 
-const props = defineProps<{ disabled?: boolean }>()
+const props = defineProps<{ disabled?: boolean; sessionId?: string; assistantMessageId?: string }>()
 const { t } = useI18n()
 const settings = useSettingsStore()
 const visible = ref(false)
+const submitting = ref(false)
 const modes = [
   { value: 'auto', key: 'auto', icon: 'check-circle' },
   { value: 'manual', key: 'manual', icon: 'secured' },
@@ -16,17 +19,28 @@ const modes = [
 ] as const
 const selectedMode = computed(() => modes.find(mode => mode.value === settings.toolApprovalMode) || modes[0])
 const modeLabel = computed(() => t('agentStream.toolApproval.modeLabel'))
-const select = (mode: typeof modes[number]['value']) => {
-  if (props.disabled) return
-  settings.toolApprovalMode = mode
+const select = async (mode: typeof modes[number]['value']) => {
+  if (props.disabled || submitting.value) return
   visible.value = false
+  if (mode === settings.toolApprovalMode) return
+  const sessionId = props.sessionId
+  submitting.value = true
+  try {
+    if (sessionId) await updateToolApprovalMode(sessionId, mode, props.assistantMessageId)
+    if (props.sessionId === sessionId) settings.toolApprovalMode = mode
+  } catch (error: any) {
+    MessagePlugin.error(error?.response?.data?.error?.message || error?.message || t('agentStream.toolApproval.submitFailed'))
+  } finally {
+    submitting.value = false
+  }
 }
+
 </script>
 
 <template>
-  <t-popup v-model:visible="visible" trigger="click" placement="top-left" :disabled="disabled"
+  <t-popup v-model:visible="visible" trigger="click" placement="top-left" :disabled="disabled || submitting"
     :overlay-inner-style="{ padding: '6px', borderRadius: 'var(--app-radius-lg)' }">
-    <button type="button" class="approval-trigger" :disabled="disabled" aria-haspopup="menu"
+    <button type="button" class="approval-trigger" :disabled="disabled || submitting" aria-haspopup="menu"
       :aria-expanded="visible" :aria-label="`${modeLabel}: ${t(`agentStream.toolApproval.${selectedMode.key}Mode`)}`"
       @keydown.esc="visible = false">
       <t-icon :name="selectedMode.icon" size="14px" />
@@ -38,7 +52,7 @@ const select = (mode: typeof modes[number]['value']) => {
         @keydown.esc="visible = false">
         <div class="approval-menu-heading">{{ t('agentStream.toolApproval.sessionPermissions') }}</div>
         <button v-for="mode in modes" :key="mode.value" type="button" role="menuitemradio"
-          :aria-checked="selectedMode.value === mode.value" :disabled="disabled"
+          :aria-checked="selectedMode.value === mode.value" :disabled="disabled || submitting"
           class="approval-option" @click="select(mode.value)">
           <span class="option-copy">
             <strong>{{ t(`agentStream.toolApproval.${mode.key}Mode`) }}</strong>

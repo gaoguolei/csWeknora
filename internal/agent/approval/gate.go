@@ -15,6 +15,7 @@ import (
 	"github.com/Tencent/WeKnora/internal/config"
 	"github.com/Tencent/WeKnora/internal/event"
 	"github.com/Tencent/WeKnora/internal/logger"
+	"github.com/Tencent/WeKnora/internal/types"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
@@ -85,6 +86,8 @@ type Decision struct {
 
 // PendingRequest carries everything needed to block and notify the UI.
 type PendingRequest struct {
+	Policy             *types.ToolApprovalPolicy
+	CanSkipApproval    func(types.ToolApprovalMode) bool
 	TenantID           uint64
 	UserID             string // owner of the session that initiated the call (used for Resolve authorization); empty disables user check
 	SessionID          string
@@ -413,17 +416,33 @@ func (g *Gate) RequestAndWait(ctx context.Context, req PendingRequest) (Decision
 		})
 	}
 
-	var d Decision
-	select {
-	case d = <-w.ch:
-		emitResolved(d)
-		return d, nil
-	case <-ctx.Done():
-		d = Decision{Approved: false, Reason: "request canceled", ContextCanceled: true}
-		_ = w.deliver(d)
-		d = <-w.ch
-		emitResolved(d)
-		return d, nil
+	for {
+		var changed <-chan struct{}
+		if req.Policy != nil && req.CanSkipApproval != nil {
+			mode, next := req.Policy.Snapshot()
+			changed = next
+			if ctx.Err() == nil && req.CanSkipApproval(mode) {
+				// Service-policy checks can block. Do not approve from a stale
+				// relaxed mode after a stricter update was acknowledged.
+				req.Policy.WithMode(func(current types.ToolApprovalMode) {
+					if current == mode && ctx.Err() == nil {
+						_ = w.deliver(Decision{Approved: true, Reason: "permission mode changed"})
+					}
+				})
+			}
+		}
+		select {
+		case d := <-w.ch:
+			emitResolved(d)
+			return d, nil
+		case <-changed:
+			continue
+		case <-ctx.Done():
+			_ = w.deliver(Decision{Approved: false, Reason: "request canceled", ContextCanceled: true})
+			d := <-w.ch
+			emitResolved(d)
+			return d, nil
+		}
 	}
 }
 

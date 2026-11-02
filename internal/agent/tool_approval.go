@@ -22,7 +22,7 @@ func (e *AgentEngine) SetToolApprovalGate(gate approval.MCPApproval) {
 // MCP tools gate the concrete server call themselves, including calls through
 // discovery proxies. Builtins are gated here before starting their exec timeout.
 func (e *AgentEngine) approveBuiltinTool(ctx context.Context, name string, args json.RawMessage) (json.RawMessage, error) {
-	mode := e.config.ToolApprovalMode
+	mode := e.currentToolApprovalMode()
 	if mode == types.ToolApprovalPlan {
 		var err error
 		args, err = e.approveTaskPlan(ctx, name, args)
@@ -62,6 +62,8 @@ func (e *AgentEngine) approveBuiltinTool(ctx context.Context, name string, args 
 		RequestID: meta.RequestID, EventBus: meta.EventBus,
 		ServiceName: "ThinkerFlow", MCPToolName: name, RegisteredToolName: name,
 		Description: tool.Description(), Args: args, ToolCallID: meta.ToolCallID,
+		Policy:          e.config.ToolApprovalPolicy,
+		CanSkipApproval: func(mode types.ToolApprovalMode) bool { return !builtinApprovalRequired(mode, name) },
 	})
 	if err != nil {
 		return nil, fmt.Errorf("tool approval failed: %w", err)
@@ -75,6 +77,10 @@ func (e *AgentEngine) approveBuiltinTool(ctx context.Context, name string, args 
 			return nil, fmt.Errorf("tool approval denied: %s", reason)
 		}
 		return nil, fmt.Errorf("%w: %s", errToolApprovalRejected, reason)
+	}
+	// A plan selected while this operation waited must be checked before execution.
+	if e.currentToolApprovalMode() == types.ToolApprovalPlan && mode != types.ToolApprovalPlan {
+		return e.approveBuiltinTool(ctx, name, args)
 	}
 	if len(decision.ModifiedArgs) > 0 {
 		var object map[string]any
@@ -114,4 +120,24 @@ func (e *AgentEngine) finishRejectedToolApproval(ctx context.Context, step types
 		return true
 	}
 	return false
+}
+
+func (e *AgentEngine) currentToolApprovalMode() types.ToolApprovalMode {
+	if e.config.ToolApprovalPolicy != nil {
+		return e.config.ToolApprovalPolicy.Current()
+	}
+	return e.config.ToolApprovalMode
+}
+
+func builtinApprovalRequired(mode types.ToolApprovalMode, name string) bool {
+	if mode != types.ToolApprovalManual && mode != types.ToolApprovalAcceptEdits {
+		return false
+	}
+	if mode == types.ToolApprovalAcceptEdits {
+		switch name {
+		case agenttools.ToolWriteSandboxFile, agenttools.ToolEditSandboxFile, agenttools.ToolEditKnowledgeFile:
+			return false
+		}
+	}
+	return true
 }

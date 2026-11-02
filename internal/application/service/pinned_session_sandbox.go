@@ -137,6 +137,13 @@ func (a *PinnedSessionSandbox) SessionFileStore(
 	if !ok || provider.SessionFileStore() == nil {
 		return nil, fmt.Errorf("sandbox: file access is unavailable for session %s", sessionID)
 	}
+	if recovery, ok := mgr.(interface {
+		RecoverSessionWorkspace(context.Context, string) error
+	}); ok {
+		if err := recovery.RecoverSessionWorkspace(ctx, sessionID); err != nil {
+			return nil, fmt.Errorf("sandbox: recover workspace: %w", err)
+		}
+	}
 	return provider.SessionFileStore(), nil
 }
 

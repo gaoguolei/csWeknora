@@ -51,3 +51,16 @@ type SessionCreateFailureHandler interface {
 type SessionBootstrapperWithClient interface {
 	WithClient(client RemoteSandboxClient) SessionBootstrapper
 }
+
+// SessionWorkspaceRecoveryChecker opts a bootstrapper into recovery during
+// explicit workspace access. Ordinary file tools and artifact collection stay
+// non-provisioning. A missing guest is recreated only with durable recovery data.
+type SessionWorkspaceRecoveryChecker interface {
+	CanRecoverWorkspace(context.Context, SessionSandboxKey) (bool, error)
+}
+
+// SessionWorkspaceRepairer fills missing durable artifacts in an existing guest
+// after an older recovery restored sources but omitted the output directory.
+type SessionWorkspaceRepairer interface {
+	RepairWorkspace(context.Context, SessionSandboxKey, RemoteSandboxHandle) error
+}

@@ -592,8 +592,9 @@ func (e *AgentEngine) runToolCall(
 		}
 	}
 	toolExecCtx := agenttools.WithToolExecContext(toolCtx, &agenttools.ToolExecContext{
-		RequireApproval:    e.config.ToolApprovalMode == types.ToolApprovalManual || e.config.ToolApprovalMode == types.ToolApprovalAcceptEdits,
-		BypassApproval:     e.config.ToolApprovalMode == types.ToolApprovalBypass,
+		Policy:             e.config.ToolApprovalPolicy,
+		RequireApproval:    e.currentToolApprovalMode() == types.ToolApprovalManual || e.currentToolApprovalMode() == types.ToolApprovalAcceptEdits,
+		BypassApproval:     e.currentToolApprovalMode() == types.ToolApprovalBypass,
 		SessionID:          sessionID,
 		AssistantMessageID: assistantMessageID,
 		EventBus:           e.eventBus,
@@ -635,7 +636,7 @@ func (e *AgentEngine) runToolCall(
 						result.Data = make(map[string]interface{})
 					}
 					e.planApprovalMu.Lock()
-					result.Data["plan_approved"] = e.config.ToolApprovalMode == types.ToolApprovalPlan && e.approvedPlan != nil && !e.planRejected
+					result.Data["plan_approved"] = e.currentToolApprovalMode() == types.ToolApprovalPlan && e.approvedPlan != nil && !e.planRejected
 					e.planApprovalMu.Unlock()
 				}
 			}

@@ -20,7 +20,7 @@ type planStepEvidence struct {
 // history loader attaches this metadata from successful server tool results;
 // assistant/user text cannot create an approved plan.
 func (e *AgentEngine) restoreTaskPlan(messages []chat.Message) {
-	if e.config.ToolApprovalMode != types.ToolApprovalPlan {
+	if e.currentToolApprovalMode() != types.ToolApprovalPlan {
 		return
 	}
 	e.planApprovalMu.Lock()
@@ -77,7 +77,7 @@ func firstUnfinishedTask(plan *agenttools.TodoWriteInput) int {
 }
 
 func (e *AgentEngine) planMustContinue() bool {
-	if e.config.ToolApprovalMode != types.ToolApprovalPlan {
+	if e.currentToolApprovalMode() != types.ToolApprovalPlan {
 		return false
 	}
 	e.planApprovalMu.Lock()
@@ -107,7 +107,7 @@ func (e *AgentEngine) incompletePlanSummary(ctx context.Context) string {
 // It is still bounded, and the existing stall/repetition guards still apply.
 func (e *AgentEngine) executionIterationLimit() int {
 	limit := e.config.MaxIterations
-	if limit <= 0 || e.config.ToolApprovalMode != types.ToolApprovalPlan {
+	if limit <= 0 || e.currentToolApprovalMode() != types.ToolApprovalPlan {
 		return limit
 	}
 	e.planApprovalMu.Lock()
@@ -121,7 +121,7 @@ func (e *AgentEngine) executionIterationLimit() int {
 // Keep the authoritative plan in every model request, even after history
 // compaction. This envelope is not added to persisted conversation messages.
 func (e *AgentEngine) withPlanExecutionState(messages []chat.Message) []chat.Message {
-	if e.config.ToolApprovalMode != types.ToolApprovalPlan {
+	if e.currentToolApprovalMode() != types.ToolApprovalPlan {
 		return messages
 	}
 	e.planApprovalMu.Lock()
@@ -169,7 +169,7 @@ func (e *AgentEngine) withPlanExecutionState(messages []chat.Message) []chat.Mes
 // Count only tools that actually reached the registry, never approval denials,
 // planning/thinking calls or invented progress based on prose.
 func (e *AgentEngine) recordPlanExecution(call types.ToolCall) {
-	if e.config.ToolApprovalMode != types.ToolApprovalPlan || call.Result == nil {
+	if e.currentToolApprovalMode() != types.ToolApprovalPlan || call.Result == nil {
 		return
 	}
 	switch call.Name {

@@ -367,6 +367,7 @@ func (h *Handler) startStopWatcher(
 	ctx context.Context,
 	sessionID, assistantMessageID string,
 	eventBus *event.EventBus,
+	approvalModeHandlers ...func(context.Context, types.ToolApprovalMode),
 ) {
 	go func() {
 		watchCtx, cancel := context.WithTimeout(ctx, stopWatcherMaxDuration)
@@ -389,6 +390,20 @@ func (h *Handler) startStopWatcher(
 				offset = newOffset
 				for _, evt := range events {
 					switch {
+					case evt.Type == types.ResponseTypeToolApprovalMode:
+						mode := types.ToolApprovalMode(getString(evt.Data, "tool_approval_mode"))
+						if mode == "" || !mode.Valid() {
+							continue
+						}
+						for _, apply := range approvalModeHandlers {
+							apply(watchCtx, mode)
+						}
+						if len(approvalModeHandlers) > 0 {
+							_ = h.streamManager.AppendEvent(watchCtx, sessionID, assistantMessageID, interfaces.StreamEvent{
+								ID: evt.ID + "-applied", Type: types.ResponseTypeToolApprovalModeApplied, Timestamp: time.Now(),
+								Data: map[string]interface{}{"tool_approval_mode": string(mode)},
+							})
+						}
 					case evt.Type == types.ResponseType(event.EventStop):
 						logger.Infof(watchCtx,
 							"Stop watcher detected stop event, cancelling generation for session=%s, message=%s",

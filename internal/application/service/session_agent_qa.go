@@ -378,6 +378,7 @@ func (s *sessionService) buildAgentConfig(
 		ParallelToolCalls: true,
 	}
 	agentConfig.ToolApprovalMode = req.ToolApprovalMode
+	agentConfig.ToolApprovalPolicy = req.ToolApprovalPolicy
 	applyRequestReasoningEffort(req.ReasoningEffort, &agentConfig.Thinking, &agentConfig.ReasoningEffort)
 	// An unset MCP mode means "all" at runtime, but the share scope and the
 	// agent UI both present it as none. A shared run must not hand receivers

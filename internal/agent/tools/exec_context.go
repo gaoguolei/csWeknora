@@ -5,12 +5,14 @@ import (
 	"time"
 
 	"github.com/Tencent/WeKnora/internal/event"
+	"github.com/Tencent/WeKnora/internal/types"
 )
 
 type execCtxKey struct{}
 
 // ToolExecContext is attached to context during agent tool execution (per tool call).
 type ToolExecContext struct {
+	Policy             *types.ToolApprovalPolicy
 	RequireApproval    bool // Per-turn manual approval, including MCP calls through discovery proxies.
 	BypassApproval     bool // Explicit session choice to skip confirmations; enabled-tool and access checks still apply.
 	SessionID          string

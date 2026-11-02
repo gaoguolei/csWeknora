@@ -63,6 +63,8 @@ type QuestionOrigin struct {
 // replacing the previous 14-parameter method signatures.
 // EventBus is passed separately to avoid circular dependency with the event package.
 type QARequest struct {
+	ToolApprovalPolicy *ToolApprovalPolicy `json:"-"`
+
 	Session             *Session           // The conversation session
 	Query               string             // User query text
 	AssistantMessageID  string             // Pre-created assistant message ID

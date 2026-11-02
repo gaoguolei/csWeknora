@@ -221,12 +221,7 @@ func BuildContainer(container *dig.Container) *dig.Container {
 	// for tenants that configured nothing.
 	must(container.Provide(service.NewTenantSandboxConfigLoader))
 	must(container.Provide(service.NewForkBootstrapperFromRepos))
-	must(container.Provide(func(b *service.ForkBootstrapper) sandbox.SessionBootstrapper {
-		if b == nil {
-			return nil
-		}
-		return b
-	}))
+	must(container.Provide(service.NewWorkspaceRecoveryBootstrapper))
 	must(container.Provide(newTenantSandboxResolver))
 
 	// Business service layer

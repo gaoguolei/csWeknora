@@ -63,13 +63,14 @@ export interface ProgrammingGitStatus {
 }
 const base = (sessionId: string) => `/api/v1/sessions/${encodeURIComponent(sessionId)}/programming`
 
+// Opening a reclaimed Cube workspace may first provision and restore its backup.
 export function getProgrammingTree(sessionId: string, path = '') {
   const query = path ? `?path=${encodeURIComponent(path)}` : ''
-  return get<{ success: boolean; data: ProgrammingTree }>(`${base(sessionId)}/tree${query}`)
+  return get<{ success: boolean; data: ProgrammingTree }>(`${base(sessionId)}/tree${query}`, { timeout: 180_000 })
 }
 
 export function getProgrammingGitStatus(sessionId: string) {
-  return get<{ success: boolean; data: ProgrammingGitStatus }>(`${base(sessionId)}/git-status`)
+  return get<{ success: boolean; data: ProgrammingGitStatus }>(`${base(sessionId)}/git-status`, { timeout: 180_000 })
 }
 
 export interface ProgrammingGitCommitResult {
@@ -248,7 +249,7 @@ export function pushProgrammingChanges(sessionId: string, repo = '', credentials
 }
 
 export function getProgrammingFile(sessionId: string, path: string) {
-  return get<{ success: boolean; data: ProgrammingFile }>(`${base(sessionId)}/file?path=${encodeURIComponent(path)}`)
+  return get<{ success: boolean; data: ProgrammingFile }>(`${base(sessionId)}/file?path=${encodeURIComponent(path)}`, { timeout: 180_000 })
 }
 
 export function saveProgrammingFile(sessionId: string, data: { path: string; content: string; base_hash?: string }) {

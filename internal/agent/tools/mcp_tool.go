@@ -170,6 +170,13 @@ func (t *MCPTool) Execute(ctx context.Context, args json.RawMessage) (*types.Too
 	// the exec metadata; read it once here so the OAuth prompt still works
 	// for tools that require approval.
 	execMeta, _ := ToolExecFromContext(ctx)
+	if execMeta != nil && execMeta.Policy != nil {
+		copy := *execMeta
+		mode := copy.Policy.Current()
+		copy.RequireApproval = mode == types.ToolApprovalManual || mode == types.ToolApprovalAcceptEdits
+		copy.BypassApproval = mode == types.ToolApprovalBypass
+		execMeta = &copy
+	}
 	if execMeta != nil && !execMeta.BypassApproval && execMeta.RequireApproval && (t.gate == nil || execMeta.EventBus == nil) {
 		return &types.ToolResult{Success: false, Error: "manual tool approval is unavailable; execution blocked"}, nil
 	}
@@ -202,6 +209,12 @@ func (t *MCPTool) Execute(ctx context.Context, args json.RawMessage) (*types.Too
 					Description:        t.mcpTool.Description,
 					Args:               args,
 					ToolCallID:         meta.ToolCallID,
+					Policy:             meta.Policy,
+					CanSkipApproval: func(mode types.ToolApprovalMode) bool {
+						return mode == types.ToolApprovalBypass ||
+							((mode != types.ToolApprovalManual && mode != types.ToolApprovalAcceptEdits) &&
+								!t.gate.NeedsApproval(waitCtx, tenantID, t.service.ID, t.mcpTool.Name))
+					},
 				})
 				if waitErr != nil {
 					return &types.ToolResult{

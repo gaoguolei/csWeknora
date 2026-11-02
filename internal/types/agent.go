@@ -148,8 +148,9 @@ type AgentConfig struct {
 	// Whether to enable thinking mode (for models that support extended thinking)
 	Thinking *bool `json:"thinking"`
 	// ReasoningEffort is the graded thinking level; empty falls back to Thinking.
-	ReasoningEffort  string           `json:"reasoning_effort,omitempty"`
-	ToolApprovalMode ToolApprovalMode `json:"tool_approval_mode,omitempty"`
+	ReasoningEffort    string              `json:"reasoning_effort,omitempty"`
+	ToolApprovalMode   ToolApprovalMode    `json:"tool_approval_mode,omitempty"`
+	ToolApprovalPolicy *ToolApprovalPolicy `json:"-"`
 	// Whether final answers include knowledge/web source citations. Nil defaults to true.
 	CitationEnabled *bool `json:"citation_enabled"`
 	// Whether to retrieve knowledge base only when explicitly mentioned with @ (default: false)
