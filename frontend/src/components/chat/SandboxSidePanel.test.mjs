@@ -17,7 +17,6 @@ test('preview has one entry before code, artifacts and terminal', () => {
   assert.doesNotMatch(panel, /chat-sandbox-panel__title|<h3/)
   view.stop()
 })
-
 test('web preview never queries or depends on desktop capabilities', () => {
   assert.doesNotMatch(panel, /getProgrammingPreviewCapabilities|desktop_enabled|desktopTabVisible|capabilityRefreshRevision/)
   assert.doesNotMatch(panel, /<SandboxDesktop\b|:enabled=|:loading="capabilitiesLoading"/)
@@ -130,3 +129,4 @@ test('testing exposes case documents, reports, artifacts and terminal without co
   assert.equal(view.state.terminalMounted.value, true)
   view.stop()
 })
+

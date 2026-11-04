@@ -243,6 +243,16 @@ const isArtifactTab = computed(() => panel?.activeTab.value === 'artifacts' ||
 const artifactTab = computed(() => isArtifactTab.value ? panel!.activeTab.value : 'artifacts');
 const caseArtifacts = computed(() => props.artifacts.filter(item => testingArtifactKind(item) === 'cases'));
 const reportArtifacts = computed(() => props.artifacts.filter(item => testingArtifactKind(item) === 'reports'));
+let autoOpenedCaseSession = '';
+watch(
+  () => [props.sessionId, testingMode.value, caseArtifacts.value.length] as const,
+  ([sessionId, isTesting, caseCount]) => {
+    if (!sessionId || !isTesting || caseCount === 0 || autoOpenedCaseSession === sessionId) return;
+    autoOpenedCaseSession = sessionId;
+    panel?.open('cases');
+  },
+  { immediate: true },
+);
 const displayedArtifacts = computed(() => artifactTab.value === 'cases' ? caseArtifacts.value :
   artifactTab.value === 'reports' ? reportArtifacts.value : props.artifacts);
 const artifactEmptyText = computed(() => artifactTab.value === 'cases' ? t('workspace.caseFilesEmpty') :
