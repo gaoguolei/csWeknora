@@ -63,6 +63,9 @@ type AgentEngine struct {
 	compactor            *compaction.Compactor   // Summarizes older history to fit the context window (nil = disabled)
 	lastUsage            types.TokenUsage        // Token usage from the most recent LLM call
 	lastSentMsgCount     int                     // Number of messages sent in the most recent LLM call
+	// Testing result saving is separate from the main round allowance.
+	testingResultFinalization bool
+
 	// overflowRecovered records that this turn already spent its one
 	// compact-and-retry on a context overflow. A second attempt would mean
 	// history size was never the problem, and looping on it burns the round
@@ -705,7 +708,12 @@ loop:
 	// complete answer." message, which then leaks to the UI as the final
 	// answer for a conversation the user deliberately stopped.
 	if !state.IsComplete && ctx.Err() == nil {
-		e.handleMaxIterations(ctx, query, state, sessionID, messages)
+		if err := e.persistTestingResults(ctx, state, query, &messages, tools, sessionID, messageID, guards); err != nil {
+			return state, err
+		}
+		if !state.IsComplete && ctx.Err() == nil {
+			e.handleMaxIterations(ctx, query, state, sessionID, messages)
+		}
 	}
 
 	return state, nil

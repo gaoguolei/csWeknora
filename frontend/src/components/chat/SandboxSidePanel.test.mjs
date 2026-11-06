@@ -28,7 +28,7 @@ const setup = panel.split('<script setup lang="ts">')[1].split('</script>')[0]
 const compiled = ts.transpile(setup, { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None })
 function mount(options = {}) {
   const props = reactive({ sessionId: 'a', workspaceRevision: 0, artifacts: [], ...options })
-  const ui = { mode: ref(options.mode || 'coding'), visible: ref(true), activeTab: ref(options.mode === 'chat' ? 'artifacts' : options.mode === 'testing' ? 'cases' : 'preview'), width: ref(560), clearArtifactFocus() {} }
+  const ui = { mode: ref(options.mode || 'coding'), visible: ref(true), activeTab: ref(options.mode === 'chat' ? 'artifacts' : options.mode === 'testing' ? 'cases' : 'preview'), width: ref(560), clearArtifactFocus() {}, open(tab) { this.activeTab.value = tab } }
   const scope = effectScope()
   const state = scope.run(() => vm.runInNewContext(`${compiled}; ({ isWorkspaceTab, workspaceMounted, displayedArtifacts, artifactEmptyText, artifactCount, openTab, previewMounted, terminalMounted, tabs, moreTools, isCaseTab })`, {
     computed, nextTick, ref, watch, defineAsyncComponent: () => ({}), defineProps: () => props, withDefaults: value => value, defineEmits: () => () => {},
@@ -107,13 +107,14 @@ test('testing exposes case documents, reports, artifacts and terminal without co
   assert.equal(view.state.isWorkspaceTab.value, false)
   assert.equal(view.state.previewMounted.value, false)
   assert.doesNotMatch(panel, /WorkspaceTestResults|WorkspaceTestTree|cases-only/)
-  assert.match(panel, /<TestCasePanel/)
+  assert.match(panel, /<TestCasePanel[\s\S]*?:reports="reportArtifacts"/)
   assert.match(panel, /v-show="isCaseTab"/)
   assert.match(panel, /v-show="isArtifactTab && !isCaseTab"/)
   const cases = { messageId: 'a', index: 3, file_name: '登录测试用例.xlsx' }
   const report = { messageId: 'b', index: 7, file_name: 'test-report.html' }
   const other = { messageId: 'a', index: 9, file_name: 'screenshot.png' }
   view.props.artifacts = [cases, report, other]
+  await flush()
   assert.equal(view.state.displayedArtifacts.value[0].index, 3)
   assert.equal(view.state.displayedArtifacts.value.length, 1)
   assert.equal(view.state.artifactCount('cases'), 1)

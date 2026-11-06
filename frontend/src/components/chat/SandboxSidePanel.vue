@@ -107,6 +107,8 @@
             class="chat-sandbox-panel__artifacts"
             :session-id="sessionId"
             :items="caseArtifacts"
+            :reports="reportArtifacts"
+            :revision="workspaceRevision"
             :empty-text="artifactEmptyText"
             :collecting="artifactsCollecting"
             :active="Boolean(panel?.visible.value && isCaseTab)"

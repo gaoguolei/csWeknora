@@ -9,7 +9,8 @@ import { renderToString } from '@vue/server-renderer'
 import { compileTemplate } from '@vue/compiler-sfc'
 import TDesign from 'tdesign-vue-next'
 import { isSpreadsheetArtifact, parseTestCaseSheets } from '../../../utils/testCaseSheet.ts'
-import { buildTestCaseWorkbench } from '../../../utils/testCaseWorkbench.ts'
+import { isTabularExecutionReport, parseTestExecutionReport } from '../../../utils/testExecutionReport.ts'
+import { buildTestCaseWorkbench, testCaseFieldRole } from '../../../utils/testCaseWorkbench.ts'
 import { resolveFilePreviewExt } from '../../../utils/filePreview.ts'
 
 const source = readFileSync(new URL('./TestCasePanel.vue', import.meta.url), 'utf8')
@@ -23,7 +24,7 @@ function setup(items) {
   const props = reactive({ sessionId: 'session-a', items, active: true, collecting: false, emptyText: '' })
   const state = vm.runInNewContext(
     `${computedsSource}; ({ entries, tableItems, fallbackItems, rowCount, sheetsOf, workbench, view, selectView, selectArtifact, activeArtifact, filteredCases, selectedCase, selectedCaseKey, searchTerm, casePage, changePage, openSource, sourcePreview, pageSize, sourceOptions, compactColumns, activeEntry, activeLoading, linkOf, previewRevision, sourcePreviewKey, caseRowClass, selectCase, statusLabel, openKnowledge, downloading, deleting, artifactKey })`,
-    { computed, reactive, ref, watch: () => {}, t: key => key, props, isSpreadsheetArtifact, buildTestCaseWorkbench },
+    { computed, reactive, ref, watch: () => {}, t: key => key, props, isSpreadsheetArtifact, buildTestCaseWorkbench, testCaseFieldRole },
   )
   return { ...state, props }
 }
@@ -74,24 +75,28 @@ function syncFixture() {
   let steps = 'edited in knowledge'
   let failKnowledge = false
   let originalDownloads = 0
+  let reportContent = '| 用例编号 | 执行状态 | 实际结果 |\n| --- | --- | --- |\n| TC-1 | 通过 | 已登录 |'
+  let originalContent = 'ID,Steps\nTC-1,original\n'
   let knowledgeReader = null
   let watcher
   const document = { hidden: false }
-  const state = vm.runInNewContext(`${runtimeSource}; ({ entries, knowledgeLinks, parseItems, sheetsOf, tableItems, fallbackItems, refreshVisibleCases, casePage, selectedCaseKey, selectedCase, previewRevision, openSource, view })`, {
-    computed, reactive, ref, t: key => key, props, isSpreadsheetArtifact, parseTestCaseSheets, buildTestCaseWorkbench,
-    listMessageArtifacts: async () => ({ data: [{ index: 3, knowledge_id: knowledgeId, knowledge_base_id: 'kb' }] }),
+  const state = vm.runInNewContext(`${runtimeSource}; ({ workbench, entries, knowledgeLinks, parseItems, sheetsOf, tableItems, fallbackItems, refreshVisibleCases, casePage, selectedCaseKey, selectedCase, previewRevision, openSource, view })`, {
+    computed, reactive, ref, t: key => key, props, isSpreadsheetArtifact, parseTestCaseSheets, buildTestCaseWorkbench, testCaseFieldRole, isTabularExecutionReport, parseTestExecutionReport,
+    listMessageArtifacts: async () => ({ data: [{ index: 3, knowledge_id: knowledgeId, knowledge_base_id: 'kb' }, { index: 0 }] }),
     downKnowledgeDetails: async () => {
       if (knowledgeReader) return knowledgeReader()
       if (failKnowledge) throw new Error('forbidden')
       return new Blob([`ID,Steps\nTC-1,${steps}\n`])
     },
-    downloadArtifact: async () => { originalDownloads++; return new Blob(['ID,Steps\nTC-1,original\n']) },
+    downloadArtifact: async (_session, _message, index) => { originalDownloads++; return new Blob([index === 0 ? reportContent : originalContent]) },
     watch: (_source, callback) => { watcher = callback },
     onMounted: () => {}, onBeforeUnmount: () => {},
     document,
     console: { warn: () => {} },
   })
   return { state, props, document, watcher: () => watcher(),
+    setReportContent: value => { reportContent = value },
+    setOriginalContent: value => { originalContent = value },
     setSteps: value => { steps = value }, setLink: value => { knowledgeId = value },
     setKnowledgeReader: reader => { knowledgeReader = reader },
     failKnowledge: () => { failKnowledge = true }, originalDownloads: () => originalDownloads }
@@ -147,7 +152,7 @@ test('the rendered workbench keeps compact columns, shows selected details, and 
   const markdown = { messageId: 'b', index: 0, file_name: 'notes.md', knowledge_id: 'markdown-knowledge', knowledge_base_id: 'kb' }
   const view = setup([cases, markdown])
   view.entries.set('a:3:登录测试用例.xlsx', { status: 'ready', sheets: [
-    { name: '用例说明', header: ['项目', '内容'], rows: [['说明', '这段说明不应占据列表首屏']] },
+    { name: '用例说明', header: ['项目', '内容'], rows: [['说明', '这段说明不应占据列表首屏'], ['独立的长段落说明', '']] },
     { name: '测试用例', header: ['编号', '名称', '优先级', '前置条件', '步骤', '预期结果'], rows: [
       ['TC-1', '显示用户', 'P0', '管理员登录', '打开列表', '展示用户列表'],
       ['TC-2', '权限校验', 'P1', '普通用户登录', '访问控制台', '禁止访问控制台'],
@@ -179,7 +184,9 @@ test('the rendered workbench keeps compact columns, shows selected details, and 
   assert.match(selected, /禁止访问控制台/)
   assert.doesNotMatch(selected, /展示用户列表/)
   view.selectView('notes')
-  assert.match(await render(), /这段说明不应占据列表首屏/)
+  const notes = await render()
+  assert.match(notes, /这段说明不应占据列表首屏/)
+  assert.match(notes, /class="case-note-prose"[^>]*><dt[^>]*>独立的长段落说明<\/dt><!--v-if-->/)
   view.selectArtifact('b:0:notes.md')
   const preview = await render()
   assert.match(preview, /data-preview-name="notes.md"/)
@@ -260,4 +267,75 @@ test('a slow response from the previous session cannot overwrite the new session
   await oldRefresh
   assert.equal(view.state.entries.has('a:3:cases.csv'), false)
   assert.equal(view.state.sheetsOf(view.props.items[0])[0].rows[0][1], 'new session')
+})
+
+test('refreshing an unlinked artifact reads updated bytes instead of its parsed cache', async () => {
+  const view = syncFixture()
+  view.setLink('')
+  await view.state.parseItems()
+  view.setOriginalContent('ID,Title,Status\nTC-1,Login,passed\n')
+  await view.state.parseItems()
+  assert.equal(view.originalDownloads(), 2)
+  assert.equal(buildTestCaseWorkbench(view.state.sheetsOf(view.props.items[0])).cases[0].status, 'passed')
+})
+
+test('a separate execution report updates both tabs by case ID and refreshes on the next execution', async () => {
+  const view = syncFixture()
+  view.setLink('')
+  view.setOriginalContent('ID,Title,Priority,Status\nTC-1,Login,P0,未执行\nTC-2,Logout,P1,未执行\n')
+  await view.state.parseItems()
+  assert.equal(view.state.workbench.value.cases[0].status, 'not-run')
+  view.props.reports = [{ messageId: 'report', index: 0, file_name: 'test-report.md' }]
+  await view.state.parseItems()
+  let model = view.state.workbench.value
+  assert.equal(model.cases[0].status, 'passed')
+  assert.equal(model.cases[0].details.find(field => field.label === 'Status').value, '通过')
+  assert.equal(model.cases[1].status, 'not-run')
+  assert.equal(model.results.length, 2)
+  assert.equal(model.results.find(row => row.id === 'TC-1').title, 'Login')
+  assert.equal(model.results.find(row => row.id === 'TC-1').priority, 'P0')
+  view.setReportContent('| Case ID | Status | Actual result |\n| --- | --- | --- |\n| TC-1 | failed | login failed |\n| unrelated | passed | other suite |')
+  await view.state.parseItems()
+  model = view.state.workbench.value
+  assert.equal(model.cases[0].status, 'failed')
+  assert.equal(model.results.find(row => row.id === 'TC-1').status, 'failed')
+  assert.equal(model.results.length, 2, 'unrelated results do not appear in this case set')
+  assert.equal(model.cases[0].resultDetails.find(field => field.label === 'Actual result').value, 'login failed')
+})
+
+
+test('historical versions of the same case source do not block report association', () => {
+  const original = { ...cases, source_path: '/workspace/output/test-cases/login.xlsx' }
+  const latest = { ...original, messageId: 'new' }
+  const report = { messageId: 'report', index: 0, file_name: 'report.xlsx' }
+  const view = setup([original, latest])
+  view.props.reports = [report]
+  for (const item of [original, latest]) view.entries.set(view.artifactKey(item), { status: 'ready', sheets: [
+    { name: 'Cases', header: ['ID', 'Title'], rows: [['TC-1', 'Login']] },
+  ] })
+  view.entries.set(view.artifactKey(report), { status: 'ready', sheets: [
+    { name: 'Sheet1', header: ['ID', 'Status'], rows: [['TC-1', 'passed']] },
+  ] })
+  assert.equal(view.workbench.value.cases[0].status, 'passed')
+  view.props.items.push({ ...original, messageId: 'different', source_path: '/workspace/output/test-cases/other.xlsx' })
+  view.entries.set(view.artifactKey(view.props.items[2]), { status: 'ready', sheets: [
+    { name: 'Cases', header: ['ID', 'Title'], rows: [['TC-1', 'Different case']] },
+  ] })
+  assert.equal(view.workbench.value.cases[0].status, 'unknown', 'ambiguous IDs from distinct sources do not acquire arbitrary results')
+})
+
+
+test('newer report evidence wins even when reports arrive newest first', () => {
+  const view = setup([cases])
+  const newer = { messageId: 'new', index: 0, file_name: 'new.csv', created_at: '2026-11-06T12:00:00Z' }
+  const older = { messageId: 'old', index: 0, file_name: 'old.csv', created_at: '2026-11-06T11:00:00Z' }
+  view.props.reports = [newer, older]
+  view.entries.set(view.artifactKey(cases), { status: 'ready', sheets: [
+    { name: 'Cases', header: ['ID', 'Title'], rows: [['TC-1', 'Login']] },
+  ] })
+  for (const [item, status] of [[newer, 'passed'], [older, 'failed']]) {
+    view.entries.set(view.artifactKey(item), { status: 'ready', sheets: [{ name: 'Sheet1', header: ['ID', 'Status'], rows: [['TC-1', status]] }] })
+  }
+  assert.equal(view.workbench.value.cases[0].status, 'passed')
+  assert.equal(view.workbench.value.results[0].status, 'passed')
 })

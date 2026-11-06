@@ -57,7 +57,7 @@
       <div v-else-if="view === 'notes'" class="case-workbench-scroll case-notes-view">
         <div v-if="!workbench.notes.length" class="case-section-empty">{{ $t('workspace.caseNoNotes') }}</div>
         <section v-for="sheet in workbench.notes" :key="sheet.name" class="case-note-section"><h4>{{ sheet.name }}</h4>
-          <dl v-if="sheet.header.length <= 2" class="case-detail-fields"><div v-for="(row, index) in sheet.rows" :key="index"><dt>{{ row[0] || '—' }}</dt><dd>{{ row.slice(1).join('\n') || '—' }}</dd></div></dl>
+          <dl v-if="sheet.header.length <= 2" class="case-detail-fields"><div v-for="(row, index) in sheet.rows" :key="index" :class="{ 'case-note-prose': !row.slice(1).some(value => value.trim()) }"><dt>{{ row[0] || '—' }}</dt><dd v-if="row.slice(1).some(value => value.trim())">{{ row.slice(1).join('\n') }}</dd></div></dl>
           <div v-else class="case-note-table-wrap"><table><thead><tr><th v-for="(title, index) in sheet.header" :key="index">{{ title || `#${index + 1}` }}</th></tr></thead><tbody><tr v-for="(row, index) in sheet.rows" :key="index"><td v-for="(_, col) in sheet.header" :key="col">{{ row[col] }}</td></tr></tbody></table></div>
         </section>
       </div>
@@ -82,7 +82,8 @@ import { deleteMessageArtifact, downloadArtifact, listMessageArtifacts, type Art
 import { downKnowledgeDetails } from '@/api/knowledge-base'
 import { KNOWLEDGE_FILE_UPDATED_EVENT } from '@/utils/knowledgeFileUpdates'
 import { parseTestCaseSheets, isSpreadsheetArtifact, type TestCaseSheet } from '@/utils/testCaseSheet'
-import { buildTestCaseWorkbench, type WorkbenchCase } from '@/utils/testCaseWorkbench'
+import { isTabularExecutionReport, parseTestExecutionReport } from '@/utils/testExecutionReport'
+import { buildTestCaseWorkbench, testCaseFieldRole, type WorkbenchCase } from '@/utils/testCaseWorkbench'
 import { resolveFilePreviewExt } from '@/utils/filePreview'
 import type { SessionArtifactItem } from '@/utils/sessionArtifacts'
 import { useConfirmDelete } from '@/components/settings/useConfirmDelete'
@@ -102,8 +103,10 @@ const props = withDefaults(
   defineProps<{
     sessionId: string
     items: SessionArtifactItem[]
+    reports?: SessionArtifactItem[]
     collecting?: boolean
     active?: boolean
+    revision?: number
     emptyText?: string
   }>(),
   { collecting: false, active: true },
@@ -163,7 +166,27 @@ const activeArtifact = computed(() => props.items.find(item => artifactKey(item)
 const sourceOptions = computed(() => props.items.map(item => ({
   label: item.file_name, value: artifactKey(item),
 })))
-const workbench = computed(() => buildTestCaseWorkbench(activeArtifact.value ? sheetsOf(activeArtifact.value) || [] : []))
+const workbench = computed(() => {
+  const sheets = activeArtifact.value ? sheetsOf(activeArtifact.value) || [] : []
+  // Do not apply a report ID shared by multiple definitions in this session.
+  const idCounts = new Map<string, number>()
+  const sourceIdentity = (item: SessionArtifactItem) => item.source_path || item.file_name
+  const activeIdentity = activeArtifact.value ? sourceIdentity(activeArtifact.value) : ''
+  const otherSources = new Map(props.items.filter(item => sourceIdentity(item) !== activeIdentity).map(item => [sourceIdentity(item), item]))
+  const caseSets = [sheets, ...Array.from(otherSources.values(), item => sheetsOf(item) || [])]
+  for (const caseSheets of caseSets) {
+    for (const record of buildTestCaseWorkbench(caseSheets).cases) {
+      if (record.sourceId) idCounts.set(record.sourceId, (idCounts.get(record.sourceId) || 0) + 1)
+    }
+  }
+  const activeIds = new Set(buildTestCaseWorkbench(sheets).cases.map(item => item.sourceId).filter(Boolean))
+  const reportTime = (item: SessionArtifactItem) => Date.parse(item.mod_time || item.created_at || '') || 0
+  const reports = [...(props.reports || [])].sort((a, b) => reportTime(a) - reportTime(b)).flatMap(item => (sheetsOf(item) || []).map(sheet => {
+    const idColumn = sheet.header.findIndex(label => testCaseFieldRole(label) === 'id')
+    return { ...sheet, rows: sheet.rows.filter(row => activeIds.has(row[idColumn]?.trim()) && idCounts.get(row[idColumn]?.trim()) === 1) }
+  }))
+  return buildTestCaseWorkbench(sheets, reports)
+})
 const activeEntry = computed(() => activeArtifact.value ? entries.get(artifactKey(activeArtifact.value)) : undefined)
 const activeLoading = computed(() => !!activeArtifact.value && isSpreadsheetArtifact(activeArtifact.value.file_name)
   && (!activeEntry.value || activeEntry.value.status === 'loading'))
@@ -241,7 +264,7 @@ async function parseItems() {
   if (!props.active) return
   const sessionId = props.sessionId
   const request = ++parseGeneration
-  const items = [...props.items]
+  const items = [...props.items, ...(props.reports || []).filter(item => isTabularExecutionReport(item.file_name))]
   const metadata = new Map<string, Map<number, ArtifactMeta>>()
   await Promise.allSettled([...new Set(items.map(item => item.messageId).filter(Boolean))].map(async messageId => {
     const response = await listMessageArtifacts(sessionId, messageId)
@@ -260,7 +283,8 @@ async function parseItems() {
     }
     if (current) knowledgeLinks.set(key, { knowledge_id: current.knowledge_id, knowledge_base_id: current.knowledge_base_id })
     const binding = linkOf(item)
-    if (!isSpreadsheetArtifact(item.file_name)) {
+    const isReport = (props.reports || []).some(report => artifactKey(report) === key)
+    if (!isSpreadsheetArtifact(item.file_name) && !isReport) {
       if (binding?.knowledge_id && sourcePreviewKey.value === key) previewRevision.value++
       continue
     }
@@ -268,13 +292,12 @@ async function parseItems() {
       entries.set(key, { status: 'sync-error' })
       continue
     }
-    if (!binding?.knowledge_id && entries.get(key)?.status === 'ready') continue
     if (entries.get(key)?.status !== 'ready') entries.set(key, { status: 'loading' })
     try {
       const blob = binding?.knowledge_id
         ? await downKnowledgeDetails(binding.knowledge_id)
         : await downloadArtifact(sessionId, item.messageId, item.index)
-      const sheets = await parseTestCaseSheets(blob, item.file_name)
+      const sheets = await (isReport ? parseTestExecutionReport : parseTestCaseSheets)(blob, item.file_name)
       if (request !== parseGeneration) return
       entries.set(key, { status: 'ready', sheets })
       if (binding?.knowledge_id && sourcePreviewKey.value === key) previewRevision.value++
@@ -287,7 +310,7 @@ async function parseItems() {
 }
 
 watch(
-  () => [props.active, props.sessionId, props.items] as const,
+  () => [props.active, props.sessionId, props.items, props.reports, props.collecting, props.revision] as const,
   () => {
     // 换会话时解析结果作废；同会话内重新收集产物沿用已有结果。
     if (parsedSessionId !== props.sessionId) {
@@ -419,6 +442,7 @@ async function performDelete(item: SessionArtifactItem) {
 .case-detail-heading { display: flex; align-items: baseline; gap: 10px; margin-bottom: 18px; h4 { flex: 1; min-width: 0; margin: 0; color: var(--td-text-color-primary); font-size: var(--app-text-md); font-weight: 500; line-height: 1.6; overflow-wrap: anywhere; } > .case-record-id, > .case-result-status { flex-shrink: 0; max-width: 90px; } }
 .case-detail-fields { margin: 0;
   > div { display: grid; grid-template-columns: minmax(58px, 90px) minmax(0, 1fr); gap: 12px; margin-top: 14px; font-size: var(--app-text-sm); line-height: 1.75; }
+  > .case-note-prose { grid-template-columns: minmax(0, 1fr); dt { white-space: pre-wrap; color: var(--td-text-color-primary); } }
   dt { color: var(--td-text-color-placeholder); overflow-wrap: anywhere; }
   dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--td-text-color-primary); }
 }

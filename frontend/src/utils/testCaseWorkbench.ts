@@ -18,13 +18,13 @@ export interface WorkbenchCase {
 }
 
 const aliases: Record<CaseFieldRole, string[]> = {
-  id: ['id', 'caseid', 'testcaseid', 'tcid', '编号', '用例编号', '测试用例编号', '用例id', '案例编号'],
+  id: ['id', 'caseid', 'testcaseid', 'tcid', '编号', '用例编号', '测试用例编号', '用例编码', '案例id', '用例id', '案例编号'],
   title: ['title', 'name', 'casename', 'testcase', 'testcasename', 'scenario', 'testscenario', '名称', '用例名称', '用例标题', '测试用例', '测试场景', '场景', '测试项', '测试点', '用例描述'],
   priority: ['priority', 'level', '优先级', '级别', '用例级别', '测试级别'],
   status: ['status', 'result', 'testresult', 'executionresult', '执行状态', '用例状态', '测试状态', '执行结果', '测试结果', '结果', '结论', '执行结论', '是否通过'],
   steps: ['steps', 'teststeps', '操作步骤', '测试步骤', '步骤'],
   expected: ['expected', 'expectedresult', 'expectedresults', '预期结果', '期望结果', '预期'],
-  actual: ['actual', 'actualresult', 'actualresults', '实际结果', '实际执行结果'],
+  actual: ['actual', 'actualresult', 'actualresults', '实际结果', '实际执行结果', '实际结果/证据', '实际结果与证据', '执行证据'],
   condition: ['precondition', 'preconditions', 'prerequisites', '前置条件', '预置条件', '前提条件'],
   module: ['module', 'feature', '模块', '功能模块', '测试模块', '所属模块'],
 }
@@ -56,16 +56,21 @@ export function testCaseStatus(value: string): TestCaseStatus {
   return 'unknown'
 }
 
-export function buildTestCaseWorkbench(sheets: TestCaseSheet[]) {
+export function buildTestCaseWorkbench(sheets: TestCaseSheet[], executionSheets: TestCaseSheet[] = []) {
   const cases: WorkbenchCase[] = []
   const notes: TestCaseSheet[] = []
   const results: WorkbenchCase[] = []
   const embeddedResults: WorkbenchCase[] = []
-  for (const sheet of sheets) {
+  // External reports contribute only rows with explicit case IDs and statuses.
+  const reportSheets = executionSheets.filter(sheet => {
+    const roles = sheet.header.map(testCaseFieldRole)
+    return roles.includes('id') && roles.includes('status')
+  }).map(sheet => ({ ...sheet, name: `Results: ${sheet.name}` }))
+  for (const sheet of [...sheets, ...reportSheets]) {
     const roles = sheet.header.map(testCaseFieldRole)
     const isNotes = /说明|概览|简介|环境|readme|overview|notes|summary/i.test(sheet.name)
     const hasCaseFields = roles.some(role => role === 'id' || role === 'title' || role === 'steps' || role === 'expected')
-    if (isNotes || (!hasCaseFields && !/用例|案例|场景|cases?|scenarios?/i.test(sheet.name))) { notes.push(sheet); continue }
+    if ((!reportSheets.includes(sheet) && isNotes) || (!hasCaseFields && !/用例|案例|场景|cases?|scenarios?/i.test(sheet.name))) { notes.push(sheet); continue }
     const isResults = /执行记录|结果|报告|results?|execution|reports?|runs?/i.test(sheet.name)
     const target = isResults ? results : cases
     const keys = new Map<string, number>()
@@ -88,6 +93,10 @@ export function buildTestCaseWorkbench(sheets: TestCaseSheet[]) {
       if (!isResults && record.statusText) embeddedResults.push({ ...record, key: `result:${record.key}` })
     })
   }
+  // A workbook may append successive executions of the same case.
+  const latestResults = new Map<string, WorkbenchCase>()
+  for (const result of results) latestResults.set(result.sourceId || result.key, result)
+  results.splice(0, results.length, ...latestResults.values())
   const explicitResultIds = new Set(results.map(item => item.sourceId).filter(Boolean))
   results.push(...embeddedResults.filter(item => !item.sourceId || !explicitResultIds.has(item.sourceId)))
   const idCounts = new Map<string, number>()
@@ -97,8 +106,20 @@ export function buildTestCaseWorkbench(sheets: TestCaseSheet[]) {
   for (const result of results) {
     if (!result.sourceId || idCounts.get(result.sourceId) !== 1) continue
     const item = cases.find(item => item.sourceId === result.sourceId)!
+    result.title = item.title
+    result.priority = item.priority
+    result.searchText = `${item.searchText} ${result.searchText}`
     item.status = result.status
     item.statusText = result.statusText
+    item.details = item.details.map(field => {
+      const role = testCaseFieldRole(field.label)
+      if (role === 'status') return { ...field, value: result.statusText }
+      if (role === 'actual') {
+        const actual = result.details.find(detail => testCaseFieldRole(detail.label) === 'actual')
+        if (actual) return { ...field, value: actual.value }
+      }
+      return field
+    })
     if (item.sheetName !== result.sheetName) item.resultDetails = result.details
   }
   return { cases, notes, results }

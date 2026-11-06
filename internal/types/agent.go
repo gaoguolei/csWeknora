@@ -188,6 +188,8 @@ type AgentConfig struct {
 	// existing Agent/Agent Loop operate as a project-aware coding assistant;
 	// it never selects a separate agent implementation.
 	CodingMode bool `json:"-"`
+	// TestingMode is derived from the selected testing agent, never from tool input.
+	TestingMode bool `json:"-"`
 	// WritableKBIDs are the SearchTargets KBs this caller may modify (its own
 	// workspace's, or shared to it as editor+). Search targets only need read
 	// access, so tools that write (wiki pages and issues) are limited to this

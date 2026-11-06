@@ -285,6 +285,7 @@ func (e *AgentEngine) streamThinkingToEventBus(
 		PromptCacheKey:      sessionID,
 	}
 	messages = e.withPlanExecutionState(messages)
+	messages = e.withTestingResultPersistence(messages, iteration)
 	planMustContinue := e.planMustContinue()
 	if planMustContinue && len(tools) > 0 {
 		opts.ToolChoice = "required"

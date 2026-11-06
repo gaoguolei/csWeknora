@@ -57,3 +57,35 @@ test('actual-result prose alone never fabricates a pass status', () => {
   assert.equal(testCaseStatus('FAIL'), 'failed')
   assert.equal(testCaseStatus('待确认'), 'unknown')
 })
+
+test('result rows inherit case identity and use the latest execution per ID', () => {
+  const model = buildTestCaseWorkbench([
+    { name: 'Cases', header: ['ID', 'Title', 'Priority'], rows: [['TC-1', 'Login', 'P0'], ['TC-2', 'Logout', 'P1']] },
+    { name: 'Results', header: ['ID', 'Status', 'Actual result'], rows: [
+      ['TC-2', 'failed', 'old failure'], ['TC-1', 'passed', 'welcome'], ['TC-2', 'passed', 'signed out'],
+    ] },
+  ])
+  assert.equal(model.results.length, 2)
+  assert.deepEqual(model.results.map(row => [row.id, row.title, row.priority, row.status]), [
+    ['TC-2', 'Logout', 'P1', 'passed'], ['TC-1', 'Login', 'P0', 'passed'],
+  ])
+  assert.equal(model.cases[1].status, 'passed')
+  assert.equal(model.cases[1].resultDetails.find(field => field.label === 'Actual result')?.value, 'signed out')
+  assert.ok(model.results[0].searchText.includes('logout'))
+})
+
+test('follow-up evidence replaces stale details even when the verdict remains pending confirmation', () => {
+  const model = buildTestCaseWorkbench([
+    { name: 'Cases', header: ['用例编号', '用例名称', '执行结果', '实际结果/证据'], rows: [
+      ['TC-07', '空输入提交', '待确认', '上一轮单次观察'],
+    ] },
+  ], [
+    { name: '复验报告', header: ['Case ID', 'Status', 'Actual result'], rows: [
+      ['TC-07', '待确认', '7-a/7-b/7-c 三个子场景的 URL 与结果数已核对'],
+    ] },
+  ])
+  assert.equal(model.cases[0].statusText, '待确认')
+  assert.equal(model.cases[0].details.find(field => field.label === '实际结果/证据')?.value, '7-a/7-b/7-c 三个子场景的 URL 与结果数已核对')
+  assert.equal(model.results[0].details.find(field => field.label === 'Actual result')?.value, '7-a/7-b/7-c 三个子场景的 URL 与结果数已核对')
+  assert.equal(model.results.length, 1)
+})

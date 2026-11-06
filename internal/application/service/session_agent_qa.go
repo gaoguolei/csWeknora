@@ -445,6 +445,7 @@ func (s *sessionService) buildAgentConfig(
 		agentConfig.UseCustomSystemPrompt = true
 		agentConfig.SystemPrompt = systemPrompt
 	}
+	agentConfig.TestingMode = customAgent.ID == types.BuiltinTestingAssistantID || customAgent.Config.SystemPromptID == "testing_assistant"
 	if req.Session.Mode == types.WorkModeCoding {
 		agentConfig.CodingMode = true
 		if !slices.Contains(agentConfig.AllowedTools, tools.ToolTodoWrite) {
