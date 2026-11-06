@@ -454,10 +454,15 @@ export async function refreshToken(refreshToken: string): Promise<{ success: boo
 
 /**
  * 用户登出
+ *
+ * 携带本机的 refresh token，后端仅吊销当前设备会话（access + refresh），
+ * 同账号其他登录端不受影响；若本地没有 refresh token（如仅剩过期的
+ * access token），则回退到后端旧行为（撤销该账号全部会话）。
  */
 export async function logout(): Promise<{ success: boolean; message?: string }> {
   try {
-    await post('/api/v1/auth/logout', {})
+    const refreshToken = localStorage.getItem('weknora_refresh_token') || ''
+    await post('/api/v1/auth/logout', { refresh_token: refreshToken })
     return {
       success: true
     }

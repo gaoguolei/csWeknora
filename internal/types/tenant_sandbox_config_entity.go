@@ -34,6 +34,44 @@ func IsSandboxWorkspacePolicyRow(e *TenantSandboxConfigEntity) bool {
 	return e != nil && e.Name == SandboxWorkspacePolicyConfigName
 }
 
+// PlatformSandboxTenantID is the pseudo-workspace that owns the platform-wide
+// default sandbox config and the skill installs made against it. It reuses
+// the built-in-model global tenant namespace (see DefaultBuiltinModelTenantID)
+// so "global infrastructure" has exactly one owner ID across the schema.
+const PlatformSandboxTenantID uint64 = DefaultBuiltinModelTenantID
+
+// SandboxConfigIDPlatform is the sentinel stored on agents and sessions to
+// select the platform default sandbox. It is resolved to the platform row at
+// load time, so a re-configured platform backend takes effect on new sessions
+// without rewriting any agent. Distinct from the empty string, which keeps
+// meaning "this agent runs no scripts".
+const SandboxConfigIDPlatform = "platform"
+
+// IsSandboxPlatformConfigID reports whether a stored config ID is the platform
+// sentinel rather than a row UUID.
+func IsSandboxPlatformConfigID(id string) bool {
+	return id == SandboxConfigIDPlatform
+}
+
+// SandboxPlatformConfigName is the reserved row name of the single platform
+// default config under PlatformSandboxTenantID. Hidden from listings; written
+// only through the platform API (system-admin gated).
+const SandboxPlatformConfigName = "__platform_sandbox__"
+
+// IsSandboxPlatformRow reports whether e is owned by the platform pseudo-
+// tenant. Mutations from an ordinary workspace context must refuse these
+// rows: the cross-tenant GetByID visibility is for reads and resolution,
+// not for workspace admins to edit platform credentials.
+func IsSandboxPlatformRow(e *TenantSandboxConfigEntity) bool {
+	return e != nil && e.TenantID == PlatformSandboxTenantID
+}
+
+// IsSandboxPlatformConfigName reports whether a requested name collides with
+// the reserved platform row name (workspace Create must refuse it).
+func IsSandboxPlatformConfigName(name string) bool {
+	return name == SandboxPlatformConfigName
+}
+
 // TenantSandboxConfigEntity is one named sandbox backend configuration.
 type TenantSandboxConfigEntity struct {
 	ID          string `gorm:"type:varchar(36);primaryKey"`

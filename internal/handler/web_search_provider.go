@@ -57,9 +57,13 @@ func (h *WebSearchProviderHandler) getTenantID(c *gin.Context) uint64 {
 	return c.GetUint64(types.TenantIDContextKey.String())
 }
 
-// getOwnedProvider loads a provider and verifies it belongs to the given tenant.
+// loadProvider loads a provider by ID.
+//
+// Providers are platform-wide, so there is no ownership check to run: any
+// workspace may read, test, edit, or delete the shared row. tenant_id on the row
+// records who registered it and is surfaced in the response for diagnostics.
 // Returns (nil, status, msg) on failure so callers can respond immediately.
-func (h *WebSearchProviderHandler) getOwnedProvider(
+func (h *WebSearchProviderHandler) loadProvider(
 	ctx context.Context, tenantID uint64, id string,
 ) (*types.WebSearchProviderEntity, int, string) {
 	provider, err := h.repo.GetByID(ctx, tenantID, id)
@@ -115,7 +119,7 @@ func (h *WebSearchProviderHandler) CreateProvider(c *gin.Context) {
 	})
 }
 
-// ListProviders lists all web search providers for the current tenant
+// ListProviders lists every web search provider on the platform
 func (h *WebSearchProviderHandler) ListProviders(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -161,7 +165,7 @@ func (h *WebSearchProviderHandler) GetProvider(c *gin.Context) {
 	}
 
 	id := c.Param("id")
-	provider, status, msg := h.getOwnedProvider(ctx, tenantID, id)
+	provider, status, msg := h.loadProvider(ctx, tenantID, id)
 	if status != http.StatusOK {
 		c.JSON(status, gin.H{"success": false, "error": msg})
 		return
@@ -200,8 +204,8 @@ func (h *WebSearchProviderHandler) UpdateProvider(c *gin.Context) {
 
 	id := c.Param("id")
 
-	// Ownership check
-	existing, status, msg := h.getOwnedProvider(ctx, tenantID, id)
+	// Load the shared row
+	existing, status, msg := h.loadProvider(ctx, tenantID, id)
 	if status != http.StatusOK {
 		c.JSON(status, gin.H{"success": false, "error": msg})
 		return
@@ -293,8 +297,8 @@ func (h *WebSearchProviderHandler) DeleteProvider(c *gin.Context) {
 
 	id := c.Param("id")
 
-	// Ownership check
-	if _, status, msg := h.getOwnedProvider(ctx, tenantID, id); status != http.StatusOK {
+	// Load the shared row
+	if _, status, msg := h.loadProvider(ctx, tenantID, id); status != http.StatusOK {
 		c.JSON(status, gin.H{"success": false, "error": msg})
 		return
 	}
@@ -349,7 +353,7 @@ func (h *WebSearchProviderHandler) TestProviderByID(c *gin.Context) {
 	}
 
 	id := c.Param("id")
-	provider, status, msg := h.getOwnedProvider(ctx, tenantID, id)
+	provider, status, msg := h.loadProvider(ctx, tenantID, id)
 	if status != http.StatusOK {
 		c.JSON(status, gin.H{"success": false, "error": msg})
 		return

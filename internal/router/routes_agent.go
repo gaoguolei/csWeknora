@@ -73,9 +73,13 @@ func RegisterUserFavoriteRoutes(r *gin.RouterGroup, h *handler.UserResourceFavor
 
 // RegisterSkillRoutes registers skill routes.
 //
-// PR 2 currently only exposes a read-only `ListSkills`; gated to
-// Viewer+. Future skill upload / enable endpoints must use Admin+ since
-// skills run sandboxed code on tenant resources.
+// Reading the catalog is Viewer+, so the agent editor can show uninstalled
+// skills. Installing one onto a sandbox is Admin+, since it bakes into the
+// image of a workspace's own sandbox configs. Registering or deleting a
+// definition is operations-admin only: the catalog is platform-wide, so those
+// two change what every workspace sees, and RequireOperationsAdmin also refuses
+// every API key, which is why they are declared outside the API-key group
+// (default-deny) rather than granted there.
 func RegisterSkillRoutes(r *gin.RouterGroup, skillHandler *handler.SkillHandler, g *rbacGuards) {
 	skills := r.Group("/skills")
 	{
@@ -87,11 +91,16 @@ func RegisterSkillRoutes(r *gin.RouterGroup, skillHandler *handler.SkillHandler,
 	// Catalog writes bake into sandbox images; scoped API keys cannot hold them.
 	catalogWrite := g.apiKeyGroup(r.Group("/skills/catalog"), apiKeyFullAccess())
 	{
-		catalogWrite.POST("", g.Admin(), skillHandler.RegisterCatalog)
 		catalogWrite.POST("/:id/install", g.Admin(), skillHandler.InstallCatalog)
 		catalogWrite.GET("/:id/files", g.Admin(), skillHandler.ListCatalogFiles)
 		catalogWrite.GET("/:id/files/content", g.Admin(), skillHandler.GetCatalogFile)
-		catalogWrite.DELETE("/:id", g.Admin(), skillHandler.DeleteCatalog)
+	}
+	// The definitions themselves are shared by every workspace, so only the
+	// platform operator decides which ones exist.
+	catalogPlatform := r.Group("/skills/catalog")
+	{
+		catalogPlatform.POST("", g.OperationsAdmin(), skillHandler.RegisterCatalog)
+		catalogPlatform.DELETE("/:id", g.OperationsAdmin(), skillHandler.DeleteCatalog)
 	}
 }
 

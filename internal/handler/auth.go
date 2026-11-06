@@ -510,10 +510,13 @@ func urlQueryEscape(value string) string {
 
 // Logout godoc
 // @Summary      用户登出
-// @Description  撤销当前访问令牌并登出
+// @Description  撤销当前会话令牌并登出。请求体可携带 refresh_token（当前设备的刷新令牌），
+// @Description  此时仅吊销本设备的 access/refresh 令牌，同账号其他登录端不受影响；
+// @Description  未携带时保持旧行为，撤销该用户名下全部令牌。
 // @Tags         认证
 // @Accept       json
 // @Produce      json
+// @Param        body  body      object{refresh_token=string}  false  "当前设备的刷新令牌"
 // @Success      200  {object}  map[string]interface{}  "登出成功"
 // @Failure      400  {object}  errors.AppError         "请求参数错误"
 // @Security     Bearer
@@ -543,9 +546,24 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 	token := tokenParts[1]
 
-	// Revoke every outstanding session for this user so refresh tokens
-	// cannot keep working after logout.
-	err := h.userService.Logout(ctx, token)
+	// Optional per-session logout: clients that send their refresh token
+	// get only their own device's tokens revoked. The body is advisory —
+	// malformed or absent falls back to the legacy revoke-everything path
+	// below, so old clients keep working and a lost refresh token can
+	// never leave a half-revoked session behind.
+	var body struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+	_ = c.ShouldBindJSON(&body)
+
+	var err error
+	if strings.TrimSpace(body.RefreshToken) != "" {
+		err = h.userService.LogoutSession(ctx, token, strings.TrimSpace(body.RefreshToken))
+	} else {
+		// Legacy clients: revoke every outstanding session for this user so
+		// refresh tokens cannot keep working after logout.
+		err = h.userService.Logout(ctx, token)
+	}
 	if err != nil {
 		logger.Errorf(ctx, "Failed to revoke token: %v", err)
 		appErr := errors.NewInternalServerError("Logout failed").WithDetails(err.Error())

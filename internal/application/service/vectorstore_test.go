@@ -540,11 +540,11 @@ func TestCreateStore_NilRegistryAndFactory(t *testing.T) {
 // ---------------------------------------------------------------------------
 // DeleteStore + Registry integration tests
 //
-// The DeleteStore path runs through a transactional guard that requires
-// both a kbRepo and a *gorm.DB handle, so the in-memory mock cannot
-// exercise it. The TestDeleteStore_Guard_* family below covers the same
-// outcomes (success, missing store, registry interaction, rollback)
-// against an actual sqlite transaction.
+// The DeleteStore path runs through a transactional guard that needs a
+// *gorm.DB handle, so the in-memory mock cannot exercise it. The
+// TestDeleteStore_Guard_* family below covers the same outcomes (success,
+// missing store, registry interaction, rollback) against an actual sqlite
+// transaction.
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
@@ -933,7 +933,9 @@ func (r *realStoreRepo) ExistsByEndpointAndIndex(_ context.Context, _ uint64, _ 
 }
 
 // realKBRepo is the minimal KnowledgeBaseRepository slice required by the
-// vector-store service (only CountByVectorStoreID is exercised here).
+// vector-store service constructor. The delete guard no longer calls
+// CountByVectorStoreID (it counts across every workspace itself), so this
+// implementation exists only to satisfy the port.
 type realKBRepo struct{ db *gorm.DB }
 
 func (r *realKBRepo) UpdateKnowledgeBaseGeneratedProfile(
@@ -1089,16 +1091,20 @@ func TestDeleteStore_Guard_IgnoresSoftDeletedKB(t *testing.T) {
 	require.Equal(t, []string{"store-A"}, registry.unregistered)
 }
 
-func TestDeleteStore_Guard_IgnoresOtherTenantKB(t *testing.T) {
+// A store belongs to the platform, not to the workspace that registered it, so
+// a knowledge base bound in another workspace keeps it alive: deleting it would
+// strand that workspace's index with nothing pointing at a live store.
+func TestDeleteStore_Guard_CountsOtherTenantKB(t *testing.T) {
 	ctx := context.Background()
 	svc, db, registry := newGuardTestService(t)
 	insertGuardStore(t, db, "store-A", 1)
 	storeID := "store-A"
-	insertGuardKB(t, db, 2, &storeID) // cross-tenant binding (should not block)
+	insertGuardKB(t, db, 2, &storeID) // bound in another workspace
 
 	err := svc.DeleteStore(ctx, 1, "store-A")
-	require.NoError(t, err)
-	require.Equal(t, []string{"store-A"}, registry.unregistered)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "still has 1 knowledge base")
+	require.Empty(t, registry.unregistered, "registry must NOT be unregistered when guard fires")
 }
 
 func TestDeleteStore_Guard_StoreNotFound(t *testing.T) {
@@ -1184,11 +1190,12 @@ func TestResolveStoreView(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, types.StoreSourceUnavailable, v.Source)
 	})
-	t.Run("cross-tenant store is treated as unavailable", func(t *testing.T) {
-		insertGuardStore(t, db, "store-B", 2) // owned by tenant 2
+	t.Run("another workspace's store resolves", func(t *testing.T) {
+		insertGuardStore(t, db, "store-B", 2) // registered by tenant 2
 		v, err := svc.ResolveStoreView(ctx, 1, "store-B")
 		require.NoError(t, err)
-		assert.Equal(t, types.StoreSourceUnavailable, v.Source)
+		assert.Equal(t, "store-B", v.Name)
+		assert.Equal(t, types.StoreSourceUser, v.Source)
 	})
 }
 

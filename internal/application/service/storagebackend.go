@@ -89,20 +89,24 @@ func (s *StorageBackendService) Update(ctx context.Context, incoming *types.Stor
 		incoming.Status = existing.Status
 	}
 	if incoming.Status == types.StorageBackendStatusDisabled && existing.Status != types.StorageBackendStatusDisabled {
+		// Reference counts span every workspace: the backend catalogue is
+		// platform-wide, so a workspace default, a bound knowledge base, or an
+		// active object anywhere keeps the instance alive. Scoping these counts
+		// to the caller would let one workspace disable storage another is still
+		// writing into.
 		var references int64
-		if err := s.db.WithContext(ctx).Model(&types.Tenant{}).Where("id = ? AND default_storage_backend_id = ?", incoming.TenantID, incoming.ID).Count(&references).Error; err != nil {
+		if err := s.db.WithContext(ctx).Model(&types.Tenant{}).Where("default_storage_backend_id = ?", incoming.ID).Count(&references).Error; err != nil {
 			return err
 		}
 		if references == 0 {
-			if err := s.db.WithContext(ctx).Model(&types.KnowledgeBase{}).Where("tenant_id = ? AND storage_backend_id = ?", incoming.TenantID, incoming.ID).Count(&references).Error; err != nil {
+			if err := s.db.WithContext(ctx).Model(&types.KnowledgeBase{}).Where("storage_backend_id = ?", incoming.ID).Count(&references).Error; err != nil {
 				return err
 			}
 		}
 		if references == 0 {
 			if err := s.db.WithContext(ctx).Model(&types.StoredResource{}).
 				Where(
-					"tenant_id = ? AND storage_backend_id = ? AND state = ?",
-					incoming.TenantID,
+					"storage_backend_id = ? AND state = ?",
 					incoming.ID,
 					types.ResourceStateActive,
 				).
@@ -127,10 +131,14 @@ func (s *StorageBackendService) Update(ctx context.Context, incoming *types.Stor
 	return s.repo.Update(ctx, incoming)
 }
 
-func (s *StorageBackendService) Delete(ctx context.Context, tenantID uint64, id string) error {
+// Delete removes a storage backend instance. The instance is shared by every
+// workspace, so the guards below deliberately drop the tenant predicate: a
+// workspace default, a bound knowledge base, or an active object in ANY
+// workspace means other workspaces still depend on this instance.
+func (s *StorageBackendService) Delete(ctx context.Context, _ uint64, id string) error {
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var backend types.StorageBackend
-		query := tx.Where("tenant_id = ? AND id = ?", tenantID, id)
+		query := tx.Where("id = ?", id)
 		if tx.Dialector.Name() == "postgres" {
 			query = query.Clauses(clause.Locking{Strength: "UPDATE"})
 		}
@@ -144,14 +152,14 @@ func (s *StorageBackendService) Delete(ctx context.Context, tenantID uint64, id 
 			return apperrors.NewBadRequestError("environment storage backend is read-only")
 		}
 		var defaultCount int64
-		if err := tx.Model(&types.Tenant{}).Where("id = ? AND default_storage_backend_id = ?", tenantID, id).Count(&defaultCount).Error; err != nil {
+		if err := tx.Model(&types.Tenant{}).Where("default_storage_backend_id = ?", id).Count(&defaultCount).Error; err != nil {
 			return err
 		}
 		if defaultCount > 0 {
 			return apperrors.NewBadRequestError("default storage backend cannot be deleted")
 		}
 		var kbCount int64
-		if err := tx.Model(&types.KnowledgeBase{}).Where("tenant_id = ? AND storage_backend_id = ?", tenantID, id).Count(&kbCount).Error; err != nil {
+		if err := tx.Model(&types.KnowledgeBase{}).Where("storage_backend_id = ?", id).Count(&kbCount).Error; err != nil {
 			return err
 		}
 		if kbCount > 0 {
@@ -159,7 +167,7 @@ func (s *StorageBackendService) Delete(ctx context.Context, tenantID uint64, id 
 		}
 		var resourceCount int64
 		if err := tx.Model(&types.StoredResource{}).
-			Where("tenant_id = ? AND storage_backend_id = ? AND state = ?", tenantID, id, types.ResourceStateActive).
+			Where("storage_backend_id = ? AND state = ?", id, types.ResourceStateActive).
 			Count(&resourceCount).Error; err != nil {
 			return err
 		}
@@ -176,7 +184,7 @@ func (s *StorageBackendService) Delete(ctx context.Context, tenantID uint64, id 
 func (s *StorageBackendService) SetDefault(ctx context.Context, tenantID uint64, id string) error {
 	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var backend types.StorageBackend
-		query := tx.Where("tenant_id = ? AND id = ?", tenantID, id)
+		query := tx.Where("id = ?", id)
 		if tx.Dialector.Name() == "postgres" {
 			query = query.Clauses(clause.Locking{Strength: "UPDATE"})
 		}
@@ -189,6 +197,8 @@ func (s *StorageBackendService) SetDefault(ctx context.Context, tenantID uint64,
 		if backend.Status != types.StorageBackendStatusActive {
 			return apperrors.NewBadRequestError("only an active storage backend can be the default")
 		}
+		// Only the caller's own workspace is repointed: "default" stays a
+		// per-workspace choice even though the instance itself is shared.
 		return tx.Model(&types.Tenant{}).Where("id = ?", tenantID).Update("default_storage_backend_id", id).Error
 	})
 }

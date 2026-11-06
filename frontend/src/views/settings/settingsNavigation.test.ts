@@ -79,3 +79,14 @@ test('integrations belong to the personal settings scope, ahead of the platform 
   const platformIndex = groups.findIndex((group) => group.scope === 'platform')
   assert.ok(platformIndex > integrationIndex, 'platform groups must follow integrations')
 })
+
+test('version info closes the system administration group', () => {
+  // 「版本信息」(system) is operations-admin-only and deliberately rendered last,
+  // right below the audit log, instead of sitting between 系统设置 and 模型目录.
+  const groups = sidebarGroups(['system', 'system-audit-log', 'platform-api-keys'])
+  const administration = groups.find((group) => group.key === 'system_administration')
+  assert.deepEqual(
+    Array.from(administration?.items ?? [], (item) => item.key),
+    ['platform-api-keys', 'system-audit-log', 'system'],
+  )
+})

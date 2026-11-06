@@ -21,11 +21,15 @@ type SkillCatalogInstallView struct {
 	SandboxConfigID   string `json:"sandbox_config_id"`
 	SandboxConfigName string `json:"sandbox_config_name,omitempty"`
 	SandboxType       string `json:"sandbox_type,omitempty"`
-	Status            string `json:"status"`
-	Enabled           bool   `json:"enabled"`
-	Error             string `json:"error,omitempty"`
-	Version           string `json:"version,omitempty"`
-	BundleSHA256      string `json:"bundle_sha256,omitempty"`
+	// IsPlatform marks an install that lives on the shared platform default
+	// sandbox, so a viewer in another workspace can label it correctly even
+	// though the row is not one of its own configs.
+	IsPlatform   bool   `json:"is_platform,omitempty"`
+	Status       string `json:"status"`
+	Enabled      bool   `json:"enabled"`
+	Error        string `json:"error,omitempty"`
+	Version      string `json:"version,omitempty"`
+	BundleSHA256 string `json:"bundle_sha256,omitempty"`
 	// Served is set while a newer install of this skill is in flight or has
 	// failed and the image still runs the previous version.
 	Served    *SkillServedInfo `json:"served,omitempty"`
@@ -51,7 +55,8 @@ func ServedInfoOf(row *types.TenantSkillEntity) *SkillServedInfo {
 	return &SkillServedInfo{Version: view.Version}
 }
 
-// SkillCatalogView is a tenant skill definition plus its sandbox installations.
+// SkillCatalogView is one platform skill definition plus the installations this
+// workspace made of it.
 type SkillCatalogView struct {
 	ID            string                    `json:"id"`
 	Name          string                    `json:"name"`
@@ -61,18 +66,30 @@ type SkillCatalogView struct {
 	CreatedAt     time.Time                 `json:"created_at"`
 	UpdatedAt     time.Time                 `json:"updated_at"`
 	Installations []SkillCatalogInstallView `json:"installations"`
+	// OtherInstallations counts installations in the workspaces this response
+	// does not describe. The definition is shared, so a platform-wide delete
+	// uninstalls from these sandboxes too; the count tells the console how far
+	// the cascade reaches beyond the caller's workspace.
+	OtherInstallations int `json:"other_install_count"`
 }
 
-// ListCatalog returns every workspace skill definition and which sandbox
-// configs currently carry an installation of it.
+// ListCatalog returns every platform skill definition and which sandbox configs
+// of the current workspace carry an installation of it. Definitions registered
+// by other workspaces are listed too: what stays local is the installation, so
+// installations made elsewhere are summarised rather than named, because their
+// sandbox configs are not this workspace's to show.
 func (s *TenantSkillService) ListCatalog(
 	ctx context.Context, tenantID uint64,
 ) ([]SkillCatalogView, error) {
-	catalogs, err := s.skills.ListCatalogsByTenant(ctx, tenantID)
+	catalogs, err := s.skills.ListCatalogs(ctx)
 	if err != nil {
 		return nil, err
 	}
 	installs, err := s.skills.ListSkillsByTenant(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	foreign, err := s.skills.CountInstallsByCatalogWorkspace(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +99,19 @@ func (s *TenantSkillService) ListCatalog(
 		configs, cfgErr = s.configs.ListByTenant(ctx, tenantID)
 		if cfgErr != nil {
 			return nil, cfgErr
+		}
+		// A skill installed on the shared platform default is visible to every
+		// workspace (ListSkillsByTenant ORs the platform pseudo-tenant), but the
+		// platform row is not one of this workspace's own configs, so resolve it
+		// here too; otherwise that install renders with no sandbox name. The map
+		// is keyed by ID, so re-adding it when the caller *is* the platform
+		// tenant is a harmless overwrite.
+		platform, pErr := s.configs.GetPlatform(ctx)
+		if pErr != nil {
+			return nil, pErr
+		}
+		if platform != nil {
+			configs = append(configs, platform)
 		}
 	}
 	configByID := make(map[string]*types.TenantSandboxConfigEntity, len(configs))
@@ -116,7 +146,8 @@ func (s *TenantSkillService) ListCatalog(
 		}
 		seenName[cat.Name] = struct{}{}
 		seenCatalog[cat.ID] = struct{}{}
-		out = append(out, catalogView(cat, byCatalog[cat.ID], configByID))
+		out = append(out, catalogView(cat, byCatalog[cat.ID], configByID,
+			foreignInstallCount(foreign[cat.ID], tenantID)))
 	}
 	// Installs whose catalog row was deleted (or never existed) would otherwise
 	// vanish: they are not unattached (catalog_id is set) and they are not
@@ -145,15 +176,36 @@ func (s *TenantSkillService) ListCatalog(
 			Description: row.Description, BundleSHA256: row.BundleSHA256,
 			CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
 		}
-		out = append(out, catalogView(synthetic, []*types.TenantSkillEntity{row}, configByID))
+		out = append(out, catalogView(synthetic, []*types.TenantSkillEntity{row}, configByID, 0))
 	}
 	return out, nil
+}
+
+// foreignInstallCount counts one definition's installations in workspaces other
+// than the caller's.
+func foreignInstallCount(byTenant map[uint64]int, tenantID uint64) int {
+	total := 0
+	for id, count := range byTenant {
+		if id == tenantID {
+			continue
+		}
+		// The platform pseudo-tenant's installs are already rendered as this
+		// workspace's own (ListSkillsByTenant ORs the platform tenant), so
+		// counting them here would double-report the shared default as both an
+		// "installed here" row and an "elsewhere" tally.
+		if id == types.PlatformSandboxTenantID {
+			continue
+		}
+		total += count
+	}
+	return total
 }
 
 func catalogView(
 	cat *types.TenantSkillCatalogEntity,
 	installs []*types.TenantSkillEntity,
 	configByID map[string]*types.TenantSandboxConfigEntity,
+	otherInstallations int,
 ) SkillCatalogView {
 	view := SkillCatalogView{
 		ID:            cat.ID,
@@ -164,6 +216,9 @@ func catalogView(
 		CreatedAt:     cat.CreatedAt,
 		UpdatedAt:     cat.UpdatedAt,
 		Installations: make([]SkillCatalogInstallView, 0, len(installs)),
+		// The count is what the console uses to explain a refused delete, so it
+		// travels even when the installs themselves are not listed.
+		OtherInstallations: otherInstallations,
 	}
 	for _, row := range installs {
 		view.Installations = append(view.Installations, installView(row, configByID))
@@ -192,8 +247,16 @@ func installView(
 		return v
 	}
 	if cfg := configByID[row.SandboxConfigID]; cfg != nil {
-		v.SandboxConfigName = cfg.Name
 		v.SandboxType = cfg.SandboxType
+		if types.IsSandboxPlatformRow(cfg) {
+			// The platform row keeps the reserved lookup name; show the operator's
+			// display name (its description) instead so a cross-workspace viewer
+			// sees a human name rather than "__platform_sandbox__".
+			v.SandboxConfigName = cfg.Description
+			v.IsPlatform = true
+		} else {
+			v.SandboxConfigName = cfg.Name
+		}
 	}
 	return v
 }
@@ -255,7 +318,21 @@ func (s *TenantSkillService) InstallCatalogToConfigs(
 	}
 	var firstErr error
 	for _, configID := range ids {
-		skillID, installErr := s.installSkillArchive(ctx, tenantID, configID, archive, skillArchiveStored)
+		// The row belongs to whichever tenant owns the config's installs: the
+		// platform pseudo-tenant for the shared default, so one install is the
+		// ready set of every workspace and the platform reads (resolve → 10000)
+		// find it. Upload resolves this in the handler; the catalog path enters
+		// with the caller's workspace, so resolve again here or the row lands
+		// under the caller and every platform-scoped read and uninstall misses it.
+		targetTenant, _, targetErr := s.SkillTargetTenant(ctx, tenantID, configID)
+		if targetErr != nil {
+			result.Errors[configID] = skillUserErrorMessage(targetErr)
+			if firstErr == nil {
+				firstErr = targetErr
+			}
+			continue
+		}
+		skillID, installErr := s.installSkillArchive(ctx, targetTenant, configID, archive, skillArchiveStored)
 		if installErr != nil {
 			logger.Warnf(ctx, "[skill] install catalog %s onto config %s failed: %v",
 				catalogID, configID, installErr)
@@ -276,19 +353,26 @@ func (s *TenantSkillService) InstallCatalogToConfigs(
 	return result, nil
 }
 
-// DeleteCatalog removes a definition that has no remaining installations
-// and drops the stored zip. Sandbox uninstalls never delete that zip.
+// DeleteCatalog force-removes a definition from the whole platform: every
+// remaining installation, on every workspace's sandbox and on the shared
+// platform default, is uninstalled first, then the definition and its stored
+// zip are dropped. The platform default sandbox is shared by every workspace,
+// so an operator deleting a skill means "take it down everywhere", not "only
+// where nothing else references it". Uninstalls run on the same async reclaim
+// path a manual sandbox removal uses, so the image is actually rewritten rather
+// than just the metadata cleared; the definition goes away as soon as those
+// runs are accepted.
 func (s *TenantSkillService) DeleteCatalog(
 	ctx context.Context, tenantID uint64, catalogID string,
 ) error {
-	catalog, err := s.skills.GetCatalog(ctx, tenantID, catalogID)
+	catalog, err := s.skills.GetCatalog(ctx, catalogID)
 	if err != nil {
 		return err
 	}
 	if catalog == nil {
 		return apperrors.NewNotFoundError("skill not found")
 	}
-	installs, err := s.skills.ListSkillsByCatalog(ctx, tenantID, catalogID)
+	installs, err := s.skills.ListSkillsByCatalog(ctx, catalogID)
 	if err != nil {
 		return err
 	}
@@ -296,15 +380,25 @@ func (s *TenantSkillService) DeleteCatalog(
 		if row == nil {
 			continue
 		}
-		return apperrors.NewConflictError(
-			"remove this skill from every sandbox before deleting it from the catalog")
+		// Uninstall on the row's owning tenant (the platform pseudo-tenant for
+		// the shared default config), not the caller's, so the reclaim targets
+		// the image that actually carries it. A row already gone underneath us
+		// (a concurrent removal landing) is not a reason to fail the delete.
+		if err := s.RemoveSkill(ctx, row.TenantID, row.SandboxConfigID, row.ID); err != nil {
+			if appErr, ok := apperrors.IsAppError(err); ok && appErr.Code == apperrors.ErrNotFound {
+				continue
+			}
+			return err
+		}
 	}
 	ref := strings.TrimSpace(catalog.BundleRef)
-	if err := s.skills.DeleteCatalog(ctx, tenantID, catalogID); err != nil {
+	if err := s.skills.DeleteCatalog(ctx, catalogID); err != nil {
 		return err
 	}
 	if ref != "" {
-		s.deleteBundleBestEffort(ctx, tenantID, ref)
+		// The archive lives in the registering workspace's storage, which is
+		// not necessarily the caller's.
+		s.deleteBundleBestEffort(ctx, catalog.TenantID, ref)
 	}
 	return nil
 }
@@ -312,20 +406,20 @@ func (s *TenantSkillService) DeleteCatalog(
 func (s *TenantSkillService) upsertCatalogFromBundle(
 	ctx context.Context, tenantID uint64, bundle *SkillBundle, archive []byte, requireStore bool,
 ) (*types.TenantSkillCatalogEntity, error) {
-	existing, err := s.skills.GetCatalogByName(ctx, tenantID, bundle.Name)
+	existing, err := s.skills.GetCatalogByName(ctx, bundle.Name)
 	if err != nil {
 		return nil, err
 	}
 	now := s.now()
 	if existing != nil {
-		stored, replaced, err := s.storeCatalogBundle(ctx, tenantID, existing, archive, requireStore)
+		stored, replaced, err := s.storeCatalogBundle(ctx, existing, archive, requireStore)
 		if err != nil {
 			return nil, err
 		}
 		if !stored {
 			return existing, nil
 		}
-		keepOld, err := s.pinReplacedCatalogBundle(ctx, tenantID, existing, replaced)
+		keepOld, err := s.pinReplacedCatalogBundle(ctx, existing, replaced)
 		if err != nil {
 			return nil, err
 		}
@@ -343,18 +437,22 @@ func (s *TenantSkillService) upsertCatalogFromBundle(
 			return nil, err
 		}
 		if replaced.oldRef != "" && !replaced.sameDigest && !keepOld {
-			s.deleteBundleBestEffort(ctx, tenantID, replaced.oldRef)
+			// The replaced archive was stored by the definition's owner, which
+			// may be another workspace than the one re-registering it.
+			s.deleteBundleBestEffort(ctx, existing.TenantID, replaced.oldRef)
 		}
 		return existing, nil
 	}
 
+	// The registering workspace becomes the owner of the bundle: this is the
+	// only place tenant_id is chosen, and every later re-register keeps it.
 	row := &types.TenantSkillCatalogEntity{
 		ID: uuid.NewString(), TenantID: tenantID, Name: bundle.Name,
 		Version: bundle.Version, Description: bundle.Description,
 		Instructions: bundle.Instructions,
 		CreatedAt:    now, UpdatedAt: now,
 	}
-	stored, _, err := s.storeCatalogBundle(ctx, tenantID, row, archive, requireStore)
+	stored, _, err := s.storeCatalogBundle(ctx, row, archive, requireStore)
 	if err != nil {
 		return nil, err
 	}
@@ -365,7 +463,7 @@ func (s *TenantSkillService) upsertCatalogFromBundle(
 		if !isSkillNameConflict(err) {
 			return nil, err
 		}
-		winner, lookupErr := s.skills.GetCatalogByName(ctx, tenantID, bundle.Name)
+		winner, lookupErr := s.skills.GetCatalogByName(ctx, bundle.Name)
 		if lookupErr != nil {
 			return nil, lookupErr
 		}
@@ -376,7 +474,7 @@ func (s *TenantSkillService) upsertCatalogFromBundle(
 		// keyed by its ID, so nothing will ever name it again — the retry below
 		// stores its own copy under the winner's key.
 		if ref := strings.TrimSpace(row.BundleRef); ref != "" {
-			s.deleteBundleBestEffort(ctx, tenantID, ref)
+			s.deleteBundleBestEffort(ctx, row.TenantID, ref)
 		}
 		return s.upsertCatalogFromBundle(ctx, tenantID, bundle, archive, requireStore)
 	}
@@ -393,27 +491,33 @@ type catalogBundleReplacement struct {
 	sameDigest bool
 }
 
-// storeCatalogBundle writes the archive and reports whether the in-memory
-// definition now names it. The caller must pin any replacement and only then
-// commit the row; retiring the old object before that commit would delete
-// bytes the stored definition still points at.
+// storeCatalogBundle writes the archive into the storage of the workspace that
+// owns the definition and reports whether the in-memory definition now names
+// it. The owner was fixed when the definition was first registered, so a
+// re-register from another workspace writes to that same place instead of
+// scattering a shared definition's bytes across storages.
+//
+// The caller must pin any replacement and only then commit the row; retiring
+// the old object before that commit would delete bytes the stored definition
+// still points at.
 func (s *TenantSkillService) storeCatalogBundle(
-	ctx context.Context, tenantID uint64, catalog *types.TenantSkillCatalogEntity, archive []byte, requireStore bool,
+	ctx context.Context, catalog *types.TenantSkillCatalogEntity, archive []byte, requireStore bool,
 ) (bool, catalogBundleReplacement, error) {
 	var none catalogBundleReplacement
 	if catalog == nil || len(archive) == 0 {
 		return false, none, nil
 	}
+	owner := catalog.TenantID
 	digest := skillArchiveSHA256(archive)
 	oldRef := strings.TrimSpace(catalog.BundleRef)
 	oldSHA := strings.TrimSpace(catalog.BundleSHA256)
 	if oldRef != "" && oldSHA != "" && oldSHA == digest &&
-		s.catalogBundleStillHeld(ctx, tenantID, catalog) {
+		s.catalogBundleStillHeld(ctx, catalog) {
 		// Same bytes already on the definition. Installing onto another
 		// sandbox must not mint a second object.
 		return true, none, nil
 	}
-	fs, err := s.fileServiceForTenant(ctx, tenantID)
+	fs, err := s.fileServiceForTenant(ctx, owner)
 	if err != nil {
 		if requireStore {
 			return false, none, err
@@ -421,7 +525,7 @@ func (s *TenantSkillService) storeCatalogBundle(
 		logger.Warnf(ctx, "[skill] catalog bundle storage unavailable: %v", err)
 		return false, none, nil
 	}
-	ref, err := fs.SaveBytes(ctx, archive, tenantID,
+	ref, err := fs.SaveBytes(ctx, archive, owner,
 		fmt.Sprintf("tenant-skills/catalog/%s.zip", catalog.ID), false)
 	if err != nil {
 		if requireStore {
@@ -440,13 +544,13 @@ func (s *TenantSkillService) storeCatalogBundle(
 }
 
 func (s *TenantSkillService) catalogBundleStillHeld(
-	ctx context.Context, tenantID uint64, catalog *types.TenantSkillCatalogEntity,
+	ctx context.Context, catalog *types.TenantSkillCatalogEntity,
 ) bool {
 	if catalog == nil || strings.TrimSpace(catalog.BundleRef) == "" {
 		return false
 	}
 	want := strings.TrimSpace(catalog.BundleSHA256)
-	archive, ok := s.trySkillBundle(ctx, tenantID, &types.TenantSkillEntity{
+	archive, ok := s.trySkillBundle(ctx, catalog.TenantID, &types.TenantSkillEntity{
 		Name: catalog.Name, BundleRef: catalog.BundleRef, BundleSHA256: catalog.BundleSHA256,
 	})
 	return ok && len(archive) > 0 && (want == "" || archiveMatchesSHA(archive, want))
@@ -457,7 +561,7 @@ func (s *TenantSkillService) catalogBundleStillHeld(
 // that fails after that write leaves those installs following the new object
 // while their SHA still names the old tree.
 func (s *TenantSkillService) pinReplacedCatalogBundle(
-	ctx context.Context, tenantID uint64, catalog *types.TenantSkillCatalogEntity, replaced catalogBundleReplacement,
+	ctx context.Context, catalog *types.TenantSkillCatalogEntity, replaced catalogBundleReplacement,
 ) (bool, error) {
 	if replaced.oldRef == "" || replaced.sameDigest {
 		return false, nil
@@ -465,7 +569,7 @@ func (s *TenantSkillService) pinReplacedCatalogBundle(
 	if catalog != nil && replaced.oldRef == strings.TrimSpace(catalog.BundleRef) {
 		return false, nil
 	}
-	return s.pinInstallsToReplacedBundle(ctx, tenantID, catalog, replaced.oldRef, replaced.oldSHA)
+	return s.pinInstallsToReplacedBundle(ctx, catalog, replaced.oldRef, replaced.oldSHA)
 }
 
 // pinInstallsToReplacedBundle hands the archive a definition just replaced to
@@ -473,17 +577,18 @@ func (s *TenantSkillService) pinReplacedCatalogBundle(
 // be kept.
 //
 // A definition is mutable; an installation is not. Re-registering a skill from
-// a newer zip leaves every sandbox running the image built from the old one, so
-// deleting those bytes would take read_skill and the admin file browser down
-// for installs that are working perfectly. The row is what pins the object:
-// once it names it, nothing else has to remember which version it was.
+// a newer zip leaves every sandbox running the image built from the old one,
+// whichever workspace that sandbox belongs to, so deleting those bytes would
+// take read_skill and the admin file browser down for installs that are working
+// perfectly. The row is what pins the object: once it names it, nothing else has
+// to remember which version it was.
 func (s *TenantSkillService) pinInstallsToReplacedBundle(
-	ctx context.Context, tenantID uint64, catalog *types.TenantSkillCatalogEntity, oldRef, oldSHA string,
+	ctx context.Context, catalog *types.TenantSkillCatalogEntity, oldRef, oldSHA string,
 ) (bool, error) {
 	if catalog == nil || strings.TrimSpace(oldRef) == "" {
 		return false, nil
 	}
-	installs, err := s.skills.ListSkillsByCatalog(ctx, tenantID, catalog.ID)
+	installs, err := s.skills.ListSkillsByCatalog(ctx, catalog.ID)
 	if err != nil {
 		return true, fmt.Errorf("list installs of catalog %s before replacing its bundle: %w",
 			catalog.ID, err)
@@ -569,13 +674,16 @@ func (s *TenantSkillService) resolveCatalog(
 	if id == "" {
 		return nil, apperrors.NewNotFoundError("skill not found")
 	}
-	cat, err := s.skills.GetCatalog(ctx, tenantID, id)
+	cat, err := s.skills.GetCatalog(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	if cat != nil {
 		return cat, nil
 	}
+	// Not a live definition: the caller may still be holding the ID of an
+	// installation of this workspace, which is what a synthetic catalog view is
+	// keyed by.
 	installs, err := s.skills.ListSkillsByTenant(ctx, tenantID)
 	if err != nil {
 		return nil, err
@@ -594,7 +702,7 @@ func (s *TenantSkillService) resolveCatalog(
 		return nil, apperrors.NewNotFoundError("skill not found")
 	}
 	if cid := strings.TrimSpace(match.CatalogID); cid != "" && cid != id {
-		cat, err = s.skills.GetCatalog(ctx, tenantID, cid)
+		cat, err = s.skills.GetCatalog(ctx, cid)
 		if err != nil {
 			return nil, err
 		}
@@ -662,14 +770,16 @@ func (s *TenantSkillService) catalogBundleArchive(
 		return nil, apperrors.NewNotFoundError("skill not found")
 	}
 	wantSHA := strings.TrimSpace(catalog.BundleSHA256)
-	tryRow := func(row *types.TenantSkillEntity) ([]byte, bool) {
+	tryRow := func(owner uint64, row *types.TenantSkillEntity) ([]byte, bool) {
 		if row == nil || strings.TrimSpace(row.BundleRef) == "" {
 			return nil, false
 		}
 		// Through the same cache the install rows use: the file drawer lists a
 		// tree and then opens files out of it, and a definition-owned archive
-		// is no cheaper to pull twice than a row-owned one.
-		archive, ok := s.trySkillBundle(ctx, tenantID, row)
+		// is no cheaper to pull twice than a row-owned one. owner is the
+		// workspace whose storage holds the object, which for a definition is
+		// the one that registered it.
+		archive, ok := s.trySkillBundle(ctx, owner, row)
 		if !ok || len(archive) == 0 {
 			return nil, false
 		}
@@ -680,21 +790,25 @@ func (s *TenantSkillService) catalogBundleArchive(
 	}
 
 	if ref := strings.TrimSpace(catalog.BundleRef); ref != "" {
-		if archive, ok := tryRow(&types.TenantSkillEntity{
+		if archive, ok := tryRow(catalog.TenantID, &types.TenantSkillEntity{
 			Name: catalog.Name, BundleRef: catalog.BundleRef, BundleSHA256: catalog.BundleSHA256,
 		}); ok {
 			return archive, nil
 		}
 	}
-	installs, err := s.skills.ListSkillsByCatalog(ctx, tenantID, catalog.ID)
+	// Any workspace's install of the definition can serve the archive, because
+	// the install row names the bytes its image was built from.
+	installs, err := s.skills.ListSkillsByCatalog(ctx, catalog.ID)
 	if err != nil {
 		return nil, err
 	}
 	for _, row := range installs {
-		if archive, ok := tryRow(row); ok {
+		if archive, ok := tryRow(row.TenantID, row); ok {
 			return archive, nil
 		}
 	}
+	// Synthetic definitions are keyed by an install row of this workspace, so
+	// the fallback is scoped to it.
 	all, err := s.skills.ListSkillsByTenant(ctx, tenantID)
 	if err != nil {
 		return nil, err
@@ -706,7 +820,7 @@ func (s *TenantSkillService) catalogBundleArchive(
 		if row.ID != catalog.ID && row.Name != catalog.Name {
 			continue
 		}
-		if archive, ok := tryRow(row); ok {
+		if archive, ok := tryRow(row.TenantID, row); ok {
 			return archive, nil
 		}
 	}

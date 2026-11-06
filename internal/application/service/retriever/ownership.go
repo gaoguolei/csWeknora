@@ -9,10 +9,10 @@ import (
 // vectorStoreRepoOwnership adapts a VectorStoreRepository to the
 // TenantStoreOwnership interface consumed by the factory functions.
 //
-// The repository's GetByID already scopes to the given tenantID
-// (WHERE id = ? AND tenant_id = ?), so "exists under this tenant"
-// is equivalent to "owned by this tenant" — no additional tenant
-// comparison is needed on top of the returned row.
+// The store catalogue is platform-wide, so the repository's GetByID resolves any
+// store regardless of workspace. "Owned by this tenant" therefore means "this
+// deployment has a store with that ID" — the tenantID is forwarded only because
+// the repository signature keeps it, and it no longer narrows the lookup.
 type vectorStoreRepoOwnership struct {
 	repo interfaces.VectorStoreRepository
 }
@@ -23,9 +23,9 @@ func NewVectorStoreRepoOwnership(repo interfaces.VectorStoreRepository) TenantSt
 	return &vectorStoreRepoOwnership{repo: repo}
 }
 
-// StoreOwnedBy returns true iff a vector store with the given ID exists
-// under the given tenant. Errors are reserved for infrastructure failures;
-// a non-existent (but well-formed) store ID returns (false, nil).
+// StoreOwnedBy returns true iff a vector store with the given ID exists.
+// Errors are reserved for infrastructure failures; a non-existent (but
+// well-formed) store ID returns (false, nil).
 func (o *vectorStoreRepoOwnership) StoreOwnedBy(ctx context.Context, storeID string, tenantID uint64) (bool, error) {
 	store, err := o.repo.GetByID(ctx, tenantID, storeID)
 	if err != nil {

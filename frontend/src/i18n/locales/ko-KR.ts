@@ -6672,7 +6672,7 @@ export default {
   vectorStoreSettings: {
     title: "벡터 데이터베이스 엔진",
     description:
-      "지식 베이스 검색을 위한 벡터 데이터베이스 인스턴스를 등록하고 관리합니다.",
+      "지식 베이스 검색을 위한 벡터 데이터베이스 인스턴스를 등록하고 관리합니다. 모든 워크스페이스가 같은 인스턴스를 공유합니다.",
     basicSection: "기본",
     storesTitle: "벡터 데이터베이스",
     addStore: "데이터베이스 추가",
@@ -6712,7 +6712,7 @@ export default {
   webSearchSettings: {
     title: "웹 검색 설정",
     description:
-      "웹 검색 기능을 구성하여 질문에 답변할 때 인터넷에서 실시간 정보를 가져와 지식베이스 내용을 보완합니다",
+      "웹 검색 기능을 구성하여 질문에 답변할 때 인터넷에서 실시간 정보를 가져와 지식베이스 내용을 보완합니다. 모든 워크스페이스가 같은 프로바이더를 공유합니다.",
     basicSection: "기본",
     credentialsSection: "연결",
     optionsSection: "옵션",
@@ -6808,6 +6808,26 @@ export default {
         "이 배포에서 Docker 샌드박스가 꺼져 있어 이 구성은 컨테이너를 만들지 않습니다",
       dockerHostRisk:
         "비우거나 unix:// 를 쓰면 ThinkerFlow가 있는 머신의 Docker 데몬을 사용하며, 그 권한은 해당 머신의 root와 같습니다. 프라이빗 단일 노드에만 쓰세요. 여러 워크스페이스가 같은 호스트를 쓰는 경우에는 Cube 또는 E2B를 쓰세요. 원격 tcp:// 는 TLS 인증서 디렉터리가 필요합니다.",
+      platform: {
+        cardTitle: "플랫폼 기본 샌드박스",
+        badge: "플랫폼",
+        cardDesc:
+          "모든 워크스페이스가 이 샌드박스 하나를 공유합니다. 한 번 구성하면 모든 워크스페이스의 에이전트에 즉시 적용됩니다.",
+        notConfigured: "플랫폼 기본 샌드박스가 아직 없습니다",
+        notConfiguredHint:
+          "한 번 구성하면 모든 워크스페이스에서 사용할 수 있습니다. 워크스페이스별 별도 구성은 필요 없습니다.",
+        configure: "구성",
+        edit: "편집",
+        createTitle: "플랫폼 기본 샌드박스 구성",
+        editTitle: "플랫폼 기본 샌드박스 편집",
+        displayName: "표시 이름",
+        displayNamePlaceholder: "예: 플랫폼 기본",
+        readOnly: "읽기 전용",
+        overrideTitle: "워크스페이스 전용 샌드박스(선택)",
+        overrideHint:
+          "워크스페이스 전용 샌드박스는 플랫폼 기본을 덮어씁니다. 별도 구성이 없는 워크스페이스는 플랫폼 기본을 사용합니다.",
+        noOverrides: "이 워크스페이스에는 전용 샌드박스가 없어 플랫폼 기본을 사용합니다.",
+      },
       addConfig: "샌드박스 추가",
       viewClusterGuide: "Cluster setup guide",
       configName: "Config name",
@@ -7266,13 +7286,13 @@ export default {
     skills: {
       title: "스킬 관리",
       description:
-        "스킬은 워크스페이스 카탈로그에 속합니다. 먼저 등록한 뒤 하나 이상의 샌드박스에 설치할 수 있습니다. 에이전트는 현재 샌드박스에서 준비된 스킬만 사용할 수 있습니다.",
+        "스킬 카탈로그는 플랫폼 전체에서 공유되므로 모든 워크스페이스가 같은 정의를 봅니다. 등록한 뒤 하나 이상의 샌드박스에 설치할 수 있습니다. 에이전트는 현재 샌드박스에서 준비된 스킬만 사용할 수 있습니다.",
       helpTooltip:
         "카탈로그 스킬은 아무 샌드박스에도 설치하지 않아도 됩니다. 스크립트를 실행하려면 에이전트가 쓰는 샌드박스 이미지에 설치해야 합니다. Docker, Cube, E2B 이미지는 호환되지 않으므로 샌드박스마다 따로 설치합니다.",
       hostTarget: "이 컴퓨터",
       host: {
         description:
-          "스킬은 워크스페이스 카탈로그에 있습니다. 이 컴퓨터에 설치한 뒤에 에이전트에서 사용할 수 있습니다.",
+          "스킬 카탈로그는 플랫폼 전체에서 공유됩니다. 이 컴퓨터에 설치한 뒤에 에이전트에서 사용할 수 있습니다.",
         helpTooltip:
           "카탈로그의 스킬은 설치하지 않은 채로 둘 수 있습니다. 스크립트는 이 컴퓨터에 설치한 뒤에 실행됩니다.",
         emptyDesc: "스킬이 없습니다. 추가하면 이 컴퓨터에 설치할 수 있습니다.",
@@ -7288,8 +7308,7 @@ export default {
         manageUninstall: "이 컴퓨터에서 제거",
         manageUninstallConfirm: "이 컴퓨터에서 「{name}」을(를) 제거할까요?",
         deleteCatalogConfirm:
-          "「{name}」을 카탈로그에서 삭제할까요? 먼저 이 컴퓨터에서 제거하세요.",
-        deleteCatalogBlocked: "먼저 이 스킬을 이 컴퓨터에서 제거하세요.",
+          "「{name}」을 카탈로그에서 삭제할까요? 삭제하면 이 컴퓨터에서도 제거됩니다.",
         upgradeDrawerDesc:
           "「{name}」을 카탈로그 버전으로 업그레이드합니다. 끝나는 동안에는 현재 버전을 계속 쓰며, 실패해도 그 버전은 남습니다.",
         disableHint:
@@ -7312,7 +7331,7 @@ export default {
       addStepRegister: "등록",
       addStepInstall: "설치",
       addStepRegisterDesc:
-        "소스를 붙여넣거나 zip을 업로드해 먼저 워크스페이스 카탈로그에 등록합니다.",
+        "소스를 붙여넣거나 zip을 업로드해 먼저 공용 카탈로그에 등록합니다.",
       addStepInstallDesc:
         "파싱된 스킬을 확인한 뒤 설치할 샌드박스를 선택하세요. 건너뛰고 나중에 목록에서 설치할 수도 있습니다.",
       addFinish: "완료",
@@ -7348,8 +7367,9 @@ export default {
       manageUninstallConfirm: "샌드박스에서 「{name}」을(를) 제거할까요?",
       deleteCatalog: "카탈로그에서 삭제",
       deleteCatalogConfirm:
-        "「{name}」을 카탈로그에서 삭제할까요? 모든 샌드박스에서 먼저 제거하세요.",
-      deleteCatalogBlocked: "모든 샌드박스에서 이 스킬을 먼저 제거하세요.",
+        "「{name}」을 카탈로그에서 삭제할까요? 모든 워크스페이스에 적용되며, 아직 사용 중인 모든 샌드박스에서 제거됩니다.",
+      otherWorkspaceInstalls:
+        "다른 워크스페이스에도 {count}곳 설치되어 있습니다. 삭제하면 그것들도 제거됩니다.",
       deleteSuccess: "카탈로그에서 삭제했습니다",
       registerAccepted: "카탈로그에 추가했습니다",
       installAccepted: "설치를 시작했습니다",
@@ -7476,7 +7496,7 @@ export default {
     },
     storageBackend: {
       description:
-        "파일과 이미지에 사용하는 스토리지 인스턴스를 관리합니다. 같은 유형의 인스턴스를 여러 개 구성할 수 있습니다.",
+        "파일과 이미지에 사용하는 스토리지 인스턴스를 관리합니다. 같은 유형의 인스턴스를 여러 개 구성할 수 있습니다. 모든 워크스페이스가 같은 인스턴스를 공유합니다.",
       empty: "아직 구성된 스토리지 인스턴스가 없습니다",
       defaultTag: "기본",
       add: "스토리지 인스턴스 추가",
@@ -7867,7 +7887,7 @@ export default {
       hostSkillsConfigDesc:
         "이 컴퓨터에 설치된 스킬을 고르세요. 설치되지 않은 스킬은 「설치」가 보이며, 설치한 뒤에만 선택할 수 있습니다.",
       hostSkillsSelectionDesc:
-        "워크스페이스 카탈로그의 스킬이 표시됩니다. 이 컴퓨터에 설치된 것은 바로 쓸 수 있고, 나머지는 먼저 설치해야 합니다.",
+        "공용 카탈로그의 스킬이 표시됩니다. 이 컴퓨터에 설치된 것은 바로 쓸 수 있고, 나머지는 먼저 설치해야 합니다.",
       hostSelectSkillsDesc:
         "이 에이전트에서 쓸 스킬을 선택하세요. 이 컴퓨터에 없는 스킬은 선택할 수 없으며, 먼저 「설치」를 누르세요.",
       hostSkillsAllListHint:
@@ -7878,7 +7898,7 @@ export default {
       hostSkillDisabled: "이 컴퓨터에서 비활성화됨",
       skillsSelection: "스킬 목록",
       skillsSelectionDesc:
-        "워크스페이스 카탈로그의 스킬이 모두 표시됩니다. 이 샌드박스에 설치된 것은 바로 쓸 수 있고, 나머지는 먼저 「설치」해야 합니다.",
+        "공용 카탈로그의 스킬이 모두 표시됩니다. 이 샌드박스에 설치된 것은 바로 쓸 수 있고, 나머지는 먼저 「설치」해야 합니다.",
       skillsAll: "전체",
       skillsSelected: "지정",
       skillsNone: "비활성화",
@@ -7889,7 +7909,7 @@ export default {
         "「전체」에는 이 샌드박스에 이미 설치된 스킬만 포함됩니다. 설치되지 않은 스킬은 「설치」한 뒤에야 포함됩니다.",
       skillsGroupAvailable: "사용 가능",
       skillsGroupUnavailable: "사용 불가",
-      noSkillsAvailable: "워크스페이스 카탈로그에 스킬이 없습니다.",
+      noSkillsAvailable: "공용 카탈로그에 스킬이 없습니다.",
       skillsNeedSandbox: "먼저 실행 샌드박스를 선택하세요.",
       goSandboxSettings: "샌드박스 관리",
       goSkillSettings: "스킬 관리",
@@ -7904,6 +7924,8 @@ export default {
       sandboxBackendDefault: "사용 안 함",
       sandboxBackendHint: "선택하지 않으면 스킬 스크립트가 실행되지 않습니다.",
       sandboxBackendMissing: "설정이 삭제됨",
+      platformSkillsManaged:
+        "플랫폼 기본 샌드박스의 스킬은 플랫폼 관리자가 일괄 설치합니다. 워크스페이스 구성원은 선택만 하면 됩니다.",
       sandboxNoConfigs:
         "이 워크스페이스에 샌드박스가 없어 스킬 스크립트가 실행되지 않습니다.",
       skillsInfoTitle: "스킬과 샌드박스는 어떻게 연동되나요?",

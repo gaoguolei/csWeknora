@@ -78,7 +78,9 @@ var versionedSQLiteColumns = map[string][]string{
 	}, // 000028
 }
 
-const expectedSQLiteMigrationVersion = 41
+// Must track the highest migrations/sqlite version; 44 is
+// 000044_platform_skill_install_tenant.
+const expectedSQLiteMigrationVersion = 44
 
 func TestSQLiteMigrationsCreateVersionedSchema(t *testing.T) {
 	repoRoot := sqliteRepoRoot(t)

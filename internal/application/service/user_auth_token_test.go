@@ -10,6 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 
+	apprepo "github.com/Tencent/WeKnora/internal/application/repository"
 	"github.com/Tencent/WeKnora/internal/types"
 )
 
@@ -20,6 +21,7 @@ func init() {
 type stubAuthTokenRepo struct {
 	tokens         map[string]*types.AuthToken
 	revokedUserIDs []string
+	updateCalls    int
 	// getErr, when set, is returned by every GetTokenByValue call, standing in
 	// for a database error rather than for a missing row.
 	getErr error
@@ -49,7 +51,9 @@ func (s *stubAuthTokenRepo) GetTokenByValue(_ context.Context, tokenValue string
 	}
 	token, ok := s.tokens[tokenValue]
 	if !ok {
-		return nil, errors.New("token not found")
+		// Mirror the real repository's sentinel so services can tell a
+		// missing row apart from an infrastructure failure.
+		return nil, apprepo.ErrTokenNotFound
 	}
 	return token, nil
 }
@@ -65,7 +69,10 @@ func (s *stubAuthTokenRepo) GetTokenByID(_ context.Context, id string) (*types.A
 func (s *stubAuthTokenRepo) GetTokensByUserID(context.Context, string) ([]*types.AuthToken, error) {
 	return nil, nil
 }
-func (s *stubAuthTokenRepo) UpdateToken(context.Context, *types.AuthToken) error { return nil }
+func (s *stubAuthTokenRepo) UpdateToken(context.Context, *types.AuthToken) error {
+	s.updateCalls++
+	return nil
+}
 func (s *stubAuthTokenRepo) DeleteToken(context.Context, string) error           { return nil }
 func (s *stubAuthTokenRepo) DeleteExpiredTokens(context.Context) error           { return nil }
 func (s *stubAuthTokenRepo) RevokeTokensByUserID(_ context.Context, userID string) error {
@@ -243,6 +250,122 @@ func TestLogoutRevokesAllUserTokens(t *testing.T) {
 	}
 	if len(tokenRepo.revokedUserIDs) != 1 || tokenRepo.revokedUserIDs[0] != "user-1" {
 		t.Fatalf("RevokeTokensByUserID calls = %v, want [user-1]", tokenRepo.revokedUserIDs)
+	}
+}
+
+func TestLogoutSessionRevokesOnlyPresentedTokens(t *testing.T) {
+	ctx := context.Background()
+	tokenRepo := &stubAuthTokenRepo{tokens: map[string]*types.AuthToken{}}
+	svc := newAuthTestUserService(tokenRepo)
+
+	mint := func(device string) string {
+		jwtStr := signTestJWT(jwt.MapClaims{
+			"user_id": "user-1",
+			"device":  device,
+			"type":    "access",
+			"exp":     time.Now().Add(time.Hour).Unix(),
+		})
+		tokenRepo.tokens[jwtStr] = &types.AuthToken{
+			UserID:    "user-1",
+			Token:     jwtStr,
+			TokenType: "access_token",
+		}
+		return jwtStr
+	}
+	deviceAAccess := mint("device-a")
+	deviceBAccess := mint("device-b")
+	deviceARefresh := signTestJWT(jwt.MapClaims{
+		"user_id": "user-1",
+		"type":    "refresh",
+		"exp":     time.Now().Add(72 * time.Hour).Unix(),
+	})
+	tokenRepo.tokens[deviceARefresh] = &types.AuthToken{
+		UserID:    "user-1",
+		Token:     deviceARefresh,
+		TokenType: "refresh_token",
+	}
+
+	if err := svc.LogoutSession(ctx, deviceAAccess, deviceARefresh); err != nil {
+		t.Fatalf("LogoutSession() err = %v", err)
+	}
+	if !tokenRepo.tokens[deviceAAccess].IsRevoked {
+		t.Fatal("presented access token was not revoked")
+	}
+	if !tokenRepo.tokens[deviceARefresh].IsRevoked {
+		t.Fatal("paired refresh token was not revoked")
+	}
+	if tokenRepo.tokens[deviceBAccess].IsRevoked {
+		t.Fatal("other device's session must survive a per-session logout")
+	}
+	if len(tokenRepo.revokedUserIDs) != 0 {
+		t.Fatalf("per-session logout must not revoke by user, got %v", tokenRepo.revokedUserIDs)
+	}
+
+	// Idempotent: repeating logout on already-revoked tokens succeeds.
+	if err := svc.LogoutSession(ctx, deviceAAccess, deviceARefresh); err != nil {
+		t.Fatalf("LogoutSession(repeat) err = %v", err)
+	}
+}
+
+func TestLogoutSessionRejectsForeignRefreshToken(t *testing.T) {
+	ctx := context.Background()
+	tokenRepo := &stubAuthTokenRepo{tokens: map[string]*types.AuthToken{}}
+	svc := newAuthTestUserService(tokenRepo)
+
+	access := signTestJWT(jwt.MapClaims{
+		"user_id": "user-1",
+		"type":    "access",
+		"exp":     time.Now().Add(time.Hour).Unix(),
+	})
+	tokenRepo.tokens[access] = &types.AuthToken{
+		UserID:    "user-1",
+		Token:     access,
+		TokenType: "access_token",
+	}
+	foreignRefresh := signTestJWT(jwt.MapClaims{
+		"user_id": "user-2",
+		"type":    "refresh",
+		"exp":     time.Now().Add(72 * time.Hour).Unix(),
+	})
+	tokenRepo.tokens[foreignRefresh] = &types.AuthToken{
+		UserID:    "user-2",
+		Token:     foreignRefresh,
+		TokenType: "refresh_token",
+	}
+
+	err := svc.LogoutSession(ctx, access, foreignRefresh)
+	if err == nil || err.Error() != "refresh token does not belong to the logged-in user" {
+		t.Fatalf("LogoutSession(foreign refresh) err = %v, want ownership rejection", err)
+	}
+	// The other user's refresh row must be untouched.
+	if tokenRepo.tokens[foreignRefresh].IsRevoked {
+		t.Fatal("foreign user's refresh token was revoked")
+	}
+}
+
+func TestLogoutSessionTreatsMissingRowsAsSuccess(t *testing.T) {
+	ctx := context.Background()
+	tokenRepo := &stubAuthTokenRepo{tokens: map[string]*types.AuthToken{}}
+	svc := newAuthTestUserService(tokenRepo)
+
+	// Signed JWTs whose rows were already swept by DeleteExpiredTokens:
+	// logout must succeed quietly instead of resurrecting the legacy
+	// revoke-everything fallback.
+	access := signTestJWT(jwt.MapClaims{
+		"user_id": "user-1",
+		"type":    "access",
+		"exp":     time.Now().Add(-time.Hour).Unix(),
+	})
+	refresh := signTestJWT(jwt.MapClaims{
+		"user_id": "user-1",
+		"type":    "refresh",
+		"exp":     time.Now().Add(-time.Minute).Unix(),
+	})
+	if err := svc.LogoutSession(ctx, access, refresh); err != nil {
+		t.Fatalf("LogoutSession(missing rows) err = %v", err)
+	}
+	if tokenRepo.updateCalls != 0 {
+		t.Fatalf("UpdateToken calls = %d, want 0 for absent rows", tokenRepo.updateCalls)
 	}
 }
 

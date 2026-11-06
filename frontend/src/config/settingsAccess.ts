@@ -16,7 +16,10 @@ export const SETTINGS_SECTION_MIN_ROLE: Record<string, SettingsRoleKey> = {
   // — the exact same treatment as `ollama`. They are deliberately absent here so
   // the nav filter + the role-denied guard in Settings.vue hide them from every
   // non-operations-admin, including plain system admins and workspace admins.
-  system: 'viewer',
+  // NOTE: `system`(版本信息) is no longer on the tenant role ladder — it is a
+  // deployment/runtime concern reserved to the operations administrator, see
+  // OPERATIONS_ADMIN_ONLY_SECTIONS. Its read route (/system/info) stays Viewer+
+  // because other surfaces reuse the snapshot.
   userprofile: 'viewer',
   browserconnection: 'viewer',
   tenant: 'viewer',
@@ -91,6 +94,9 @@ export const GLOBAL_MODEL_ADMIN_SECTIONS = new Set(['models'])
  *   - `sandbox`     : sandbox runtime configuration
  *   - `skills`      : skill management / install (writes into the sandbox image)
  *   - `websearch`   : network search providers
+ *   - `system`      : 版本信息 (app/UI/Go/DB versions, uptime, engine statuses)
+ *                     — a deployment-level read-out, so it is reserved to ops
+ *                     and hidden from plain system admins and workspace admins.
  *
  * NOTE: `kb-datasource` used to live here. Data sources are a workspace-level
  * concern configured by workspace admins (see SETTINGS_SECTION_MIN_ROLE).
@@ -110,6 +116,9 @@ export const OPERATIONS_ADMIN_ONLY_SECTIONS = new Set([
   'sandbox',
   'skills',
   'websearch',
+  // 版本信息：应用 / UI / Go / DB 版本、启动时间、运行时长与引擎状态，属于部署
+  // 层面的只读信息，只对运营管理员露出（超管与空间管理员都不显示）。
+  'system',
   // 知识库配置（平台默认）中收归运营管理员的三个分区（连超管也不显示），
   // 与同名基础设施页一致：向量存储 / 解析引擎 / 存储引擎。
   // 数据源不在此列：它是空间级配置，由空间管理员维护。
@@ -163,3 +172,16 @@ export const SUPER_ADMIN_ONLY_SECTIONS = new Set([
   'agent-websearch',
   'agent-multimodal',
 ])
+
+/**
+ * 部署定制：暂时屏蔽「空间专用沙箱」，全平台统一使用「平台默认沙箱」。
+ *
+ * 关掉后不再出现空间具名配置的入口：设置页的新增/列表/类型页签、智能体
+ * 沙箱下拉里的空间项、技能页的安装目标都只剩平台默认一份。后端能力与存量
+ * 数据完全未动，恢复时把此常量改回 true 即可（各引用点的过滤/排序逻辑保留
+ * 原样）。
+ *
+ * 存量兼容：智能体可能仍指向某份空间配置，所以下拉会继续只展示「该智能体
+ * 当前选中的那一份」，否则保存会静默把它的沙箱改成不启用。
+ */
+export const workspaceSandboxEnabled = false

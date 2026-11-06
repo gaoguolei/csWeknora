@@ -6,12 +6,20 @@ import (
 	"github.com/Tencent/WeKnora/internal/types"
 )
 
+// StorageBackendRepository defines persistence for storage backend instances.
+//
+// Backend instances are platform-wide: tenant_id records the registering
+// workspace, not who may see or use the instance. List still takes the caller's
+// workspace because legacy/environment aliases stay per workspace; see the
+// implementation for the exact predicate.
 type StorageBackendRepository interface {
 	Create(ctx context.Context, backend *types.StorageBackend) error
 	GetByID(ctx context.Context, tenantID uint64, id string) (*types.StorageBackend, error)
 	List(ctx context.Context, tenantID uint64) ([]*types.StorageBackend, error)
 	Update(ctx context.Context, backend *types.StorageBackend) error
 	Delete(ctx context.Context, tenantID uint64, id string) error
+	// FindLegacyAlias intentionally stays workspace-scoped: an alias resolves the
+	// process-wide environment storage for ONE workspace.
 	FindLegacyAlias(ctx context.Context, tenantID uint64, provider string) (*types.StorageBackend, error)
 }
 

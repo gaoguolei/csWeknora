@@ -973,11 +973,22 @@ export interface SandboxConfigRecord {
   config: SandboxConfig
   created_at: string
   updated_at: string
+  /** True for the platform default shared by every workspace. */
+  is_platform?: boolean
 }
 
 /** Create/update payload. */
 export interface SandboxConfigUpsert {
   name: string
+  description?: string
+  config: SandboxConfig
+}
+
+/**
+ * PUT /sandbox-configs/platform body. Upsert semantics; no name — the platform
+ * row keeps its reserved name, and its display name lives in `description`.
+ */
+export interface PlatformSandboxConfigUpsert {
   description?: string
   config: SandboxConfig
 }
@@ -1033,6 +1044,25 @@ export function createSandboxConfig(
 
 export function getSandboxConfigById(id: string): Promise<{ data: SandboxConfigRecord }> {
   return get(`/api/v1/sandbox-configs/${id}`) as unknown as Promise<{
+    data: SandboxConfigRecord
+  }>
+}
+
+/**
+ * The platform default sandbox. Readable by every workspace (credentials
+ * masked); only system admins may write it. A 404 means it was never set.
+ */
+export function getPlatformSandboxConfig(): Promise<{ data: SandboxConfigRecord }> {
+  return get('/api/v1/sandbox-configs/platform') as unknown as Promise<{
+    data: SandboxConfigRecord
+  }>
+}
+
+/** Creates or replaces the platform default sandbox (system admin only). */
+export function putPlatformSandboxConfig(
+  payload: PlatformSandboxConfigUpsert,
+): Promise<{ data: SandboxConfigRecord }> {
+  return put('/api/v1/sandbox-configs/platform', payload) as unknown as Promise<{
     data: SandboxConfigRecord
   }>
 }

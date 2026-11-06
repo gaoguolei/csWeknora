@@ -35,7 +35,7 @@ func newSkillTestRepoWithDB(t *testing.T) (TenantSkillRepository, *gorm.DB) {
 		 ON tenant_skills (sandbox_config_id, name) WHERE deleted_at IS NULL`).Error)
 	require.NoError(t, db.Exec(
 		`CREATE UNIQUE INDEX IF NOT EXISTS uq_tenant_skill_catalog_name
-		 ON tenant_skill_catalog (tenant_id, name) WHERE deleted_at IS NULL`).Error)
+		 ON tenant_skill_catalog (name) WHERE deleted_at IS NULL`).Error)
 	return NewTenantSkillRepository(db), db
 }
 
@@ -446,30 +446,63 @@ func TestListSkillsByTenantSpansConfigsAndStopsAtTheTenant(t *testing.T) {
 		"every config of the tenant, and nothing from another tenant")
 }
 
-func TestCatalogNameIsUniquePerTenant(t *testing.T) {
+// Definitions are shared, so a name can exist once on the platform.
+func TestCatalogNameIsUniqueAcrossThePlatform(t *testing.T) {
 	repo := newSkillTestRepo(t)
 	ctx := context.Background()
 
 	require.NoError(t, repo.CreateCatalog(ctx, &types.TenantSkillCatalogEntity{
 		ID: "cat-a", TenantID: 7, Name: "pdf",
 	}))
-	got, err := repo.GetCatalogByName(ctx, 7, "pdf")
+	got, err := repo.GetCatalogByName(ctx, "pdf")
 	require.NoError(t, err)
 	require.Equal(t, "cat-a", got.ID)
 
 	err = repo.CreateCatalog(ctx, &types.TenantSkillCatalogEntity{
-		ID: "cat-b", TenantID: 7, Name: "pdf",
+		ID: "cat-b", TenantID: 8, Name: "pdf",
 	})
-	require.Error(t, err, "same tenant cannot hold two catalog rows of one name")
+	require.Error(t, err, "another workspace cannot register a second definition of one name")
+
+	// The row is visible from a workspace that never registered anything.
+	require.NoError(t, repo.CreateCatalog(ctx, &types.TenantSkillCatalogEntity{
+		ID: "cat-search", TenantID: 8, Name: "search",
+	}))
+	list, err := repo.ListCatalogs(ctx)
+	require.NoError(t, err)
+	require.Len(t, list, 2, "definitions of every workspace are listed together")
+
+	byID, err := repo.GetCatalog(ctx, "cat-search")
+	require.NoError(t, err)
+	require.Equal(t, uint64(8), byID.TenantID, "tenant_id stays the storage owner")
+}
+
+// Installations stay per workspace, so the definition-level lookups must span
+// them while the counts still say which workspace each one belongs to.
+func TestCatalogInstallsSpanWorkspacesAndCountPerWorkspace(t *testing.T) {
+	repo := newSkillTestRepo(t)
+	ctx := context.Background()
 
 	require.NoError(t, repo.CreateCatalog(ctx, &types.TenantSkillCatalogEntity{
-		ID: "cat-other", TenantID: 8, Name: "pdf",
+		ID: "cat-a", TenantID: 7, Name: "pdf",
 	}))
+	mine := skillRow("sk-a", "cfg-1", "pdf")
+	mine.CatalogID = "cat-a"
+	require.NoError(t, repo.CreateSkill(ctx, mine))
+	mineToo := skillRow("sk-a2", "cfg-2", "pdf")
+	mineToo.CatalogID = "cat-a"
+	require.NoError(t, repo.CreateSkill(ctx, mineToo))
+	other := skillRow("sk-b", "cfg-3", "pdf")
+	other.TenantID = 8
+	other.CatalogID = "cat-a"
+	require.NoError(t, repo.CreateSkill(ctx, other))
 
-	install := skillRow("sk-a", "cfg-1", "pdf")
-	install.CatalogID = "cat-a"
-	require.NoError(t, repo.CreateSkill(ctx, install))
-	list, err := repo.ListSkillsByCatalog(ctx, 7, "cat-a")
+	list, err := repo.ListSkillsByCatalog(ctx, "cat-a")
 	require.NoError(t, err)
-	require.Len(t, list, 1)
+	require.Len(t, list, 3, "the lookup is not scoped to one workspace")
+
+	counts, err := repo.CountInstallsByCatalogWorkspace(ctx)
+	require.NoError(t, err)
+	require.Equal(t, map[string]map[uint64]int{
+		"cat-a": {7: 2, 8: 1},
+	}, counts)
 }

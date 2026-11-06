@@ -35,6 +35,17 @@ func (r *userEnvConfigRepo) Create(context.Context, *types.TenantSandboxConfigEn
 	panic("Create is outside the user env surface")
 }
 
+func (r *userEnvConfigRepo) GetPlatform(
+	context.Context,
+) (*types.TenantSandboxConfigEntity, error) {
+	for _, row := range r.rows {
+		if row.TenantID == types.PlatformSandboxTenantID {
+			return row, nil
+		}
+	}
+	return nil, nil
+}
+
 func (r *userEnvConfigRepo) GetByID(
 	_ context.Context, tenantID uint64, id string,
 ) (*types.TenantSandboxConfigEntity, error) {

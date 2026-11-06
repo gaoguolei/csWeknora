@@ -123,7 +123,7 @@ func (s *TenantSkillService) installParsedSkill(
 	}
 	keepPin := false
 	if origin == skillArchiveStored {
-		keepPin, err = s.storedArchiveKeepsItsPin(ctx, tenantID, existing, bundle)
+		keepPin, err = s.storedArchiveKeepsItsPin(ctx, existing, bundle)
 		if err != nil {
 			return "", err
 		}
@@ -218,12 +218,12 @@ func (s *TenantSkillService) catalogForArchive(
 	ctx context.Context, tenantID uint64, bundle *SkillBundle, archive []byte, origin skillArchiveOrigin,
 ) (*types.TenantSkillCatalogEntity, error) {
 	if origin == skillArchiveStored {
-		catalog, err := s.skills.GetCatalogByName(ctx, tenantID, bundle.Name)
+		catalog, err := s.skills.GetCatalogByName(ctx, bundle.Name)
 		if err != nil {
 			return nil, err
 		}
 		if catalog != nil && catalog.BundleSHA256 == bundle.SHA256 &&
-			s.catalogBundleStillHeld(ctx, tenantID, catalog) {
+			s.catalogBundleStillHeld(ctx, catalog) {
 			return catalog, nil
 		}
 	}
@@ -264,9 +264,9 @@ func (s *TenantSkillService) bindInstallToCatalog(
 // are a catalog that moved between reading its archive and installing it,
 // which is refused rather than written back.
 func (s *TenantSkillService) storedArchiveKeepsItsPin(
-	ctx context.Context, tenantID uint64, existing *types.TenantSkillEntity, bundle *SkillBundle,
+	ctx context.Context, existing *types.TenantSkillEntity, bundle *SkillBundle,
 ) (bool, error) {
-	catalog, err := s.skills.GetCatalogByName(ctx, tenantID, bundle.Name)
+	catalog, err := s.skills.GetCatalogByName(ctx, bundle.Name)
 	if err != nil {
 		return false, err
 	}
@@ -327,7 +327,7 @@ func (s *TenantSkillService) servedBundleRef(ctx context.Context, row *types.Ten
 	if cid == "" || sha == "" {
 		return ""
 	}
-	catalog, err := s.skills.GetCatalog(ctx, row.TenantID, cid)
+	catalog, err := s.skills.GetCatalog(ctx, cid)
 	if err != nil || catalog == nil || strings.TrimSpace(catalog.BundleSHA256) != sha {
 		return ""
 	}
@@ -1367,9 +1367,11 @@ func (s *TenantSkillService) pointInstallAtCatalog(
 		return fmt.Errorf("catalog archive is missing")
 	}
 	superseded := ""
+	previousCatalogID := ""
 	if err := s.updateSkillFields(ctx, skill.TenantID, skill.SandboxConfigID, skill.ID,
 		func(e *types.TenantSkillEntity) {
 			superseded = strings.TrimSpace(e.BundleRef)
+			previousCatalogID = strings.TrimSpace(e.CatalogID)
 			e.CatalogID = catalog.ID
 			e.BundleRef = ""
 		}); err != nil {
@@ -1377,9 +1379,13 @@ func (s *TenantSkillService) pointInstallAtCatalog(
 	}
 	// This install now reads the definition's copy, so whatever it named before
 	// — a pre-catalog object of its own, or an archive pinned by an earlier
-	// replacement — has one reader fewer.
+	// replacement — has one reader fewer. The pin belongs to the definition the
+	// row followed up to now, which is the population that may still read it.
 	if superseded != "" && superseded != strings.TrimSpace(catalog.BundleRef) {
-		s.releaseInstallBundle(ctx, skill.TenantID, superseded)
+		if previousCatalogID == "" {
+			previousCatalogID = catalog.ID
+		}
+		s.releaseInstallBundle(ctx, skill.TenantID, previousCatalogID, superseded)
 	}
 	return nil
 }
@@ -1421,6 +1427,7 @@ func (s *TenantSkillService) writeReadySkillState(
 	ctx context.Context, tenantID uint64, configID, skillID, snapshotID string, bundle *SkillBundle,
 ) error {
 	retired := ""
+	catalogID := ""
 	if err := s.retrySkillBookkeeping(ctx, func() error {
 		owned, err := s.installStillOwnsTheRow(ctx, tenantID, configID, skillID, bundle)
 		if err != nil {
@@ -1436,6 +1443,7 @@ func (s *TenantSkillService) writeReadySkillState(
 				if e.Served != nil {
 					retired = strings.TrimSpace(e.Served.BundleRef)
 				}
+				catalogID = strings.TrimSpace(e.CatalogID)
 				e.Served = nil
 				e.Status = types.SkillStatusReady
 				e.Error = ""
@@ -1446,7 +1454,7 @@ func (s *TenantSkillService) writeReadySkillState(
 		return fmt.Errorf("skill %s is installed and serving but could not be marked ready: %w",
 			skillID, err)
 	}
-	s.releaseInstallBundle(ctx, tenantID, retired)
+	s.releaseInstallBundle(ctx, tenantID, catalogID, retired)
 	return nil
 }
 

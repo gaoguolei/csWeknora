@@ -63,18 +63,27 @@ func RegisterSandboxConfigRoutes(
 	{
 		configs.GET("", g.Viewer(), h.List)
 		configs.PUT("/workspace-policy", g.Admin(), h.SetWorkspacePolicy)
+		// The platform default sandbox is readable (masked) by every workspace —
+		// any agent can select it — but only system admins (operators) configure
+		// it. Writers through /:id are refused at the service layer for the
+		// platform row.
+		configs.GET("/platform", g.Viewer(), h.GetPlatform)
+		configs.PUT("/platform", g.SystemAdmin(), h.PutPlatform)
 		configs.POST("/templates/query", g.Admin(), h.QueryTemplates)
 		configs.POST("", g.Admin(), h.Create)
 		configs.GET("/:id", g.Viewer(), h.Get)
 		configs.PUT("/:id", g.Admin(), h.Update)
 		configs.DELETE("/:id", g.Admin(), h.Delete)
 		configs.GET("/:id/sandboxes", g.Admin(), h.Inventory)
-		// Skills are Admin+ throughout, reads included: an upload drives a
-		// root shell whose output is baked into the image every session of
-		// this config boots, and the listing names what that image carries.
-		configs.GET("/:id/skills", g.Admin(), skills.List)
+		// Skill writes are Admin+ for workspace configs; the platform config's
+		// rows are further upgraded to system admins inside the handlers
+		// (refusePlatformSkillWrite). Reads: List/Get are Viewer+ so every
+		// workspace can see the platform ready set (the handlers keep
+		// workspace configs Admin+ as before); the deeper reads (files,
+		// transcript, events) stay Admin+ throughout.
+		configs.GET("/:id/skills", g.Viewer(), skills.List)
 		configs.POST("/:id/skills", g.Admin(), skills.Upload)
-		configs.GET("/:id/skills/:skillId", g.Admin(), skills.Get)
+		configs.GET("/:id/skills/:skillId", g.Viewer(), skills.Get)
 		configs.GET("/:id/skills/:skillId/files", g.Admin(), skills.ListFiles)
 		configs.GET("/:id/skills/:skillId/files/content", g.Admin(), skills.GetFile)
 		configs.POST("/:id/skills/:skillId/reinstall", g.Admin(), skills.Reinstall)
@@ -232,6 +241,11 @@ func RegisterWebSearchRoutes(r *gin.RouterGroup, webSearchHandler *handler.WebSe
 // etc.); reads are Viewer+, all mutations / connection tests (which
 // probe external systems with stored credentials) and the per-field
 // credential subresource are Admin+.
+//
+// NOTE: the provider catalogue is platform-wide — the repository ignores
+// tenant_id when resolving, so every write here is felt by ALL
+// workspaces, while the gate below is still the tenant-level Admin().
+// See the SHARED note in rbac.go before changing this gate.
 func RegisterWebSearchProviderRoutes(
 	r *gin.RouterGroup,
 	h *handler.WebSearchProviderHandler,
@@ -260,9 +274,14 @@ func RegisterWebSearchProviderRoutes(
 
 // RegisterVectorStoreRoutes registers CRUD routes for vector store configurations.
 //
-// Vector stores are tenant-level infrastructure; reads are Viewer+, all
-// writes (and connection tests, which probe external systems with stored
-// credentials) are Admin+.
+// Reads are Viewer+, all writes (and connection tests, which probe
+// external systems with stored credentials) are Admin+.
+//
+// NOTE: the store catalogue is platform-wide — the repository ignores
+// tenant_id when resolving, and the delete guard counts bound knowledge
+// bases across every workspace — so a write here is felt by ALL
+// workspaces, while the gate below is still the tenant-level Admin().
+// See the SHARED note in rbac.go before changing this gate.
 func RegisterVectorStoreRoutes(r *gin.RouterGroup, h *handler.VectorStoreHandler, g *rbacGuards) {
 	stores := g.apiKeyGroup(r.Group("/vector-stores"), apiKeyManageVectorStores(apiKeyFullAccess()))
 	{
@@ -282,6 +301,12 @@ func RegisterVectorStoreRoutes(r *gin.RouterGroup, h *handler.VectorStoreHandler
 }
 
 // RegisterStorageBackendRoutes manages concrete object/file storage instances.
+//
+// NOTE: the backend catalogue is platform-wide — the repository ignores
+// tenant_id for user-configured rows (only this workspace's env/legacy
+// aliases stay scoped) — so a write here is felt by ALL workspaces,
+// while the gate below is still the tenant-level Admin(). See the SHARED
+// note in rbac.go before changing this gate.
 func RegisterStorageBackendRoutes(r *gin.RouterGroup, h *handler.StorageBackendHandler, g *rbacGuards) {
 	backends := g.apiKeyGroup(r.Group("/storage-backends"), apiKeyManageStorageBackends(apiKeyFullAccess()))
 	{

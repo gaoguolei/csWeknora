@@ -15,8 +15,8 @@ import (
 )
 
 // ListCatalog godoc
-// @Summary      List workspace skills
-// @Description  Returns every skill definition in this workspace and which sandbox configs it is installed on.
+// @Summary      List platform skills
+// @Description  Returns every skill definition on the platform and which sandbox configs of the current workspace it is installed on.
 // @Tags         Skills
 // @Produce      json
 // @Success      200  {object}  map[string]interface{}
@@ -37,8 +37,8 @@ func (h *SkillHandler) ListCatalog(c *gin.Context) {
 }
 
 // RegisterCatalog godoc
-// @Summary      Add a skill to the workspace catalog
-// @Description  Records a skill without installing it. Send a zip as multipart field "file", or JSON {"source":"..."}.
+// @Summary      Add a skill to the platform catalog
+// @Description  Records a skill without installing it. Send a zip as multipart field "file", or JSON {"source":"..."}. The definition is visible to every workspace.
 // @Tags         Skills
 // @Accept       json
 // @Accept       multipart/form-data
@@ -168,7 +168,7 @@ func (h *SkillHandler) InstallCatalog(c *gin.Context) {
 
 // DeleteCatalog godoc
 // @Summary      Delete a catalog skill
-// @Description  Refused while any sandbox still has an installation of this skill.
+// @Description  Force-deletes the skill platform-wide: it is uninstalled from every sandbox that still carries it, then the definition and its archive are dropped.
 // @Tags         Skills
 // @Param        id   path  string  true  "Catalog skill ID"
 // @Success      200  {object}  map[string]interface{}

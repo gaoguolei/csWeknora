@@ -223,11 +223,17 @@ type TenantSkillSnapshotEntity struct {
 // TableName pins the table so GORM's pluralizer cannot drift.
 func (e *TenantSkillSnapshotEntity) TableName() string { return "tenant_skill_snapshots" }
 
-// TenantSkillCatalogEntity is one workspace skill definition. It does not
-// belong to a sandbox: installations onto a config's image are TenantSkillEntity
-// rows that point back here.
+// TenantSkillCatalogEntity is one platform-wide skill definition. Every
+// workspace sees every definition; what stays per workspace is the
+// installation, i.e. the TenantSkillEntity rows that point back here.
+//
+// TenantID is not a visibility scope. It names the workspace whose file
+// service holds the bundle, fixed when the definition is first registered, so
+// a definition registered in one workspace can still be read and installed by
+// all the others.
 type TenantSkillCatalogEntity struct {
-	ID           string `gorm:"type:varchar(36);primaryKey"`
+	ID string `gorm:"type:varchar(36);primaryKey"`
+	// TenantID is the bundle's storage owner (see the type comment).
 	TenantID     uint64
 	Name         string `gorm:"type:varchar(255);not null"`
 	Version      string `gorm:"type:varchar(64)"`

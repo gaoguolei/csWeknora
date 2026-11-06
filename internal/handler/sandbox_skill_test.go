@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -35,6 +36,11 @@ type fakeSandboxSkillService struct {
 	listErr  error
 	getErr   error
 	patchErr error
+
+	// platformConfigIDs marks config IDs the fake treats as the platform
+	// default, so a test can drive the mapped-tenant and system-admin paths
+	// without a real config row behind the service.
+	platformConfigIDs map[string]bool
 
 	installID     string
 	installErr    error
@@ -90,6 +96,15 @@ type fakeSandboxSkillService struct {
 	// onGet runs on every read, so a test can model a row that disappears
 	// while the client is streaming.
 	onGet func(calls int)
+}
+
+func (f *fakeSandboxSkillService) SkillTargetTenant(
+	_ context.Context, tenantID uint64, configID string,
+) (uint64, bool, error) {
+	if types.IsSandboxPlatformConfigID(configID) || f.platformConfigIDs[configID] {
+		return types.PlatformSandboxTenantID, true, nil
+	}
+	return tenantID, false, nil
 }
 
 func (f *fakeSandboxSkillService) ListSkills(
@@ -291,12 +306,43 @@ func (f *fakeSandboxSkillService) subscriptionClosed() bool {
 	return f.closed
 }
 
+// skillTestPrincipal mirrors what the auth middleware writes onto the request
+// context: the role the route guard cleared, the system-admin flag the platform
+// gates consult, and the API-key scope of a machine principal.
+//
+// The skill routes are Admin+ in production, so the default test caller is a
+// workspace admin; the platform gates are exercised with other principals.
+type skillTestPrincipal struct {
+	role        types.TenantRole
+	systemAdmin bool
+	apiKeyScope *types.TenantAPIKeyScope
+}
+
 func newSkillTestRouter(h *SandboxSkillHandler) *gin.Engine {
+	return newSkillTestRouterAs(h, skillTestPrincipal{role: types.TenantRoleAdmin})
+}
+
+func newSkillTestRouterAs(h *SandboxSkillHandler, principal skillTestPrincipal) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	r.Use(middleware.ErrorHandler())
 	r.Use(func(c *gin.Context) {
+		// Handlers read the workspace from c.Keys; everything the dynamic
+		// gates consult lives on the request context.
 		c.Set(types.TenantIDContextKey.String(), testSkillTenantID)
+		ctx := context.WithValue(
+			c.Request.Context(), types.TenantIDContextKey, testSkillTenantID)
+		if principal.role != "" {
+			ctx = context.WithValue(ctx, types.TenantRoleContextKey, principal.role)
+		}
+		ctx = context.WithValue(ctx, types.SystemAdminContextKey, principal.systemAdmin)
+		if principal.apiKeyScope != nil {
+			ctx = types.WithTenantAPIKeyScope(ctx, *principal.apiKeyScope)
+		}
+		ctx = types.WithCaller(ctx, types.Caller{
+			TenantID: testSkillTenantID, Role: principal.role,
+		})
+		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
 	r.GET("/sandbox-configs/:id/skills", h.List)
@@ -1357,4 +1403,191 @@ func TestSandboxSkillReinstallForwardsInstructions(t *testing.T) {
 	)
 	require.Equal(t, http.StatusAccepted, w.Code)
 	require.Equal(t, []string{"Use the official CLI installer"}, svc.reinstallInstructions)
+}
+
+// requireNoSkillWrite fails when any write reached the service, which is how a
+// rejected platform write is proven to have been stopped at the gate.
+func requireNoSkillWrite(t *testing.T, svc *fakeSandboxSkillService) {
+	t.Helper()
+	require.Nil(t, svc.installBytes)
+	require.Empty(t, svc.installSource)
+	require.Empty(t, svc.reinstallSkill)
+	require.Empty(t, svc.stopSkill)
+	require.Empty(t, svc.removeSkill)
+	require.Zero(t, svc.patchCalls)
+	require.Empty(t, svc.guidanceArgs)
+}
+
+// A workspace admin could otherwise rewrite the ready set every workspace boots,
+// so every write against the platform default must be refused unless the caller
+// is a system admin. The sentinel ID and a row mapped to the platform tenant are
+// both covered: SkillTargetTenant decides the tenant, the gate decides the write.
+func TestSandboxSkillPlatformWritesRequireSystemAdmin(t *testing.T) {
+	for _, configID := range []string{types.SandboxConfigIDPlatform, "cfg-platform"} {
+		t.Run(configID, func(t *testing.T) {
+			for _, tc := range []struct {
+				name string
+				req  func(t *testing.T) *http.Request
+			}{
+				{
+					name: "upload",
+					req: func(t *testing.T) *http.Request {
+						return skillUploadRequest(t, configID, []byte("zip-bytes"))
+					},
+				},
+				{
+					name: "install from source",
+					req: func(t *testing.T) *http.Request {
+						return jsonSkillRequest(t, http.MethodPost,
+							"/sandbox-configs/"+configID+"/skills", `{"source":"@owner/demo"}`)
+					},
+				},
+				{
+					name: "reinstall",
+					req: func(t *testing.T) *http.Request {
+						return jsonSkillRequest(t, http.MethodPost,
+							"/sandbox-configs/"+configID+"/skills/skill-1/reinstall", "")
+					},
+				},
+				{
+					name: "stop",
+					req: func(t *testing.T) *http.Request {
+						return httptest.NewRequest(http.MethodPost,
+							"/sandbox-configs/"+configID+"/skills/skill-1/stop", nil)
+					},
+				},
+				{
+					name: "patch",
+					req: func(t *testing.T) *http.Request {
+						return jsonSkillRequest(t, http.MethodPatch,
+							"/sandbox-configs/"+configID+"/skills/skill-1", `{"enabled":false}`)
+					},
+				},
+				{
+					name: "delete",
+					req: func(t *testing.T) *http.Request {
+						return httptest.NewRequest(http.MethodDelete,
+							"/sandbox-configs/"+configID+"/skills/skill-1", nil)
+					},
+				},
+				{
+					name: "guidance",
+					req: func(t *testing.T) *http.Request {
+						return jsonSkillRequest(t, http.MethodPost,
+							"/sandbox-configs/"+configID+"/skills/skill-1/guidance",
+							`{"expected_message_id":"run-1","steer_id":"id-1","content":"Install bsk"}`)
+					},
+				},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					svc := &fakeSandboxSkillService{
+						platformConfigIDs: map[string]bool{"cfg-platform": true},
+					}
+					router := newSkillTestRouterAs(NewSandboxSkillHandler(svc, nil),
+						skillTestPrincipal{role: types.TenantRoleAdmin})
+
+					w := httptest.NewRecorder()
+					router.ServeHTTP(w, tc.req(t))
+
+					require.Equal(t, http.StatusForbidden, w.Code, "body=%s", w.Body.String())
+					requireNoSkillWrite(t, svc)
+				})
+			}
+		})
+	}
+}
+
+func TestSandboxSkillPlatformWriteMessageNamesTheRequiredRole(t *testing.T) {
+	svc := &fakeSandboxSkillService{}
+	router := newSkillTestRouterAs(NewSandboxSkillHandler(svc, nil),
+		skillTestPrincipal{role: types.TenantRoleAdmin})
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, skillUploadRequest(t, types.SandboxConfigIDPlatform, []byte("zip")))
+
+	require.Equal(t, http.StatusForbidden, w.Code)
+	require.Contains(t, w.Body.String(), "运营管理员")
+	requireNoSkillWrite(t, svc)
+}
+
+// A system admin writes the platform ready set once, under the platform
+// pseudo-tenant, and every workspace picks it up from there.
+func TestSandboxSkillPlatformWriteAllowedForSystemAdmin(t *testing.T) {
+	svc := &fakeSandboxSkillService{installID: "skill-7"}
+	router := newSkillTestRouterAs(NewSandboxSkillHandler(svc, nil),
+		skillTestPrincipal{role: types.TenantRoleAdmin, systemAdmin: true})
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, skillUploadRequest(t, types.SandboxConfigIDPlatform, []byte("zip-bytes")))
+
+	require.Equal(t, http.StatusAccepted, w.Code, "body=%s", w.Body.String())
+	require.Equal(t, types.PlatformSandboxTenantID, svc.installTenant,
+		"a platform install must be recorded under the platform tenant")
+	require.Equal(t, types.SandboxConfigIDPlatform, svc.installConfig)
+
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest(http.MethodDelete,
+		"/sandbox-configs/"+types.SandboxConfigIDPlatform+"/skills/skill-7", nil))
+	require.Equal(t, http.StatusAccepted, w.Code, "body=%s", w.Body.String())
+	require.Equal(t, types.PlatformSandboxTenantID, svc.removeTenant)
+}
+
+// The platform ready set is visible to every workspace, so a viewer may read it;
+// a workspace config keeps the Admin+ posture it had before the platform default
+// existed, which is the dynamic half of the List/Get gate.
+func TestSandboxSkillPlatformReadIsOpenWhileWorkspaceReadNeedsAdmin(t *testing.T) {
+	svc := &fakeSandboxSkillService{skills: map[string]*types.TenantSkillEntity{
+		"skill-1": {
+			ID: "skill-1", TenantID: testSkillTenantID, SandboxConfigID: "cfg-a",
+			Name: "pdf", Status: types.SkillStatusReady, Enabled: true,
+		},
+	}}
+	router := newSkillTestRouterAs(NewSandboxSkillHandler(svc, nil),
+		skillTestPrincipal{role: types.TenantRoleViewer})
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet,
+		"/sandbox-configs/"+types.SandboxConfigIDPlatform+"/skills", nil))
+	require.Equal(t, http.StatusOK, w.Code, "body=%s", w.Body.String())
+	require.Equal(t, types.PlatformSandboxTenantID, svc.listTenant,
+		"a platform read must be served from the platform tenant")
+
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/sandbox-configs/cfg-a/skills", nil))
+	require.Equal(t, http.StatusForbidden, w.Code, "body=%s", w.Body.String())
+	require.Equal(t, types.PlatformSandboxTenantID, svc.listTenant,
+		"a refused read must not reach the service")
+
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet,
+		"/sandbox-configs/cfg-a/skills/skill-1", nil))
+	require.Equal(t, http.StatusForbidden, w.Code, "body=%s", w.Body.String())
+	require.Zero(t, svc.getCalls, "a refused read must not reach the service")
+}
+
+// An API key cleared the same role ladder at the route guard, so the dynamic
+// gate must not invent a stricter rule and break machine callers.
+func TestSandboxSkillWorkspaceReadAllowedForAPIKeyPrincipal(t *testing.T) {
+	svc := &fakeSandboxSkillService{}
+	router := newSkillTestRouterAs(NewSandboxSkillHandler(svc, nil), skillTestPrincipal{
+		role:        types.TenantRoleViewer,
+		apiKeyScope: &types.TenantAPIKeyScope{KeyID: 1, FullAccess: true},
+	})
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/sandbox-configs/cfg-a/skills", nil))
+
+	require.Equal(t, http.StatusOK, w.Code, "body=%s", w.Body.String())
+	require.Equal(t, testSkillTenantID, svc.listTenant)
+}
+
+func jsonSkillRequest(t *testing.T, method, target, body string) *http.Request {
+	t.Helper()
+	var reader io.Reader
+	if body != "" {
+		reader = strings.NewReader(body)
+	}
+	req := httptest.NewRequest(method, target, reader)
+	req.Header.Set("Content-Type", "application/json")
+	return req
 }

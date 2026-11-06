@@ -33,6 +33,11 @@ func NewTenantSandboxConfigLoader(
 // A cordon is honoured here - the single choke point every sandbox operation
 // passes through - so no new sandbox can be created on credentials that are
 // about to be replaced.
+//
+// The platform sentinel resolves against the platform pseudo-tenant whatever
+// the requesting workspace is: agents everywhere share the platform default,
+// and a missing platform row reports Found=false so the resolver surfaces
+// ErrSandboxConfigNotFound rather than silently degrading to disabled.
 func (l *tenantSandboxConfigLoader) Load(
 	ctx context.Context,
 	tenantID uint64,
@@ -41,9 +46,18 @@ func (l *tenantSandboxConfigLoader) Load(
 	if l.repo == nil {
 		return sandbox.ResolvedTenantSandboxConfig{}, nil
 	}
-	entity, err := l.repo.GetByID(ctx, tenantID, configID)
+	var (
+		entity *types.TenantSandboxConfigEntity
+		err    error
+	)
+	if types.IsSandboxPlatformConfigID(configID) {
+		entity, err = l.repo.GetPlatform(ctx)
+	} else {
+		entity, err = l.repo.GetByID(ctx, tenantID, configID)
+	}
 	if err != nil {
-		return sandbox.ResolvedTenantSandboxConfig{}, err
+		return sandbox.ResolvedTenantSandboxConfig{}, fmt.Errorf(
+			"sandbox: load config %q: %w", configID, err)
 	}
 	if entity == nil {
 		return sandbox.ResolvedTenantSandboxConfig{Found: false}, nil

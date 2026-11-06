@@ -18,18 +18,21 @@ import (
 
 // vectorStoreService implements interfaces.VectorStoreService
 type vectorStoreService struct {
-	repo          interfaces.VectorStoreRepository
-	kbRepo        interfaces.KnowledgeBaseRepository // counts bound KBs for the delete guard
-	storeRegistry interfaces.StoreRegistry           // for dynamic registry updates on CRUD
-	factory       interfaces.EngineFactory           // creates engine services from VectorStore config
-	db            *gorm.DB                           // shared handle for cross-table transactions (delete guard)
-	envStores     []types.VectorStore                // env stores derived once at construction for ResolveStoreView fast path
+	repo interfaces.VectorStoreRepository
+	// kbRepo is retained for constructor compatibility. The delete guard now
+	// counts bound knowledge bases itself, across every workspace, because the
+	// store catalogue is platform-wide and the repository helper is tenant-scoped.
+	kbRepo        interfaces.KnowledgeBaseRepository
+	storeRegistry interfaces.StoreRegistry // for dynamic registry updates on CRUD
+	factory       interfaces.EngineFactory // creates engine services from VectorStore config
+	db            *gorm.DB                 // shared handle for cross-table transactions (delete guard)
+	envStores     []types.VectorStore      // env stores derived once at construction for ResolveStoreView fast path
 }
 
 // NewVectorStoreService creates a new vector store service.
 //
-// kbRepo and db are required by the delete guard, which counts bound KBs
-// inside a transaction. storeRegistry and factory are optional in tests
+// db is required by the delete guard, which counts bound KBs inside a
+// transaction. storeRegistry and factory are optional in tests
 // (passing nil disables dynamic registration / unregistration).
 func NewVectorStoreService(
 	repo interfaces.VectorStoreRepository,
@@ -162,10 +165,12 @@ func (s *vectorStoreService) UpdateStore(ctx context.Context, store *types.Vecto
 //     same store row block until our transaction completes. SQLite
 //     serializes writes via WAL + max-open-conns=1, so the lock hint is
 //     skipped and we rely on the transaction boundary alone.
-//  3. Count knowledge_bases rows via the shared CountByVectorStoreID
-//     repository method (tx-aware), which leverages the composite index
-//     (tenant_id, vector_store_id). GORM auto-applies the soft-delete
-//     scope — no explicit deleted_at predicate is needed.
+//  3. Count knowledge_bases rows across every workspace. The store catalogue is
+//     platform-wide, so a store is still in use when ANY workspace has a
+//     knowledge base bound to it — scoping the count to the caller would let one
+//     workspace delete an index another relies on. "Active" here means
+//     not-soft-deleted; GORM applies that scope automatically on the
+//     KnowledgeBase model.
 //  4. After commit, unregister from the in-memory registry. Wrapped in
 //     defer/recover so a panic in UnregisterByStoreID surfaces as a
 //     structured warning instead of silently leaking the stale engine.
@@ -191,7 +196,7 @@ func (s *vectorStoreService) DeleteStore(ctx context.Context, tenantID uint64, i
 
 		// 1. Lock the store row (PG row-level X-lock; skipped on SQLite).
 		var store types.VectorStore
-		q := tx.Where("id = ? AND tenant_id = ?", id, tenantID)
+		q := tx.Where("id = ?", id)
 		if s.isPostgres(tx) {
 			q = q.Clauses(clause.Locking{Strength: "UPDATE"})
 		}
@@ -202,9 +207,15 @@ func (s *vectorStoreService) DeleteStore(ctx context.Context, tenantID uint64, i
 			return err
 		}
 
-		// 2. Binding count under the same write-lock boundary.
-		count, err := s.kbRepo.CountByVectorStoreID(ctx, tx, tenantID, id)
-		if err != nil {
+		// 2. Binding count under the same write-lock boundary. Spans every
+		// workspace: the catalogue is shared, so "still bound" is a platform-wide
+		// fact. The scan is unindexed on SQLite/PG (the composite index leads with
+		// tenant_id, which we deliberately no longer constrain), but deletion is a
+		// rare administrative action against a small table.
+		var count int64
+		if err := tx.Model(&types.KnowledgeBase{}).
+			Where("vector_store_id = ?", id).
+			Count(&count).Error; err != nil {
 			return err
 		}
 		if count > 0 {
@@ -268,7 +279,7 @@ func (s *vectorStoreService) SaveDetectedVersion(ctx context.Context, store *typ
 // Resolution order:
 //
 //  1. storeID == "" → DefaultStoreDisplay (env fallback semantics).
-//  2. DB store row matching (id, tenantID) → user-source display.
+//  2. DB store row matching id (the catalogue is platform-wide) → user-source display.
 //  3. Cached env store with matching ID → env-source display.
 //  4. Otherwise → UnavailableStoreDisplay with a structured warn log.
 //

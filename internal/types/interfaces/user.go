@@ -80,6 +80,11 @@ type UserService interface {
 	// Logout revokes every outstanding access/refresh token for the user
 	// identified by the presented JWT.
 	Logout(ctx context.Context, token string) error
+	// LogoutSession revokes only the presented access token and, when
+	// supplied, the paired refresh token — leaving every other device
+	// session of the same user signed in. Both JWTs are signature-checked
+	// and must belong to the same user before anything is revoked.
+	LogoutSession(ctx context.Context, accessToken, refreshToken string) error
 	// GetCurrentUser gets current user from context
 	GetCurrentUser(ctx context.Context) (*types.User, error)
 	// SearchUsers searches users by username or email

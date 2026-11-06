@@ -37,12 +37,20 @@ import (
 //	      like Owner; Contributor in someone else's KB acts like
 //	      Viewer" hold uniformly.
 //
-//	NO  — Tenant-wide infrastructure: Model, VectorStore, IM channel,
-//	      WebSearchProvider, DataSource, MCPService, WeKnoraCloud
-//	      credentials.
+//	NO  — Tenant-wide infrastructure: Model, IM channel, DataSource,
+//	      MCPService, WeKnoraCloud credentials.
 //	      => Mutating routes use Admin().
-//	      There is no "creator-of-the-vector-store" concept; configuring
-//	      it affects everyone, so only Admin+ may touch it.
+//	      Configuring one changes what every member of this tenant
+//	      sees, so only Admin+ may touch it.
+//
+//	SHARED — Platform-shared infrastructure: SkillCatalog, VectorStore,
+//	      WebSearchProvider, StorageBackend. These rows still carry a
+//	      tenant_id, but it records only "who registered this"; the
+//	      repository lookups deliberately ignore it, so every workspace
+//	      reads and binds one and the same catalogue. Mutating such a row
+//	      therefore changes what EVERY workspace sees, which puts it a
+//	      level above the tenant ladder (the skill catalog's register /
+//	      delete routes use OperationsAdmin()).
 //
 //	ENTRY POINT — Routes that CREATE a new owned resource (POST
 //	      /knowledge-bases, POST /agents).
@@ -77,8 +85,11 @@ import (
 //   - As Viewer: read everything, mutate nothing.
 //   - Creating new resources (KB, agent, chat session) requires being
 //     at least Contributor.
-//   - Configuring tenant infrastructure (models, vector stores, IM,
-//     etc.) requires Admin+.
+//   - Configuring tenant infrastructure (models, IM, data sources,
+//     MCP services) requires Admin+. Platform-shared catalogues
+//     (skills, vector stores, web search providers, storage backends)
+//     follow their own gate, because editing one row is felt by every
+//     workspace rather than by this tenant alone.
 //
 // If a route makes a Contributor surprised that they CAN'T do
 // something they own, the gate is too tight (probably Admin where it

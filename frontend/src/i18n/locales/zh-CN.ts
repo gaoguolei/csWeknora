@@ -6403,7 +6403,8 @@ export default {
   },
   vectorStoreSettings: {
     title: "向量数据库引擎",
-    description: "注册和管理用于认知库搜索的向量数据库实例。",
+    description:
+      "注册和管理用于认知库搜索的向量数据库实例。所有空间共用同一份配置。",
     basicSection: "基本信息",
     storesTitle: "向量数据库",
     addStore: "添加数据库",
@@ -6442,7 +6443,7 @@ export default {
   webSearchSettings: {
     title: "网络搜索配置",
     description:
-      "配置网络搜索功能，在回答问题时可以从互联网获取实时信息补充认知库内容",
+      "配置网络搜索功能，在回答问题时可以从互联网获取实时信息补充认知库内容。所有空间共用同一份配置",
     basicSection: "基本信息",
     credentialsSection: "连接配置",
     optionsSection: "选项",
@@ -6531,6 +6532,25 @@ export default {
       dockerDisabledCard: "部署未启用 Docker 沙箱，此配置不会再创建容器",
       dockerHostRisk:
         "留空或 unix:// 会使用 ThinkerFlow 所在机器的 Docker 守护进程，权限等同该机 root，只适合私有化单机。多套空间共用同一主机时请改用 Cube 或 E2B。远程 tcp:// 必须填写 TLS 证书目录。",
+      platform: {
+        cardTitle: "平台默认沙箱",
+        badge: "平台",
+        cardDesc:
+          "所有空间共用这一份沙箱：运营管理员配置一次，全部空间的智能体立即生效。",
+        notConfigured: "尚未配置平台默认沙箱",
+        notConfiguredHint: "配置一次即可供所有空间使用；各空间无需再单独配置沙箱。",
+        configure: "配置",
+        edit: "编辑",
+        createTitle: "配置平台默认沙箱",
+        editTitle: "编辑平台默认沙箱",
+        displayName: "显示名称",
+        displayNamePlaceholder: "如：平台默认沙箱",
+        readOnly: "只读",
+        overrideTitle: "空间专用沙箱（可选）",
+        overrideHint:
+          "空间单独配置的沙箱会覆盖平台默认；没有单独配置的空间直接使用平台默认。",
+        noOverrides: "本空间没有专用沙箱，正在使用平台默认。",
+      },
       addConfig: "添加沙箱",
       viewClusterGuide: "集群搭建指南",
       configName: "配置名称",
@@ -6958,12 +6978,12 @@ export default {
     skills: {
       title: "技能管理",
       description:
-        "技能属于空间目录，可以只登记，也可以装到一份或多份沙箱。智能体只能启用当前沙箱里已就绪的技能。",
+        "技能目录由平台共用，所有空间看到同一份定义。可以只登记，也可以装到一份或多份沙箱。智能体只能启用当前沙箱里已就绪的技能。",
       helpTooltip:
         "目录里的技能可以不装任何沙箱。脚本要跑起来，必须装进智能体所用的那份沙箱镜像。Docker、Cube、E2B 互不通用，装到几份就要装几次。",
       hostTarget: "本机",
       host: {
-        description: "技能属于空间目录。装到这台电脑上之后，智能体才能启用。",
+        description: "技能目录由平台共用。装到这台电脑上之后，智能体才能启用。",
         helpTooltip:
           "目录里的技能可以先只登记。脚本要跑起来，需要装到这台电脑上。",
         emptyDesc: "还没有技能。添加后会装到这台电脑上。",
@@ -6978,8 +6998,7 @@ export default {
         manageDrawerDesc: "在这台电脑上管理启用、变量和卸载。",
         manageUninstall: "从本机卸载",
         manageUninstallConfirm: "确定从这台电脑卸载「{name}」？",
-        deleteCatalogConfirm: "确定从目录删除「{name}」？请先从本机卸载。",
-        deleteCatalogBlocked: "请先从本机卸载此技能。",
+        deleteCatalogConfirm: "确定从目录删除「{name}」？删除会一并从本机卸载。",
         upgradeDrawerDesc:
           "把「{name}」升级到目录中的当前版本。升级期间继续使用当前版本，升级失败也不影响它。",
         disableHint:
@@ -7000,7 +7019,7 @@ export default {
       addProgress: "添加进度",
       addStepRegister: "登记",
       addStepInstall: "安装",
-      addStepRegisterDesc: "粘贴来源或上传 zip，先登记到空间目录。",
+      addStepRegisterDesc: "粘贴来源或上传 zip，先登记到平台目录。",
       addStepInstallDesc:
         "确认解析结果后，选择要写入的沙箱。也可以跳过，稍后在列表里安装。",
       addFinish: "完成",
@@ -7033,8 +7052,8 @@ export default {
       manageUninstall: "从沙箱卸载",
       manageUninstallConfirm: "确定从该沙箱卸载「{name}」？",
       deleteCatalog: "从目录删除",
-      deleteCatalogConfirm: "确定从目录删除「{name}」？请先从所有沙箱卸载。",
-      deleteCatalogBlocked: "请先从所有沙箱卸载此技能。",
+      deleteCatalogConfirm: "确定从目录删除「{name}」？此操作对所有空间生效，会自动从各空间仍在使用的沙箱中一并卸载。",
+      otherWorkspaceInstalls: "其他空间也装了 {count} 处，删除时会一并卸载",
       deleteSuccess: "已从目录删除",
       registerAccepted: "已添加到目录",
       installAccepted: "已开始安装",
@@ -7149,7 +7168,8 @@ export default {
       requestFailed: "请求失败",
     },
     storageBackend: {
-      description: "管理文件与图片使用的存储实例；同一种类型可以配置多个实例。",
+      description:
+        "管理文件与图片使用的存储实例；同一种类型可以配置多个实例。所有空间共用同一份配置。",
       empty: "尚未配置存储实例",
       defaultTag: "默认",
       add: "添加存储实例",
@@ -7520,7 +7540,7 @@ export default {
       hostSkillsConfigDesc:
         "从下面列表选用已经装到这台电脑上的技能。没装的会显示「安装」，装好后才能勾选。",
       hostSkillsSelectionDesc:
-        "这里列出空间目录中的技能。已经装到这台电脑上的可以直接用；没装的请先点「安装」。",
+        "这里列出平台技能目录中的技能。已经装到这台电脑上的可以直接用；没装的请先点「安装」。",
       hostSelectSkillsDesc:
         "勾选要给这个智能体用的技能。没装到这台电脑上的不能勾选，请先点右侧「安装」。",
       hostSkillsAllListHint:
@@ -7530,7 +7550,7 @@ export default {
       hostSkillDisabled: "已在本机停用",
       skillsSelection: "技能列表",
       skillsSelectionDesc:
-        "这里列出空间目录中的技能。已装到当前沙箱的可以直接用；没装的请先点「安装」。",
+        "这里列出平台技能目录中的技能。已装到当前沙箱的可以直接用；没装的请先点「安装」。",
       skillsAll: "全部",
       skillsSelected: "指定",
       skillsNone: "禁用",
@@ -7541,7 +7561,7 @@ export default {
         "「全部」只包含已装到此沙箱的技能。没装的不会自动带上，点「安装」装好后才会算进去。",
       skillsGroupAvailable: "可用",
       skillsGroupUnavailable: "不可用",
-      noSkillsAvailable: "空间目录里还没有技能。",
+      noSkillsAvailable: "平台技能目录里还没有技能。",
       skillsNeedSandbox: "请先选择运行沙箱。",
       goSandboxSettings: "管理沙箱",
       goSkillSettings: "管理技能",
@@ -7556,6 +7576,8 @@ export default {
       sandboxBackendDefault: "不启用",
       sandboxBackendHint: "未选择时不会执行技能脚本。",
       sandboxBackendMissing: "配置已删除",
+      platformSkillsManaged:
+        "平台默认沙箱的技能由平台管理员统一安装，空间成员直接勾选使用。",
       sandboxNoConfigs: "当前空间还没有沙箱，技能脚本不会执行。",
       skillsInfoTitle: "技能与沙箱如何联动？",
       skillsInfoContent:

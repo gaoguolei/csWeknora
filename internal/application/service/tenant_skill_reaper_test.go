@@ -905,9 +905,11 @@ func (r *reaperSkillStore) DeleteSnapshotRowsByConfig(context.Context, uint64, s
 	panic("DeleteSnapshotRowsByConfig is outside the reaper surface")
 }
 
-// ListSkillsByTenant and ListCatalogsByTenant are on the surface because
-// dropping an abandoned removal is what makes an archive the row owned outright
-// unreachable, and reclaiming it means asking whether anything else names it.
+// ListSkillsByTenant, ListCatalogs and ListSkillsByCatalog are on the surface
+// because dropping an abandoned removal is what makes an archive the row owned
+// outright unreachable, and reclaiming it means asking whether anything else
+// names it: any workspace's definition, or any workspace's install of that
+// definition.
 func (r *reaperSkillStore) ListSkillsByTenant(
 	_ context.Context, tenantID uint64,
 ) ([]*types.TenantSkillEntity, error) {
@@ -945,18 +947,16 @@ func (r *reaperSkillStore) DeleteUserEnvVarsByConfig(context.Context, uint64, st
 func (r *reaperSkillStore) CreateCatalog(context.Context, *types.TenantSkillCatalogEntity) error {
 	panic("CreateCatalog is outside the reaper surface")
 }
-func (r *reaperSkillStore) GetCatalog(context.Context, uint64, string) (*types.TenantSkillCatalogEntity, error) {
+func (r *reaperSkillStore) GetCatalog(context.Context, string) (*types.TenantSkillCatalogEntity, error) {
 	panic("GetCatalog is outside the reaper surface")
 }
-func (r *reaperSkillStore) GetCatalogByName(context.Context, uint64, string) (*types.TenantSkillCatalogEntity, error) {
+func (r *reaperSkillStore) GetCatalogByName(context.Context, string) (*types.TenantSkillCatalogEntity, error) {
 	panic("GetCatalogByName is outside the reaper surface")
 }
-func (r *reaperSkillStore) ListCatalogsByTenant(
-	_ context.Context, tenantID uint64,
-) ([]*types.TenantSkillCatalogEntity, error) {
+func (r *reaperSkillStore) ListCatalogs(context.Context) ([]*types.TenantSkillCatalogEntity, error) {
 	var out []*types.TenantSkillCatalogEntity
 	for _, e := range r.catalogs {
-		if e != nil && e.TenantID == tenantID {
+		if e != nil {
 			cp := *e
 			out = append(out, &cp)
 		}
@@ -966,15 +966,39 @@ func (r *reaperSkillStore) ListCatalogsByTenant(
 func (r *reaperSkillStore) UpdateCatalog(context.Context, *types.TenantSkillCatalogEntity) error {
 	panic("UpdateCatalog is outside the reaper surface")
 }
-func (r *reaperSkillStore) DeleteCatalog(context.Context, uint64, string) error {
+func (r *reaperSkillStore) DeleteCatalog(context.Context, string) error {
 	panic("DeleteCatalog is outside the reaper surface")
 }
-func (r *reaperSkillStore) ListSkillsByCatalog(context.Context, uint64, string) ([]*types.TenantSkillEntity, error) {
-	panic("ListSkillsByCatalog is outside the reaper surface")
+func (r *reaperSkillStore) ListSkillsByCatalog(
+	_ context.Context, catalogID string,
+) ([]*types.TenantSkillEntity, error) {
+	var out []*types.TenantSkillEntity
+	for _, e := range r.rows {
+		if e != nil && e.CatalogID == catalogID {
+			cp := *e
+			out = append(out, &cp)
+		}
+	}
+	return out, nil
+}
+func (r *reaperSkillStore) CountInstallsByCatalogWorkspace(
+	context.Context,
+) (map[string]map[uint64]int, error) {
+	panic("CountInstallsByCatalogWorkspace is outside the reaper surface")
 }
 
 type reaperConfigStore struct {
 	entity *types.TenantSandboxConfigEntity
+}
+
+func (r *reaperConfigStore) GetPlatform(
+	context.Context,
+) (*types.TenantSandboxConfigEntity, error) {
+	if r.entity != nil && r.entity.TenantID == types.PlatformSandboxTenantID {
+		cp := *r.entity
+		return &cp, nil
+	}
+	return nil, nil
 }
 
 func (r *reaperConfigStore) GetByID(

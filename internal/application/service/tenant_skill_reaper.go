@@ -167,7 +167,7 @@ func (s *TenantSkillService) ReapStuckRuns(ctx context.Context) (int, error) {
 					logger.Warnf(ctx, "[skill] restore abandoned removal %s failed: %v", row.ID, err)
 					continue
 				}
-				s.releaseInstallBundle(ctx, row.TenantID, abandoned)
+				s.releaseInstallBundle(ctx, row.TenantID, row.CatalogID, abandoned)
 				reaped++
 				continue
 			}
@@ -180,7 +180,7 @@ func (s *TenantSkillService) ReapStuckRuns(ctx context.Context) (int, error) {
 			// so the sweep that drops it is what makes those bytes reachable
 			// by nothing. A definition's own object has other names and stays.
 			for _, ref := range pinned {
-				s.releaseInstallBundle(ctx, row.TenantID, ref)
+				s.releaseInstallBundle(ctx, row.TenantID, row.CatalogID, ref)
 			}
 			reaped++
 		}
@@ -239,7 +239,7 @@ func (s *TenantSkillService) reapStuckUpgrade(
 		return false
 	}
 	for _, ref := range released {
-		s.releaseInstallBundle(ctx, row.TenantID, ref)
+		s.releaseInstallBundle(ctx, row.TenantID, row.CatalogID, ref)
 	}
 	return true
 }

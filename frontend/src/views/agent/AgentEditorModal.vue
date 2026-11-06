@@ -710,6 +710,28 @@
                 :popup-props="{ overlayClassName: 'sandbox-config-select-popup' }"
               >
                 <t-option value="" :label="$t('agent.editor.sandboxBackendDefault')" />
+                <!--
+                  Stored as its own option rather than the row UUID: the agent
+                  then follows whatever the platform default later becomes.
+                -->
+                <t-option
+                  v-if="platformSandboxConfig"
+                  :value="PLATFORM_SANDBOX_TARGET"
+                  :label="platformOptionLabel"
+                >
+                  <div class="sandbox-option">
+                    <div class="sandbox-option__row">
+                      <span class="sandbox-option__name">{{ platformOptionLabel }}</span>
+                      <t-tag theme="primary" variant="light" size="small">
+                        {{ $t('settings.sandbox.platform.badge') }}
+                      </t-tag>
+                      <span class="sandbox-option__type">{{ backendLabel(platformSandboxConfig.sandbox_type) }}</span>
+                    </div>
+                    <div v-if="sandboxTargetLine(platformSandboxConfig)" class="sandbox-option__target">
+                      {{ sandboxTargetLine(platformSandboxConfig) }}
+                    </div>
+                  </div>
+                </t-option>
                 <t-option
                   v-for="cfg in sandboxConfigOptions"
                   :key="cfg.id"
@@ -726,6 +748,9 @@
                 </t-option>
               </t-select>
               <p v-if="selectedSandboxSummary" class="sandbox-selected-meta">{{ selectedSandboxSummary }}</p>
+              <p v-if="platformSkillsManaged" class="desc empty-hint">
+                {{ $t('agent.editor.platformSkillsManaged') }}
+              </p>
               <div class="sandbox-select-links">
                 <a href="javascript:void(0)" class="go-settings-link"
                   @click.prevent="uiStore.openSettings('sandbox')">
@@ -742,7 +767,7 @@
                   </a>
                 </template>
               </div>
-              <p v-if="sandboxConfigOptions.length === 0" class="desc empty-hint">
+              <p v-if="workspaceSandboxEnabled && sandboxConfigOptions.length === 0" class="desc empty-hint">
                 {{ $t('agent.editor.sandboxNoConfigs') }}
               </p>
             </div>
@@ -759,7 +784,7 @@
                 <t-radio-button value="selected" :disabled="!canEnableSkills">{{ $t('agent.editor.skillsSelected') }}</t-radio-button>
                 <t-radio-button value="none">{{ $t('agent.editor.skillsNone') }}</t-radio-button>
               </t-radio-group>
-              <p v-if="!hasSandboxSelected && sandboxConfigOptions.length > 1" class="desc empty-hint">
+              <p v-if="!hasSandboxSelected && sandboxChoiceHintVisible" class="desc empty-hint">
                 {{ $t('agent.editor.skillsNeedSandbox') }}
               </p>
               <p v-else-if="hasSandboxSelected && skillCatalog.length === 0" class="desc empty-hint">
@@ -1099,6 +1124,7 @@ import { SKILL_ICON } from '@/types/mention';
 import { listEmbedChannels } from '@/api/embed';
 import { getRootZoom, rectToCssPx } from '@/utils/zoom';
 import { integrationSectionKey } from '@/config/settingsRoute';
+import { workspaceSandboxEnabled } from '@/config/settingsAccess';
 import { toolboxLocation } from '@/config/toolbox';
 import {
   deriveKbFilterFromTools,
@@ -1311,14 +1337,34 @@ const hostOnly = computed(() => hostSkillsOnly(
   deploymentCapabilities.isSupported('settings.sandbox.host'),
 ));
 // Where this agent's skills install and run.
-const skillTargetId = computed(() =>
-  hostOnly.value ? HOST_SKILL_TARGET_ID : (formData.value.config.sandbox_config_id || ''),
+// The backend resolves this sentinel to the platform default row, so an agent
+// keeps following the shared config instead of pinning a UUID that a later
+// re-promotion would leave behind.
+const PLATFORM_SANDBOX_TARGET = 'platform';
+const platformSandboxConfig = computed(() =>
+  chatResources.sandboxConfigs.find((cfg) => cfg.is_platform === true) || null,
 );
+const platformOptionLabel = computed(() => t('settings.sandbox.platform.cardTitle'));
+const skillTargetId = computed(() => {
+  if (hostOnly.value) return HOST_SKILL_TARGET_ID;
+  const selected = formData.value.config.sandbox_config_id || '';
+  // Install rows are keyed by the platform row's UUID, so the sentinel has to
+  // be resolved before it can match anything.
+  if (selected === PLATFORM_SANDBOX_TARGET) return platformSandboxConfig.value?.id || '';
+  return selected;
+});
 const hasSandboxSelected = computed(() => !!skillTargetId.value);
 const canEnableSkills = computed(() =>
   hostOnly.value || hasSandboxSelected.value || namedSandboxConfigs().length === 1,
 );
-const canInstallSkills = computed(() => authStore.hasRole('admin'));
+const targetIsPlatform = computed(() =>
+  !hostOnly.value && formData.value.config.sandbox_config_id === PLATFORM_SANDBOX_TARGET,
+);
+// Platform installs are written through SystemAdmin-gated routes.
+const canInstallSkills = computed(() => (
+  targetIsPlatform.value ? authStore.isSystemAdmin : authStore.hasRole('admin')
+));
+const platformSkillsManaged = computed(() => targetIsPlatform.value && !authStore.isSystemAdmin);
 
 type CatalogSkillRow = SkillCatalogItem & {
   installed: boolean
@@ -1442,12 +1488,18 @@ function namedSandboxConfigs(): SandboxConfigRecord[] {
 }
 
 function autoBindSoleSandbox() {
-  if (hostOnly.value) return
-  if (skillsSelectionMode.value === 'none') return
-  if (formData.value.config.sandbox_config_id) return
-  const configs = namedSandboxConfigs()
+  if (hostOnly.value) return;
+  if (formData.value.config.sandbox_config_id) return;
+  // The platform default needs no picking: it is shared by every workspace, so
+  // a new agent runs skills without the user choosing a config first.
+  if (platformSandboxConfig.value) {
+    formData.value.config.sandbox_config_id = PLATFORM_SANDBOX_TARGET;
+    return;
+  }
+  if (skillsSelectionMode.value === 'none') return;
+  const configs = namedSandboxConfigs();
   if (configs.length === 1) {
-    formData.value.config.sandbox_config_id = configs[0].id
+    formData.value.config.sandbox_config_id = configs[0].id;
   }
 }
 
@@ -1561,9 +1613,18 @@ async function installCatalogToCurrent(skill: CatalogSkillRow) {
 // 空间内的具名沙箱后端配置。始终包含当前已选中的那份，即使它已被删除——
 // 否则下拉会静默显示为“不启用沙箱”，看不出该智能体其实指着一份不存在的配置。
 const sandboxConfigOptions = computed(() => {
-  const configs = chatResources.sandboxConfigs.filter((cfg) => isNamedSandboxBackend(cfg.sandbox_type));
+  // The platform default has its own fixed option above (referenced by
+  // sentinel), so listing its row here as well would offer the same thing twice.
+  const named = chatResources.sandboxConfigs
+    .filter((cfg) => isNamedSandboxBackend(cfg.sandbox_type) && cfg.is_platform !== true);
+  // 部署定制：空间专用沙箱已屏蔽，只留下该智能体当前指向的那一份，避免
+  // 屏蔽反而静默把存量智能体的沙箱改写成“不启用”。
+  const configs = workspaceSandboxEnabled
+    ? named
+    : named.filter((cfg) => cfg.id === formData.value.config.sandbox_config_id);
   const selected = formData.value.config.sandbox_config_id;
-  if (!selected || configs.some((cfg) => cfg.id === selected)) return configs;
+  if (!selected || selected === PLATFORM_SANDBOX_TARGET) return configs;
+  if (configs.some((cfg) => cfg.id === selected)) return configs;
   return [
     ...configs,
     { id: selected, name: t('agent.editor.sandboxBackendMissing'), sandbox_type: '' } as SandboxConfigRecord,
@@ -1571,6 +1632,12 @@ const sandboxConfigOptions = computed(() => {
 });
 const backendLabel = (type: string) =>
   type ? t(`settings.sandbox.backends.${type}`) : t('common.error');
+
+// 屏蔽空间沙箱后可选目标只剩「平台默认 / 不启用」，未选中时仍需要提示先选沙箱；
+// 放开时沿用原规则（只有一份具名配置会被 autoBindSoleSandbox 自动绑，不必提示）。
+const sandboxChoiceHintVisible = computed(() => (
+  workspaceSandboxEnabled ? sandboxConfigOptions.value.length > 1 : true
+));
 
 function sandboxTargetLine(cfg: SandboxConfigRecord): string {
   if (cfg.sandbox_type === 'docker') {
@@ -1588,7 +1655,9 @@ function sandboxTargetLine(cfg: SandboxConfigRecord): string {
 
 const selectedSandboxSummary = computed(() => {
   const id = formData.value.config.sandbox_config_id
-  const cfg = sandboxConfigOptions.value.find((item) => item.id === id)
+  const cfg = id === PLATFORM_SANDBOX_TARGET
+    ? platformSandboxConfig.value
+    : sandboxConfigOptions.value.find((item) => item.id === id)
   if (!cfg?.sandbox_type) return ''
   const parts = [backendLabel(cfg.sandbox_type), sandboxTargetLine(cfg)]
   const desc = cfg.description?.trim()

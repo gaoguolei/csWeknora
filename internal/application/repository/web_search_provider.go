@@ -24,11 +24,16 @@ func (r *webSearchProviderRepository) Create(ctx context.Context, provider *type
 	return r.db.WithContext(ctx).Create(provider).Error
 }
 
-// GetByID retrieves a web search provider by ID within a tenant scope
-func (r *webSearchProviderRepository) GetByID(ctx context.Context, tenantID uint64, id string) (*types.WebSearchProviderEntity, error) {
+// GetByID retrieves a web search provider by ID.
+//
+// The provider catalogue is platform-wide: every workspace manages and
+// consumes the same rows, so the lookup must not be narrowed by workspace.
+// tenant_id records who registered the row, not who may see it. The tenantID
+// argument stays only for call-site compatibility and is ignored.
+func (r *webSearchProviderRepository) GetByID(ctx context.Context, _ uint64, id string) (*types.WebSearchProviderEntity, error) {
 	var provider types.WebSearchProviderEntity
 	if err := r.db.WithContext(ctx).Where(
-		"id = ? AND tenant_id = ?", id, tenantID,
+		"id = ?", id,
 	).First(&provider).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -38,12 +43,15 @@ func (r *webSearchProviderRepository) GetByID(ctx context.Context, tenantID uint
 	return &provider, nil
 }
 
-// GetDefault retrieves the default provider (is_default=true) for a tenant, or nil if none.
-func (r *webSearchProviderRepository) GetDefault(ctx context.Context, tenantID uint64) (*types.WebSearchProviderEntity, error) {
+// GetDefault retrieves the platform default provider (is_default=true), or nil
+// when none is marked. There is exactly one default for the whole deployment;
+// rows left flagged by the pre-platform-shared era are ordered so the most
+// recently updated one wins instead of failing on multiple matches.
+func (r *webSearchProviderRepository) GetDefault(ctx context.Context, _ uint64) (*types.WebSearchProviderEntity, error) {
 	var provider types.WebSearchProviderEntity
 	if err := r.db.WithContext(ctx).Where(
-		"tenant_id = ? AND is_default = ?", tenantID, true,
-	).First(&provider).Error; err != nil {
+		"is_default = ?", true,
+	).Order("updated_at DESC").First(&provider).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -52,35 +60,39 @@ func (r *webSearchProviderRepository) GetDefault(ctx context.Context, tenantID u
 	return &provider, nil
 }
 
-// List lists all web search providers for a tenant
-func (r *webSearchProviderRepository) List(ctx context.Context, tenantID uint64) ([]*types.WebSearchProviderEntity, error) {
+// List lists every web search provider on the platform.
+func (r *webSearchProviderRepository) List(ctx context.Context, _ uint64) ([]*types.WebSearchProviderEntity, error) {
 	var providers []*types.WebSearchProviderEntity
-	if err := r.db.WithContext(ctx).Where(
-		"tenant_id = ?", tenantID,
-	).Order("created_at ASC").Find(&providers).Error; err != nil {
+	if err := r.db.WithContext(ctx).
+		Order("created_at ASC").Find(&providers).Error; err != nil {
 		return nil, err
 	}
 	return providers, nil
 }
 
-// Update updates a web search provider
+// Update updates a web search provider.
+//
+// tenant_id is omitted from the write: it records the registering workspace and
+// must not drift to whoever edited the row last.
 func (r *webSearchProviderRepository) Update(ctx context.Context, provider *types.WebSearchProviderEntity) error {
 	return r.db.WithContext(ctx).Model(&types.WebSearchProviderEntity{}).Where(
-		"id = ? AND tenant_id = ?", provider.ID, provider.TenantID,
-	).Select("*").Updates(provider).Error
+		"id = ?", provider.ID,
+	).Select("*").Omit("tenant_id", "created_at").Updates(provider).Error
 }
 
-// Delete soft-deletes a web search provider
-func (r *webSearchProviderRepository) Delete(ctx context.Context, tenantID uint64, id string) error {
+// Delete soft-deletes a web search provider.
+func (r *webSearchProviderRepository) Delete(ctx context.Context, _ uint64, id string) error {
 	return r.db.WithContext(ctx).Where(
-		"id = ? AND tenant_id = ?", id, tenantID,
+		"id = ?", id,
 	).Delete(&types.WebSearchProviderEntity{}).Error
 }
 
-// ClearDefault clears the default flag for all providers of a tenant, optionally excluding one
-func (r *webSearchProviderRepository) ClearDefault(ctx context.Context, tenantID uint64, excludeID string) error {
+// ClearDefault clears the default flag on every provider, optionally excluding
+// one. The default is a platform-wide choice, so the sweep cannot be scoped to a
+// workspace: two defaults would make GetDefault's answer depend on row order.
+func (r *webSearchProviderRepository) ClearDefault(ctx context.Context, _ uint64, excludeID string) error {
 	query := r.db.WithContext(ctx).Model(&types.WebSearchProviderEntity{}).Where(
-		"tenant_id = ? AND is_default = ?", tenantID, true,
+		"is_default = ?", true,
 	)
 	if excludeID != "" {
 		query = query.Where("id != ?", excludeID)

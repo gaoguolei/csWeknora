@@ -447,15 +447,15 @@ func TestSkillCatalogWriteRoutesRequireFullAccess(t *testing.T) {
 	v1 := gin.New().Group("/api/v1")
 	RegisterSkillRoutes(v1, &handler.SkillHandler{}, g)
 
+	// Installing a definition, or reading its files, only reaches this
+	// workspace's own sandbox configs.
 	cases := []struct {
 		method string
 		path   string
 	}{
-		{http.MethodPost, "/api/v1/skills/catalog"},
 		{http.MethodPost, "/api/v1/skills/catalog/:id/install"},
 		{http.MethodGet, "/api/v1/skills/catalog/:id/files"},
 		{http.MethodGet, "/api/v1/skills/catalog/:id/files/content"},
-		{http.MethodDelete, "/api/v1/skills/catalog/:id"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
@@ -465,6 +465,25 @@ func TestSkillCatalogWriteRoutesRequireFullAccess(t *testing.T) {
 			}
 			if len(policy.Capabilities) != 0 {
 				t.Fatalf("catalog writes must not be granted by a scoped capability: %#v", policy.Capabilities)
+			}
+		})
+	}
+
+	// The definitions themselves are shared by every workspace, so registering
+	// or deleting one changes what every workspace sees. That is
+	// operations-admin only, and RequireOperationsAdmin refuses every API key,
+	// so the routes must stay undeclared here: default-deny keeps keys out.
+	for _, tc := range []struct {
+		method string
+		path   string
+	}{
+		{http.MethodPost, "/api/v1/skills/catalog"},
+		{http.MethodDelete, "/api/v1/skills/catalog/:id"},
+	} {
+		t.Run("undeclared "+tc.method+" "+tc.path, func(t *testing.T) {
+			if policy, ok := g.apiKeyAuthorizer.Lookup(tc.method, tc.path); ok {
+				t.Fatalf("%s %s changes the platform catalog and must not be reachable with an API key, got %#v",
+					tc.method, tc.path, policy)
 			}
 		})
 	}

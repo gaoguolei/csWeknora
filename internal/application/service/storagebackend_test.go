@@ -14,7 +14,10 @@ import (
 	"gorm.io/gorm"
 )
 
-func TestStorageBackendResolverScopesPathsAndTenant(t *testing.T) {
+// TestStorageBackendResolverScopesPathsAcrossWorkspaces pins the two halves of
+// the platform-wide storage model: the instance is resolvable from any
+// workspace, and the path prefix keeps each write attributable to its backend.
+func TestStorageBackendResolverScopesPathsAcrossWorkspaces(t *testing.T) {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
 	require.NoError(t, db.AutoMigrate(&types.StorageBackend{}))
@@ -37,8 +40,14 @@ func TestStorageBackendResolverScopesPathsAndTenant(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "scoped", string(data))
 
-	_, _, err = resolver.ResolveFileService(context.Background(), &types.Tenant{ID: 8}, backend.ID, "local", t.TempDir())
-	require.Error(t, err)
+	// The backend catalogue is platform-wide now: a second workspace resolves
+	// the same instance instead of being rejected. "Default" stays per
+	// workspace, which is a separate column on tenants.
+	svcB, providerB, err := resolver.ResolveFileService(
+		context.Background(), &types.Tenant{ID: 8}, backend.ID, "local", t.TempDir())
+	require.NoError(t, err)
+	assert.Equal(t, "local", providerB)
+	assert.NotNil(t, svcB)
 }
 
 func TestResolveFileServiceUsesWorkspaceDefaultForStubTenant(t *testing.T) {

@@ -43,7 +43,7 @@ func storageTenantID(c *gin.Context) uint64 { return c.GetUint64(types.TenantIDC
 
 // List godoc
 // @Summary      List storage backends
-// @Description  List all storage backend instances for the current workspace, with credentials masked. The workspace default backend id is returned alongside the list.
+// @Description  List storage backend instances (platform-wide, plus this workspace's environment/legacy aliases), with credentials masked. The workspace default backend id is returned alongside the list.
 // @Tags         StorageBackend
 // @Produce      json
 // @Success      200  {object}  map[string]interface{}   "List of storage backends and default_storage_backend_id"
@@ -52,6 +52,8 @@ func storageTenantID(c *gin.Context) uint64 { return c.GetUint64(types.TenantIDC
 // @Security     ApiKeyAuth
 // @Router       /storage-backends [get]
 func (h *StorageBackendHandler) List(c *gin.Context) {
+	// The catalogue is platform-wide; the workspace id still narrows the
+	// per-workspace legacy aliases (see StorageBackendRepository.List).
 	tenantID := storageTenantID(c)
 	backends, err := h.repo.List(c.Request.Context(), tenantID)
 	if err != nil {
@@ -72,7 +74,7 @@ func (h *StorageBackendHandler) List(c *gin.Context) {
 
 // Get godoc
 // @Summary      Get storage backend
-// @Description  Retrieve a single storage backend by ID for the current workspace. Credentials are masked.
+// @Description  Retrieve a single storage backend by ID. Credentials are masked.
 // @Tags         StorageBackend
 // @Produce      json
 // @Param        id   path      string  true  "Storage backend ID"
@@ -97,7 +99,7 @@ func (h *StorageBackendHandler) Get(c *gin.Context) {
 
 // Create godoc
 // @Summary      Create storage backend
-// @Description  Register a new object/file storage instance for the current workspace. The configuration is validated and a connectivity test is run before the backend is persisted.
+// @Description  Register a new object/file storage instance. The configuration is validated and a connectivity test is run before the backend is persisted.
 // @Tags         StorageBackend
 // @Accept       json
 // @Produce      json
@@ -159,7 +161,7 @@ func (h *StorageBackendHandler) Update(c *gin.Context) {
 
 // Delete godoc
 // @Summary      Delete storage backend
-// @Description  Soft-delete a storage backend. A backend that is the workspace default, still bound to knowledge bases, environment-sourced, or a legacy alias cannot be deleted.
+// @Description  Soft-delete a storage backend. The guard is platform-wide: a backend that is a default in ANY workspace, still bound to knowledge bases anywhere, environment-sourced, or a legacy alias cannot be deleted.
 // @Tags         StorageBackend
 // @Produce      json
 // @Param        id   path      string  true  "Storage backend ID"

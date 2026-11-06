@@ -505,16 +505,17 @@ func (h *KnowledgeBaseHandler) applyKBPlatformDefaults(ctx context.Context, kb *
 	cfg.ApplyTo(kb)
 }
 
-// pruneForeignPlatformBindings drops the tenant-scoped resource bindings
-// (storage backend / vector store) that the caller's workspace cannot resolve.
+// pruneForeignPlatformBindings drops the platform-default resource bindings
+// (storage backend / vector store) that no longer resolve.
 //
-// The platform default document is shared by every workspace, but the concrete
-// instances it names live in the workspace the operations admin configured it
-// from. Copying such an ID into a KB created elsewhere makes the tenant-scoped
-// resolvers reject the whole create request ("storage backend is unavailable" /
-// "vector store is currently unavailable"), so those callers fall back to their
-// own workspace default instead. The provider projection is kept: it names a
-// storage *type*, and every workspace resolves its own instance of that type.
+// The instance catalogues are platform-wide, so a default written by the
+// operations admin resolves from any workspace and is normally kept as-is.
+// This guard only fires for stale values — an instance deleted after the
+// default was saved, or one whose row is inactive — where copying the ID into
+// a new KB would make creation fail with "storage backend is unavailable" /
+// "vector store is currently unavailable". Those callers fall back to their
+// own workspace default. The provider projection needs no such check: it names
+// a storage *type*, and every workspace resolves its own instance of that type.
 func (h *KnowledgeBaseHandler) pruneForeignPlatformBindings(ctx context.Context, cfg *types.KBDefaultsConfig) {
 	if cfg == nil {
 		return

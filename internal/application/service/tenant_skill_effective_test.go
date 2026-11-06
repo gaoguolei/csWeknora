@@ -155,6 +155,12 @@ type failingConfigRepo struct {
 	err    error
 }
 
+func (r failingConfigRepo) GetPlatform(
+	context.Context,
+) (*types.TenantSandboxConfigEntity, error) {
+	return nil, nil
+}
+
 func (r failingConfigRepo) GetByID(
 	context.Context, uint64, string,
 ) (*types.TenantSandboxConfigEntity, error) {
@@ -194,6 +200,17 @@ func TestEffectiveTenantSkillsInjectsNothingWhenTheSkillListingFails(t *testing.
 // cannot do.
 type multiConfigRepo struct {
 	entities map[string]*types.TenantSandboxConfigEntity
+}
+
+func (r *multiConfigRepo) GetPlatform(
+	context.Context,
+) (*types.TenantSandboxConfigEntity, error) {
+	for _, entity := range r.entities {
+		if entity.TenantID == types.PlatformSandboxTenantID {
+			return entity, nil
+		}
+	}
+	return nil, nil
 }
 
 func (r *multiConfigRepo) GetByID(

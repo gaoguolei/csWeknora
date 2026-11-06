@@ -414,8 +414,10 @@ func (s *TenantSkillService) finishRemoval(
 	// Read before the delete: past it the only record of what this row named is
 	// gone, and a pinned archive would be left behind with nothing to reclaim it.
 	var pinned []string
+	catalogID := ""
 	if row, err := s.skills.GetSkill(ctx, tenantID, configID, skillID); err == nil && row != nil {
 		pinned = installBundleRefs(row)
+		catalogID = strings.TrimSpace(row.CatalogID)
 	}
 	if err := s.retrySkillBookkeeping(ctx, func() error {
 		return s.skills.DeleteSkill(ctx, tenantID, configID, skillID)
@@ -426,7 +428,7 @@ func (s *TenantSkillService) finishRemoval(
 	// The definition's archive survives this; only an object no catalog and no
 	// other install names is reclaimed.
 	for _, ref := range pinned {
-		s.releaseInstallBundle(ctx, tenantID, ref)
+		s.releaseInstallBundle(ctx, tenantID, catalogID, ref)
 	}
 	// Only an image that actually changed can leave a bound sandbox out of
 	// date. Marking after a removal that moved no pointer would destroy and
@@ -451,6 +453,7 @@ func (s *TenantSkillService) restoreSkillAfterFailedRemoval(
 	}
 	status := types.SkillStatusFailed
 	abandoned := ""
+	catalogID := ""
 	_ = s.updateSkillFields(ctx, tenantID, configID, skillID,
 		func(e *types.TenantSkillEntity) {
 			// A skill that reached an image is still in it, so it goes back to
@@ -459,6 +462,7 @@ func (s *TenantSkillService) restoreSkillAfterFailedRemoval(
 			// files no image carries. A row whose upgrade never landed goes
 			// back to the version the image actually has.
 			abandoned = restoreServedVersion(e)
+			catalogID = strings.TrimSpace(e.CatalogID)
 			if e.InstalledSnapshotID != "" {
 				status = types.SkillStatusReady
 			}
@@ -466,7 +470,7 @@ func (s *TenantSkillService) restoreSkillAfterFailedRemoval(
 			e.Error = cause.Error()
 			e.InstallingSince = nil
 		})
-	s.releaseInstallBundle(ctx, tenantID, abandoned)
+	s.releaseInstallBundle(ctx, tenantID, catalogID, abandoned)
 	s.publishProgress(ctx, tenantID, configID, skillID, SkillProgress{
 		Percent: 100, Stage: "failed", Status: status, Log: cause.Error(),
 	})
@@ -523,17 +527,19 @@ func (s *TenantSkillService) removeStillOwnsTheRow(
 // The reference is not owned by one row. A definition's own object is shared by
 // every install of it, and one replaced archive is pinned by each install that
 // was built from it, so "this row let go" is not the same question as "nobody
-// needs these bytes". Both tables are checked before the object is deleted, and
-// an unreadable table means it is kept: a leaked archive costs storage, a
-// deleted one costs an install its files.
+// needs these bytes". Definitions are checked across the platform and installs
+// by the definition the row belongs to: definitions are shared, so a read that
+// keeps an archive alive may live in any workspace. An unreadable table means it
+// is kept: a leaked archive costs storage, a deleted one costs an install its
+// files.
 func (s *TenantSkillService) releaseInstallBundle(
-	ctx context.Context, tenantID uint64, bundleRef string,
+	ctx context.Context, tenantID uint64, catalogID, bundleRef string,
 ) {
 	ref := strings.TrimSpace(bundleRef)
 	if ref == "" {
 		return
 	}
-	catalogs, err := s.skills.ListCatalogsByTenant(ctx, tenantID)
+	catalogs, err := s.skills.ListCatalogs(ctx)
 	if err != nil {
 		logger.Warnf(ctx, "[skill] list catalogs before releasing bundle %s failed: %v", ref, err)
 		return
@@ -543,7 +549,7 @@ func (s *TenantSkillService) releaseInstallBundle(
 			return
 		}
 	}
-	installs, err := s.skills.ListSkillsByTenant(ctx, tenantID)
+	installs, err := s.installsReadingCatalog(ctx, tenantID, catalogID)
 	if err != nil {
 		logger.Warnf(ctx, "[skill] list installs before releasing bundle %s failed: %v", ref, err)
 		return
@@ -554,6 +560,30 @@ func (s *TenantSkillService) releaseInstallBundle(
 		}
 	}
 	s.deleteBundleBestEffort(ctx, tenantID, ref)
+}
+
+// installsReadingCatalog names the rows whose pins can still point at a
+// definition's archives: this workspace's installs, plus — when the row belongs
+// to a definition — every workspace's installs of it. A row that predates
+// catalog_id has only its own workspace to look at, and the two sets are
+// unioned rather than swapped: an object of this workspace must never be
+// reclaimed on the strength of another catalog's rows alone.
+func (s *TenantSkillService) installsReadingCatalog(
+	ctx context.Context, tenantID uint64, catalogID string,
+) ([]*types.TenantSkillEntity, error) {
+	rows, err := s.skills.ListSkillsByTenant(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	cid := strings.TrimSpace(catalogID)
+	if cid == "" {
+		return rows, nil
+	}
+	shared, err := s.skills.ListSkillsByCatalog(ctx, cid)
+	if err != nil {
+		return nil, err
+	}
+	return append(rows, shared...), nil
 }
 
 func (s *TenantSkillService) deleteBundleBestEffort(

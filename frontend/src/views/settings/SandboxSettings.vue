@@ -29,7 +29,8 @@
             </t-popup>
           </div>
         </div>
-        <div class="header-actions">
+        <!-- 部署定制：空间专用沙箱已屏蔽（见 settingsAccess.workspaceSandboxEnabled），新增入口一并隐藏 -->
+        <div v-if="workspaceSandboxEnabled" class="header-actions">
           <t-button v-if="canCreateOnTab" variant="text" class="header-action" @click="openCreate">
             <template #icon><t-icon name="add" /></template>
             {{ $t('settings.sandbox.addConfig') }}
@@ -40,9 +41,10 @@
     </div>
 
     <!--
-      Workspace-wide kill switch. It used to be a text button next to the type
-      tabs, where it read as a filter action; as a labelled switch row it is
-      clearly a persistent workspace setting instead.
+      Workspace-wide kill switch, placed above the platform default because it
+      outranks it: with the switch off no agent runs scripts, whichever sandbox
+      it points at. It used to be a text button next to the type tabs, where it
+      read as a filter action.
     -->
     <div class="setting-row">
       <div class="setting-info">
@@ -65,7 +67,72 @@
       </div>
     </div>
 
-    <div class="sandbox-tabs-row">
+    <!--
+      Platform default: the one config every workspace falls back to. It sits
+      above the workspace list because that list holds overrides of it, not
+      peers of it.
+    -->
+    <section class="platform-sandbox">
+      <div class="platform-sandbox__head">
+        <div class="platform-sandbox__intro">
+          <h3 class="platform-sandbox__title">
+            {{ $t('settings.sandbox.platform.cardTitle') }}
+            <t-tag theme="primary" variant="light" size="small">
+              {{ $t('settings.sandbox.platform.badge') }}
+            </t-tag>
+          </h3>
+          <p class="platform-sandbox__desc">{{ $t('settings.sandbox.platform.cardDesc') }}</p>
+        </div>
+        <t-button v-if="canEditPlatform" variant="outline" theme="primary" @click="openPlatformEditor">
+          <template #icon><t-icon :name="platformRecord ? 'edit' : 'add'" /></template>
+          {{ platformRecord ? $t('settings.sandbox.platform.edit') : $t('settings.sandbox.platform.configure') }}
+        </t-button>
+      </div>
+
+      <div v-if="platformRecord" class="sandbox-card platform-sandbox__card"
+        :class="[`sandbox-card--${platformRecord.sandbox_type}`, { 'sandbox-card--clickable': canEditPlatform }]"
+        :role="canEditPlatform ? 'button' : undefined"
+        :tabindex="canEditPlatform ? 0 : undefined"
+        @click="openPlatformEditor" @keydown.enter.self="openPlatformEditor"
+        @keydown.space.self.prevent="openPlatformEditor">
+        <SandboxBackendBadge :type="platformRecord.sandbox_type" />
+        <div class="sandbox-card__body">
+          <div class="sandbox-card__header">
+            <h3 class="sandbox-card__title" :title="platformDisplayName">{{ platformDisplayName }}</h3>
+            <t-tag v-if="!canEditPlatform" theme="default" variant="light" size="small">
+              {{ $t('settings.sandbox.platform.readOnly') }}
+            </t-tag>
+          </div>
+          <div class="sandbox-card__subtitle">
+            <span class="sandbox-card__type">{{ backendLabel(platformRecord.sandbox_type) }}</span>
+            <template v-if="platformRecord.description">
+              <span class="sandbox-card__sep">·</span>
+              <span class="sandbox-card__desc" :title="platformRecord.description">{{ platformRecord.description }}</span>
+            </template>
+          </div>
+          <div v-if="targetSummary(platformRecord)" class="sandbox-card__url" :title="targetSummary(platformRecord)">
+            {{ targetSummary(platformRecord) }}
+          </div>
+          <ul v-if="cardWarnings[platformRecord.id]?.length" class="sandbox-card__warnings">
+            <li v-for="item in cardWarnings[platformRecord.id]" :key="item.key">
+              <t-icon name="error-circle" size="12px" />
+              <span>{{ item.text }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div v-else class="platform-sandbox__empty">
+        <t-empty :description="$t('settings.sandbox.platform.notConfigured')" />
+        <p class="sandbox-empty-hint">{{ $t('settings.sandbox.platform.notConfiguredHint') }}</p>
+      </div>
+    </section>
+
+    <div v-if="workspaceSandboxEnabled" class="workspace-configs-head">
+      <h3 class="workspace-configs-head__title">{{ $t('settings.sandbox.platform.overrideTitle') }}</h3>
+      <p class="workspace-configs-head__desc">{{ $t('settings.sandbox.platform.overrideHint') }}</p>
+    </div>
+
+    <div v-if="workspaceSandboxEnabled" class="sandbox-tabs-row">
       <t-tabs v-model="activeType" class="sandbox-type-tabs">
         <!--
           部署定制：只保留 Cube 页签。「全部」与 E2B / Docker 页签先注释掉，
@@ -92,7 +159,7 @@
       </t-input>
     </div>
 
-    <div class="sandbox-list-scroll">
+    <div v-if="workspaceSandboxEnabled" class="sandbox-list-scroll">
       <t-loading :loading="loading" size="small" class="sandbox-list-loading">
         <t-alert v-if="!loading && dockerTabDisabled && filteredRecords.length > 0" theme="warning"
           class="sandbox-docker-banner" :message="$t('settings.sandbox.dockerDisabledAlert')">
@@ -150,13 +217,14 @@
           </div>
         </div>
         <div v-else-if="!loading" class="sandbox-empty">
-          <t-empty :description="$t(records.length === 0 ? 'settings.sandbox.noConfigs' : 'common.noResult')" />
+          <t-empty :description="$t(workspaceRecords.length === 0 ? 'settings.sandbox.platform.noOverrides' : 'common.noResult')" />
         </div>
       </t-loading>
     </div>
 
     <SandboxConfigEditorDrawer v-model:visible="showEditor" :record="editingRecord"
       :preset-type="createPresetType"
+      :platform="platformMode"
       @saved="load" />
 
     <!--
@@ -240,7 +308,9 @@ import SettingDrawer from '@/components/settings/SettingDrawer.vue'
 import { useConfirmDelete } from '@/components/settings/useConfirmDelete'
 import { getSession } from '@/api/chat/index'
 import { useDeploymentCapabilitiesStore } from '@/stores/deploymentCapabilities'
+import { useAuthStore } from '@/stores/auth'
 import { DOCS_LINKS_ENABLED, docsUrl } from '@/utils/docsUrl'
+import { workspaceSandboxEnabled } from '@/config/settingsAccess'
 import { matchesResourceQuery } from '@/utils/resourceListSearch'
 import {
   deleteSandboxConfig,
@@ -259,6 +329,10 @@ import {
 const { t } = useI18n()
 const router = useRouter()
 const confirmDelete = useConfirmDelete()
+const authStore = useAuthStore()
+// The platform default is written through a SystemAdmin-gated route; every
+// other role reads it from the same list and sees it read-only.
+const canEditPlatform = computed(() => authStore.isSystemAdmin)
 const deploymentCapabilities = useDeploymentCapabilitiesStore()
 const dockerBackendEnabled = computed(() =>
   deploymentCapabilities.isSupported('settings.sandbox.docker'),
@@ -294,6 +368,8 @@ const searchQuery = ref('')
 
 const showEditor = ref(false)
 const editingRecord = ref<SandboxConfigRecord | null>(null)
+// Drives the drawer's platform branch (PUT /sandbox-configs/platform).
+const platformMode = ref(false)
 
 const showInventory = ref(false)
 const inventoryLoading = ref(false)
@@ -308,10 +384,21 @@ const backendLabel = (value: string) => t(`settings.sandbox.backends.${value}`)
 
 const isLegacyRecord = (record: SandboxConfigRecord) => !isNamedSandboxBackend(record.sandbox_type)
 
+// The list endpoint appends the platform default to the workspace's own rows,
+// flagged with is_platform. Splitting them keeps the platform card out of the
+// type tabs, the search results, and the delete menu.
+const platformRecord = computed(() => records.value.find((r) => r.is_platform === true) || null)
+const workspaceRecords = computed(() => records.value.filter((r) => r.is_platform !== true))
+// The platform row's name is reserved; what the operator typed lives in its
+// description.
+const platformDisplayName = computed(() =>
+  platformRecord.value?.description?.trim() || t('settings.sandbox.platform.cardTitle'),
+)
+
 const filteredRecords = computed(() => {
   const base = activeType.value === 'all'
-    ? records.value
-    : records.value.filter((r) => r.sandbox_type === activeType.value)
+    ? workspaceRecords.value
+    : workspaceRecords.value.filter((r) => r.sandbox_type === activeType.value)
   return base.filter((record) => matchesResourceQuery({
     name: record.name,
     description: `${record.description || ''} ${backendLabel(record.sandbox_type)} ${targetSummary(record)}`,
@@ -319,7 +406,7 @@ const filteredRecords = computed(() => {
 })
 
 const countByType = (type: string) =>
-  records.value.filter((r) => r.sandbox_type === type && isNamedSandboxBackend(r.sandbox_type)).length
+  workspaceRecords.value.filter((r) => r.sandbox_type === type && isNamedSandboxBackend(r.sandbox_type)).length
 
 type CardMenuOption = { content: string; value: string; theme?: 'error' }
 
@@ -417,13 +504,22 @@ async function onDeleteConfirmOpen(visible: boolean, record: SandboxConfigRecord
 
 function openCreate() {
   if (!canCreateOnTab.value) return
+  platformMode.value = false
   editingRecord.value = null
   showEditor.value = true
 }
 
 function openEdit(record: SandboxConfigRecord) {
   if (isLegacyRecord(record)) return
+  platformMode.value = false
   editingRecord.value = record
+  showEditor.value = true
+}
+
+function openPlatformEditor() {
+  if (!canEditPlatform.value) return
+  platformMode.value = true
+  editingRecord.value = platformRecord.value
   showEditor.value = true
 }
 
@@ -694,6 +790,46 @@ onMounted(async () => {
   &--clickable { .provider-card-interactive(); }
 }
 .sandbox-empty { padding: 40px 16px; }
+.platform-sandbox {
+  display: flex; flex-direction: column; gap: 10px;
+  flex-shrink: 0; margin-bottom: 18px;
+}
+.platform-sandbox__head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+}
+.platform-sandbox__intro { min-width: 0; }
+.platform-sandbox__title {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0; color: var(--td-text-color-primary);
+  font-size: var(--app-text-md); font-weight: 600;
+}
+.platform-sandbox__desc {
+  margin: 4px 0 0; color: var(--td-text-color-secondary);
+  font-size: var(--app-text-sm); line-height: 1.5;
+}
+/*
+  Same stacked card as the workspace list, just sized to its content instead of
+  stretching across the panel: a wide card holding three short lines reads as
+  empty space, a snug one does not.
+*/
+.platform-sandbox__card { width: 300px; max-width: 100%; }
+.platform-sandbox__empty {
+  padding: 20px 16px; border: 1px dashed var(--td-component-stroke);
+  border-radius: var(--app-radius-lg); background: var(--td-bg-color-container);
+  text-align: center;
+}
+.workspace-configs-head {
+  flex-shrink: 0; margin-bottom: 12px;
+  padding-top: 4px; border-top: 1px solid var(--td-component-stroke);
+}
+.workspace-configs-head__title {
+  margin: 12px 0 0; color: var(--td-text-color-primary);
+  font-size: var(--app-text-md); font-weight: 600;
+}
+.workspace-configs-head__desc {
+  margin: 4px 0 0; color: var(--td-text-color-secondary);
+  font-size: var(--app-text-sm); line-height: 1.5;
+}
 .sandbox-card__body {
   .provider-card-body();
 }
@@ -773,6 +909,8 @@ onMounted(async () => {
 .sandbox-empty-hint { margin: 8px 0 0; font-size: var(--app-text-md); color: var(--td-text-color-placeholder); }
 @container (max-width: 760px) {
   .section-header__top { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .platform-sandbox__head { flex-direction: column; align-items: stretch; }
+  .platform-sandbox__card { max-width: none; }
   .sandbox-tabs-row { flex-wrap: wrap; gap: 0; }
   .sandbox-type-tabs { flex-basis: 100%; }
   .sandbox-search { flex: 1 1 100%; width: 100%; margin: 8px 0; }

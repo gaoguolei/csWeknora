@@ -583,14 +583,15 @@ const agentDefaultsSectionFromKey = (key: string) =>
   AGENT_DEFAULTS_SUBSECTIONS.find((s) => s.key === key)?.section || "model";
 
 // 临时屏蔽的设置入口（产品要求暂不展示）：WeKnora Cloud、IM 集成、
-// 网页嵌入、CLI、Claw Skill、版本信息。恢复展示时删除本常量及下方过滤即可。
+// 网页嵌入、CLI、Claw Skill。恢复展示时删除本常量及下方过滤即可。
+// 注：「版本信息」(system) 已解禁，改为仅运营管理员可见，权限见
+// settingsAccess.ts 的 OPERATIONS_ADMIN_ONLY_SECTIONS。
 const HIDDEN_SETTINGS_SECTIONS = new Set<string>([
   "weknoracloud",
   "integration-im",
   "integration-embed",
   "integration-cli",
   "integration-claw",
-  "system",
 ]);
 
 const normalizeSettingsSection = (section: string) => {
@@ -710,7 +711,6 @@ const navItems = computed(() => {
     { key: "sandbox", icon: "code", label: t("settings.sandbox.title") },
     { key: "skills", icon: SKILL_ICON, label: t("settings.skills.title") },
     { key: "mcp", icon: "tools", label: t("settings.mcpService") },
-    { key: "system", icon: "info-circle", label: t("settings.versionInfo") },
     { key: "system-global", icon: "server", label: t("settings.system") },
     {
       key: "model-catalog",
@@ -728,6 +728,8 @@ const navItems = computed(() => {
       icon: "history",
       label: t("system.globalSettings.audit.tabLabel"),
     },
+    // 版本信息排在「系统管理」分组最后（仅运营管理员可见）。
+    { key: "system", icon: "info-circle", label: t("settings.versionInfo") },
     { key: "userprofile", icon: "user", label: t("userProfile.title") },
     { key: "mymemory", icon: "bookmark", label: t("memorySettings.title") },
     // 数据源：空间级配置（对本空间所有知识库生效），单独成页，入口归「个人设置
@@ -836,12 +838,13 @@ const navGroups = computed<NavGroup[]>(() => {
         "mcp",
         "envvars",
         "system-global",
-        "system",
         "model-catalog",
         "ollama",
         "runtime-queues",
         "platform-api-keys",
         "system-audit-log",
+        // 版本信息固定收尾，紧跟在「审计日志」之后。
+        "system",
       ]),
     },
   ];

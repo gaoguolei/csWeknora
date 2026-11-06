@@ -1,8 +1,12 @@
 // Package repository persists sandbox backend configuration.
 //
-// Every read and write is scoped by tenant_id. Sandbox configs carry provider
-// credentials, so a query that forgets the scope is a cross-workspace credential
-// leak, not merely a bug.
+// Every read and write is scoped by tenant_id, with one deliberate exception:
+// the platform default row (PlatformSandboxTenantID) is visible by ID to every
+// workspace so resolution and masked reads can reach it. That exception is
+// read-only at this layer — mutation helpers stay keyed by the row's own
+// tenant, and the service refuses workspace-tenant writes to platform rows.
+// A query that forgets the scope is a cross-workspace credential leak, not
+// merely a bug.
 package repository
 
 import (
@@ -18,6 +22,9 @@ import (
 type TenantSandboxConfigRepository interface {
 	Create(ctx context.Context, e *types.TenantSandboxConfigEntity) error
 	GetByID(ctx context.Context, tenantID uint64, id string) (*types.TenantSandboxConfigEntity, error)
+	// GetPlatform returns the single platform default row (reserved name under
+	// PlatformSandboxTenantID), or nil when the platform sandbox is unset.
+	GetPlatform(ctx context.Context) (*types.TenantSandboxConfigEntity, error)
 	ListByTenant(ctx context.Context, tenantID uint64) ([]*types.TenantSandboxConfigEntity, error)
 	// ListAll is the housekeeping scan. Unlike every other method it is not
 	// tenant-scoped: the stuck-run reaper and snapshot reconcile have to walk
@@ -46,12 +53,34 @@ func (r *tenantSandboxConfigRepository) Create(
 
 // GetByID returns nil (no error) when the config does not exist or belongs to
 // another workspace, so callers can render a 404 without inspecting errors.
+// The platform default row is intentionally visible to every workspace by ID:
+// agents and sessions in any workspace may point at it, and the resolver must
+// find it. Credential exposure is bounded by the masked response projection in
+// the handler and the platform-write refusal in the service.
 func (r *tenantSandboxConfigRepository) GetByID(
 	ctx context.Context, tenantID uint64, id string,
 ) (*types.TenantSandboxConfigEntity, error) {
 	var e types.TenantSandboxConfigEntity
 	err := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND id = ?", tenantID, id).
+		Where("id = ? AND (tenant_id = ? OR tenant_id = ?)",
+			id, tenantID, types.PlatformSandboxTenantID).
+		First(&e).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &e, nil
+}
+
+func (r *tenantSandboxConfigRepository) GetPlatform(
+	ctx context.Context,
+) (*types.TenantSandboxConfigEntity, error) {
+	var e types.TenantSandboxConfigEntity
+	err := r.db.WithContext(ctx).
+		Where("tenant_id = ? AND name = ?",
+			types.PlatformSandboxTenantID, types.SandboxPlatformConfigName).
 		First(&e).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil

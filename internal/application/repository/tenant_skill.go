@@ -12,6 +12,12 @@ import (
 
 // TenantSkillRepository persists skills installed onto sandbox configs and the
 // snapshot chain ledger.
+//
+// Read lookups by config treat the platform pseudo-tenant like the caller's
+// own: installs made against the platform default config are visible to every
+// workspace (that is the whole point of the platform sandbox). Writes stay
+// strictly scoped to the row's owning tenant, which the service derives from
+// the config entity, so a workspace can never edit a platform install.
 type TenantSkillRepository interface {
 	// CreateSkill inserts a metadata projection row before provider-side image work starts.
 	CreateSkill(ctx context.Context, e *types.TenantSkillEntity) error
@@ -82,20 +88,28 @@ type TenantSkillRepository interface {
 	// including the config-wide ones DeleteSkill never sees.
 	DeleteUserEnvVarsByConfig(ctx context.Context, tenantID uint64, configID string) error
 
-	// CreateCatalog inserts a tenant-level skill definition.
+	// CreateCatalog inserts a platform-wide skill definition.
 	CreateCatalog(ctx context.Context, e *types.TenantSkillCatalogEntity) error
-	// GetCatalog returns nil when the row is missing or belongs to another workspace.
-	GetCatalog(ctx context.Context, tenantID uint64, catalogID string) (*types.TenantSkillCatalogEntity, error)
-	// GetCatalogByName scopes lookup by workspace because names are unique per tenant.
-	GetCatalogByName(ctx context.Context, tenantID uint64, name string) (*types.TenantSkillCatalogEntity, error)
-	// ListCatalogsByTenant returns every live catalog row of one workspace.
-	ListCatalogsByTenant(ctx context.Context, tenantID uint64) ([]*types.TenantSkillCatalogEntity, error)
+	// GetCatalog returns nil when the row is missing. Definitions are visible to
+	// every workspace, so the lookup is deliberately not scoped by tenant.
+	GetCatalog(ctx context.Context, catalogID string) (*types.TenantSkillCatalogEntity, error)
+	// GetCatalogByName resolves the platform-wide definition of a name; names are
+	// unique across the whole platform, not per workspace.
+	GetCatalogByName(ctx context.Context, name string) (*types.TenantSkillCatalogEntity, error)
+	// ListCatalogs returns every live definition on the platform.
+	ListCatalogs(ctx context.Context) ([]*types.TenantSkillCatalogEntity, error)
 	// UpdateCatalog writes mutable definition fields (bundle, description, version).
 	UpdateCatalog(ctx context.Context, e *types.TenantSkillCatalogEntity) error
 	// DeleteCatalog soft-deletes a definition. Install rows are not touched.
-	DeleteCatalog(ctx context.Context, tenantID uint64, catalogID string) error
-	// ListSkillsByCatalog returns installations of one catalog skill.
-	ListSkillsByCatalog(ctx context.Context, tenantID uint64, catalogID string) ([]*types.TenantSkillEntity, error)
+	DeleteCatalog(ctx context.Context, catalogID string) error
+	// ListSkillsByCatalog returns installations of one catalog skill across every
+	// workspace, so callers can tell whether removing the definition is safe.
+	ListSkillsByCatalog(ctx context.Context, catalogID string) ([]*types.TenantSkillEntity, error)
+	// CountInstallsByCatalogWorkspace reports, per catalog ID, how many live
+	// installations each workspace holds. The settings page needs the number for
+	// the workspaces it is not showing, because those installs are the reason a
+	// definition cannot be deleted.
+	CountInstallsByCatalogWorkspace(ctx context.Context) (map[string]map[uint64]int, error)
 }
 
 type tenantSkillRepository struct{ db *gorm.DB }
@@ -114,7 +128,8 @@ func (r *tenantSkillRepository) GetSkill(
 ) (*types.TenantSkillEntity, error) {
 	var e types.TenantSkillEntity
 	err := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND sandbox_config_id = ? AND id = ?", tenantID, configID, skillID).
+		Where("sandbox_config_id = ? AND id = ?", configID, skillID).
+		Where("tenant_id = ? OR tenant_id = ?", tenantID, types.PlatformSandboxTenantID).
 		First(&e).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
@@ -130,7 +145,8 @@ func (r *tenantSkillRepository) GetSkillByName(
 ) (*types.TenantSkillEntity, error) {
 	var e types.TenantSkillEntity
 	err := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND sandbox_config_id = ? AND name = ?", tenantID, configID, name).
+		Where("sandbox_config_id = ? AND name = ?", configID, name).
+		Where("tenant_id = ? OR tenant_id = ?", tenantID, types.PlatformSandboxTenantID).
 		First(&e).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
@@ -146,7 +162,8 @@ func (r *tenantSkillRepository) ListSkillsByConfig(
 ) ([]*types.TenantSkillEntity, error) {
 	var list []*types.TenantSkillEntity
 	err := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND sandbox_config_id = ?", tenantID, configID).
+		Where("sandbox_config_id = ?", configID).
+		Where("tenant_id = ? OR tenant_id = ?", tenantID, types.PlatformSandboxTenantID).
 		Order("created_at ASC").
 		Find(&list).Error
 	if err != nil {
@@ -160,7 +177,7 @@ func (r *tenantSkillRepository) ListSkillsByTenant(
 ) ([]*types.TenantSkillEntity, error) {
 	var list []*types.TenantSkillEntity
 	err := r.db.WithContext(ctx).
-		Where("tenant_id = ?", tenantID).
+		Where("tenant_id = ? OR tenant_id = ?", tenantID, types.PlatformSandboxTenantID).
 		Order("created_at ASC").
 		Find(&list).Error
 	if err != nil {
@@ -411,11 +428,11 @@ func (r *tenantSkillRepository) CreateCatalog(ctx context.Context, e *types.Tena
 }
 
 func (r *tenantSkillRepository) GetCatalog(
-	ctx context.Context, tenantID uint64, catalogID string,
+	ctx context.Context, catalogID string,
 ) (*types.TenantSkillCatalogEntity, error) {
 	var e types.TenantSkillCatalogEntity
 	err := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND id = ?", tenantID, catalogID).
+		Where("id = ?", catalogID).
 		First(&e).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
@@ -427,11 +444,11 @@ func (r *tenantSkillRepository) GetCatalog(
 }
 
 func (r *tenantSkillRepository) GetCatalogByName(
-	ctx context.Context, tenantID uint64, name string,
+	ctx context.Context, name string,
 ) (*types.TenantSkillCatalogEntity, error) {
 	var e types.TenantSkillCatalogEntity
 	err := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND name = ?", tenantID, name).
+		Where("name = ?", name).
 		First(&e).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
@@ -442,12 +459,11 @@ func (r *tenantSkillRepository) GetCatalogByName(
 	return &e, nil
 }
 
-func (r *tenantSkillRepository) ListCatalogsByTenant(
-	ctx context.Context, tenantID uint64,
+func (r *tenantSkillRepository) ListCatalogs(
+	ctx context.Context,
 ) ([]*types.TenantSkillCatalogEntity, error) {
 	var list []*types.TenantSkillCatalogEntity
 	err := r.db.WithContext(ctx).
-		Where("tenant_id = ?", tenantID).
 		Order("created_at ASC").
 		Find(&list).Error
 	if err != nil {
@@ -456,10 +472,14 @@ func (r *tenantSkillRepository) ListCatalogsByTenant(
 	return list, nil
 }
 
+// UpdateCatalog addresses the row by ID alone: the definition is platform-wide,
+// so its tenant_id (which names the bundle's storage owner) must not be part of
+// the match or a re-register from another workspace would silently update
+// nothing.
 func (r *tenantSkillRepository) UpdateCatalog(ctx context.Context, e *types.TenantSkillCatalogEntity) error {
 	return r.db.WithContext(ctx).
 		Model(&types.TenantSkillCatalogEntity{}).
-		Where("tenant_id = ? AND id = ?", e.TenantID, e.ID).
+		Where("id = ?", e.ID).
 		Updates(map[string]any{
 			"name":          e.Name,
 			"version":       e.Version,
@@ -471,22 +491,58 @@ func (r *tenantSkillRepository) UpdateCatalog(ctx context.Context, e *types.Tena
 		}).Error
 }
 
-func (r *tenantSkillRepository) DeleteCatalog(ctx context.Context, tenantID uint64, catalogID string) error {
+func (r *tenantSkillRepository) DeleteCatalog(ctx context.Context, catalogID string) error {
 	return r.db.WithContext(ctx).
-		Where("tenant_id = ? AND id = ?", tenantID, catalogID).
+		Where("id = ?", catalogID).
 		Delete(&types.TenantSkillCatalogEntity{}).Error
 }
 
 func (r *tenantSkillRepository) ListSkillsByCatalog(
-	ctx context.Context, tenantID uint64, catalogID string,
+	ctx context.Context, catalogID string,
 ) ([]*types.TenantSkillEntity, error) {
 	var list []*types.TenantSkillEntity
 	err := r.db.WithContext(ctx).
-		Where("tenant_id = ? AND catalog_id = ?", tenantID, catalogID).
+		Where("catalog_id = ?", catalogID).
 		Order("created_at ASC").
 		Find(&list).Error
 	if err != nil {
 		return nil, err
 	}
 	return list, nil
+}
+
+// CountInstallsByCatalogWorkspace counts installs per (catalog, workspace).
+// Every live row counts, including one still removing: DeleteCatalog refuses
+// while any row pointing at the definition exists, and the console has to
+// explain the same number the refusal is based on.
+func (r *tenantSkillRepository) CountInstallsByCatalogWorkspace(
+	ctx context.Context,
+) (map[string]map[uint64]int, error) {
+	var rows []struct {
+		CatalogID string
+		TenantID  uint64
+		Total     int
+	}
+	err := r.db.WithContext(ctx).
+		Model(&types.TenantSkillEntity{}).
+		Select("catalog_id, tenant_id, COUNT(*) AS total").
+		Where("catalog_id <> ''").
+		Group("catalog_id, tenant_id").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]map[uint64]int, len(rows))
+	for _, row := range rows {
+		if row.CatalogID == "" || row.Total == 0 {
+			continue
+		}
+		byTenant := out[row.CatalogID]
+		if byTenant == nil {
+			byTenant = make(map[uint64]int)
+			out[row.CatalogID] = byTenant
+		}
+		byTenant[row.TenantID] = row.Total
+	}
+	return out, nil
 }

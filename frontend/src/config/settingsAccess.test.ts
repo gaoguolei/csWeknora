@@ -66,6 +66,18 @@ test('model catalogue is operations-admin-only', () => {
   assert.equal(SUPER_ADMIN_ONLY_SECTIONS.has('model-catalog'), false)
 })
 
+test('version info page is operations-admin-only', () => {
+  // 「版本信息」was temporarily hidden via HIDDEN_SETTINGS_SECTIONS in Settings.vue.
+  // It is restored as a deployment-level read-out reserved to the operations
+  // administrator: absent from the tenant role ladder, not SystemAdmin-gated
+  // (plain system admins must not see it), and never hidden again.
+  assert.equal(SETTINGS_SECTION_MIN_ROLE.system, undefined)
+  assert.ok(OPERATIONS_ADMIN_ONLY_SECTIONS.has('system'))
+  assert.equal(SYSTEM_ADMIN_SETTINGS_SECTIONS.has('system'), false)
+  assert.equal(GLOBAL_MODEL_ADMIN_SECTIONS.has('system'), false)
+  assert.equal(SUPER_ADMIN_ONLY_SECTIONS.has('system'), false)
+})
+
 test('platform knowledge base defaults are super-admin-only', () => {
   // `kb-defaults` is the platform-wide default KB configuration page backed by
   // system_settings "knowledge_base.default_config" (PUT is SystemAdmin-gated).

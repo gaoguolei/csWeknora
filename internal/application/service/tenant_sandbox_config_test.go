@@ -263,6 +263,15 @@ func (f *fakeConfigRepo) GetByID(
 	return f.entity, nil
 }
 
+func (f *fakeConfigRepo) GetPlatform(
+	context.Context,
+) (*types.TenantSandboxConfigEntity, error) {
+	if f.entity != nil && f.entity.TenantID == types.PlatformSandboxTenantID {
+		return f.entity, nil
+	}
+	return nil, nil
+}
+
 func (f *fakeConfigRepo) ListByTenant(
 	context.Context, uint64,
 ) ([]*types.TenantSandboxConfigEntity, error) {
@@ -1998,9 +2007,7 @@ func (s *deleteSkillStore) ListSkillsByTenant(
 	return out, nil
 }
 
-func (s *deleteSkillStore) ListCatalogsByTenant(
-	ctx context.Context, tenantID uint64,
-) ([]*types.TenantSkillCatalogEntity, error) {
+func (s *deleteSkillStore) ListCatalogs(ctx context.Context) ([]*types.TenantSkillCatalogEntity, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -2009,7 +2016,21 @@ func (s *deleteSkillStore) ListCatalogsByTenant(
 	}
 	var out []*types.TenantSkillCatalogEntity
 	for _, row := range s.catalogs {
-		if row.TenantID == tenantID {
+		cp := *row
+		out = append(out, &cp)
+	}
+	return out, nil
+}
+
+func (s *deleteSkillStore) ListSkillsByCatalog(
+	ctx context.Context, catalogID string,
+) ([]*types.TenantSkillEntity, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	var out []*types.TenantSkillEntity
+	for _, row := range s.skills {
+		if row.CatalogID == catalogID {
 			cp := *row
 			out = append(out, &cp)
 		}

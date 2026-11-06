@@ -55,9 +55,13 @@ func (h *VectorStoreHandler) getTenantID(c *gin.Context) uint64 {
 	return c.GetUint64(types.TenantIDContextKey.String())
 }
 
-// getOwnedStore loads a store and verifies it belongs to the given tenant.
+// loadStore loads a vector store by ID.
+//
+// Vector store connections are platform-wide infrastructure, so there is no
+// ownership check to run: any workspace may read, test, edit, or delete the
+// shared row. tenant_id on the row records who registered it.
 // Returns (nil, status, msg) on failure so callers can respond immediately.
-func (h *VectorStoreHandler) getOwnedStore(
+func (h *VectorStoreHandler) loadStore(
 	ctx context.Context, tenantID uint64, id string,
 ) (*types.VectorStore, int, string) {
 	store, err := h.repo.GetByID(ctx, tenantID, id)
@@ -79,7 +83,7 @@ func envStoreReadonlyError() gin.H {
 
 // CreateStore godoc
 // @Summary      Create vector store
-// @Description  Create a new vector store configuration for the current workspace
+// @Description  Create a new vector store configuration. The store catalogue is shared by every workspace.
 // @Tags         VectorStore
 // @Accept       json
 // @Produce      json
@@ -129,7 +133,7 @@ func (h *VectorStoreHandler) CreateStore(c *gin.Context) {
 
 // ListStores godoc
 // @Summary      List vector stores
-// @Description  List all vector stores for the current workspace, including environment-configured and user-created stores
+// @Description  List every vector store on the platform, including environment-configured and user-created stores
 // @Tags         VectorStore
 // @Produce      json
 // @Success      200  {object}  map[string]interface{}   "List of vector stores (env + DB)"
@@ -210,7 +214,7 @@ func (h *VectorStoreHandler) GetStore(c *gin.Context) {
 	}
 
 	// DB store
-	store, status, msg := h.getOwnedStore(ctx, tenantID, id)
+	store, status, msg := h.loadStore(ctx, tenantID, id)
 	if status != http.StatusOK {
 		c.JSON(status, gin.H{"success": false, "error": msg})
 		return
@@ -254,8 +258,8 @@ func (h *VectorStoreHandler) UpdateStore(c *gin.Context) {
 		return
 	}
 
-	// Ownership check
-	if _, status, msg := h.getOwnedStore(ctx, tenantID, id); status != http.StatusOK {
+	// Load the shared row
+	if _, status, msg := h.loadStore(ctx, tenantID, id); status != http.StatusOK {
 		c.JSON(status, gin.H{"success": false, "error": msg})
 		return
 	}
@@ -323,8 +327,8 @@ func (h *VectorStoreHandler) DeleteStore(c *gin.Context) {
 		return
 	}
 
-	// Ownership check
-	if _, status, msg := h.getOwnedStore(ctx, tenantID, id); status != http.StatusOK {
+	// Load the shared row
+	if _, status, msg := h.loadStore(ctx, tenantID, id); status != http.StatusOK {
 		c.JSON(status, gin.H{"success": false, "error": msg})
 		return
 	}
@@ -393,7 +397,7 @@ func (h *VectorStoreHandler) TestStoreByID(c *gin.Context) {
 	}
 
 	// DB store
-	store, status, msg := h.getOwnedStore(ctx, tenantID, id)
+	store, status, msg := h.loadStore(ctx, tenantID, id)
 	if status != http.StatusOK {
 		c.JSON(status, gin.H{"success": false, "error": msg})
 		return

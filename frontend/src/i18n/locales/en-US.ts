@@ -1607,7 +1607,7 @@ export default {
       hostSkillsConfigDesc:
         "Pick skills that are already installed on this computer. Others show Install and can be checked only after that.",
       hostSkillsSelectionDesc:
-        "Workspace skills are listed here. Ones installed on this computer can be used now; install the others first.",
+        "Skills in the shared catalog are listed here. Ones installed on this computer can be used now; install the others first.",
       hostSelectSkillsDesc:
         "Check the skills this agent should use. Skills that are not on this computer cannot be checked — click Install first.",
       hostSkillsAllListHint:
@@ -1618,7 +1618,7 @@ export default {
       hostSkillDisabled: "Disabled on this computer",
       skillsSelection: "Skill list",
       skillsSelectionDesc:
-        "All workspace skills are listed here. Installed ones can be used now; others need Install first.",
+        "All skills in the shared catalog are listed here. Installed ones can be used now; others need Install first.",
       skillsAll: "All",
       skillsSelected: "Selected",
       skillsNone: "Disabled",
@@ -1629,7 +1629,7 @@ export default {
         "All only includes skills already installed on this sandbox. Uninstalled skills are not added until you install them.",
       skillsGroupAvailable: "Available",
       skillsGroupUnavailable: "Unavailable",
-      noSkillsAvailable: "The workspace catalog has no skills yet.",
+      noSkillsAvailable: "The shared skill catalog has no skills yet.",
       skillsNeedSandbox: "Select a sandbox first.",
       goSandboxSettings: "Manage sandboxes",
       goSkillSettings: "Manage skills",
@@ -1645,6 +1645,8 @@ export default {
       sandboxBackendHint:
         "Skill scripts do not run until a sandbox is selected.",
       sandboxBackendMissing: "Config deleted",
+      platformSkillsManaged:
+        "Skills on the platform default sandbox are installed by the platform administrator; workspace members just select them.",
       sandboxNoConfigs:
         "This workspace has no sandbox yet, so skill scripts will not run.",
       skillsInfoTitle: "How Skills and the sandbox work together",
@@ -1728,6 +1730,26 @@ export default {
         "Docker sandbox is disabled on this deployment; this config will not create containers",
       dockerHostRisk:
         "Empty or unix:// uses the Docker daemon on the ThinkerFlow host, which is equivalent to root on that machine. Use this only for a private single-node install. Prefer Cube or E2B when multiple workspaces share a host. Remote tcp:// endpoints require a TLS certificate directory.",
+      platform: {
+        cardTitle: "Platform default sandbox",
+        badge: "Platform",
+        cardDesc:
+          "Every workspace shares this one sandbox: configure it once and the agents of all workspaces use it immediately.",
+        notConfigured: "No platform default sandbox yet",
+        notConfiguredHint:
+          "Configure it once for every workspace; no per-workspace sandbox setup is needed.",
+        configure: "Configure",
+        edit: "Edit",
+        createTitle: "Configure platform default sandbox",
+        editTitle: "Edit platform default sandbox",
+        displayName: "Display name",
+        displayNamePlaceholder: "e.g. Platform default",
+        readOnly: "Read-only",
+        overrideTitle: "Workspace-specific sandboxes (optional)",
+        overrideHint:
+          "A workspace's own sandbox overrides the platform default; workspaces without one use the platform default.",
+        noOverrides: "This workspace has no dedicated sandbox and uses the platform default.",
+      },
       addConfig: "Add sandbox",
       viewClusterGuide: "Cluster setup guide",
       configName: "Config name",
@@ -2184,13 +2206,13 @@ export default {
     skills: {
       title: "Skill Management",
       description:
-        "Skills live in the workspace catalog. Register them first, then install onto one or more sandboxes. An agent can only enable skills that are ready on its sandbox.",
+        "The skill catalog is shared by every workspace, so everyone sees the same definitions. Register a skill, then install it onto one or more sandboxes. An agent can only enable skills that are ready on its sandbox.",
       helpTooltip:
         "A catalog skill does not have to be installed anywhere. Scripts only run after the skill is installed into the sandbox image the agent uses. Docker, Cube, and E2B images are not interchangeable — install once per sandbox.",
       hostTarget: "This computer",
       host: {
         description:
-          "Skills live in the workspace catalog. An agent can enable one after it is installed on this computer.",
+          "The skill catalog is shared by every workspace. An agent can enable one after it is installed on this computer.",
         helpTooltip:
           "A catalog skill can stay uninstalled. Scripts run only after it is installed on this computer.",
         emptyDesc:
@@ -2208,8 +2230,7 @@ export default {
         manageUninstall: "Uninstall from this computer",
         manageUninstallConfirm: "Uninstall “{name}” from this computer?",
         deleteCatalogConfirm:
-          "Remove “{name}” from the catalog? Uninstall it from this computer first.",
-        deleteCatalogBlocked: "Uninstall this skill from this computer first.",
+          "Remove “{name}” from the catalog? This uninstalls it from this computer too.",
         upgradeDrawerDesc:
           "Upgrade “{name}” to the catalog version. This computer keeps the current version until the upgrade finishes, and a failed upgrade leaves it in place.",
         disableHint:
@@ -2231,7 +2252,7 @@ export default {
       addStepRegister: "Register",
       addStepInstall: "Install",
       addStepRegisterDesc:
-        "Paste a source or upload a zip to add the skill to the workspace catalog.",
+        "Paste a source or upload a zip to add the skill to the shared catalog.",
       addStepInstallDesc:
         "Confirm the parsed skill, then choose which sandboxes to install into. You can skip this and install later from the list.",
       addFinish: "Done",
@@ -2267,8 +2288,9 @@ export default {
       manageUninstallConfirm: "Uninstall “{name}” from this sandbox?",
       deleteCatalog: "Remove from catalog",
       deleteCatalogConfirm:
-        "Remove “{name}” from the catalog? Uninstall it from every sandbox first.",
-      deleteCatalogBlocked: "Uninstall this skill from every sandbox first.",
+        "Remove “{name}” from the catalog? This affects every workspace and uninstalls it from every sandbox still using it.",
+      otherWorkspaceInstalls:
+        "Installed in {count} place(s) in other workspaces. Removing it uninstalls those too.",
       deleteSuccess: "Removed from catalog",
       registerAccepted: "Added to catalog",
       installAccepted: "Install started",
@@ -2464,7 +2486,7 @@ export default {
     },
     storageBackend: {
       description:
-        "Manage the storage instances used for files and images; multiple instances of the same type can be configured.",
+        "Manage the storage instances used for files and images; multiple instances of the same type can be configured. Every workspace shares the same instances.",
       empty: "No storage instances configured yet",
       defaultTag: "Default",
       add: "Add storage instance",
@@ -2600,7 +2622,7 @@ export default {
   webSearchSettings: {
     title: "Web Search Configuration",
     description:
-      "Configure web search so answers can include up-to-date information from the internet.",
+      "Configure web search so answers can include up-to-date information from the internet. Every workspace shares the same providers.",
     basicSection: "Basic",
     credentialsSection: "Connection",
     optionsSection: "Options",
@@ -2643,7 +2665,7 @@ export default {
   vectorStoreSettings: {
     title: "Vector Database Engine",
     description:
-      "Register and manage vector database instances for DevMind search.",
+      "Register and manage vector database instances for DevMind search. Every workspace shares the same instances.",
     basicSection: "Basic",
     storesTitle: "Vector Databases",
     addStore: "Add Database",

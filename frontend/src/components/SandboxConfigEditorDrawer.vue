@@ -2,7 +2,7 @@
   <SettingDrawer
     class="sandbox-config-drawer"
     :visible="visible"
-    :title="record ? $t('settings.sandbox.editTitle') : $t('settings.sandbox.createTitle')"
+    :title="drawerTitle"
     :description="stepDescription"
     icon="code"
     width="680px"
@@ -110,12 +110,18 @@
             <p>{{ $t('settings.sandbox.dockerDisabledHint') }}</p>
           </template>
         </t-alert>
-        <t-form-item :label="$t('settings.sandbox.configName')" :status="nameError ? 'error' : undefined"
-          :tips="nameError || undefined">
+        <!--
+          A platform config has one fixed name (the row is recognised by it), so
+          the editor only collects the display name, which is stored in
+          `description`. Workspace configs keep the name field.
+        -->
+        <t-form-item v-if="!isPlatform" :label="$t('settings.sandbox.configName')"
+          :status="nameError ? 'error' : undefined" :tips="nameError || undefined">
           <t-input v-model="name" :placeholder="$t('settings.sandbox.configNamePlaceholder')" />
         </t-form-item>
-        <t-form-item :label="$t('settings.sandbox.configDescription')">
-          <t-input v-model="description" :placeholder="$t('settings.sandbox.configDescriptionPlaceholder')" />
+        <t-form-item :label="isPlatform ? $t('settings.sandbox.platform.displayName') : $t('settings.sandbox.configDescription')">
+          <t-input v-model="description"
+            :placeholder="isPlatform ? $t('settings.sandbox.platform.displayNamePlaceholder') : $t('settings.sandbox.configDescriptionPlaceholder')" />
         </t-form-item>
       </section>
 
@@ -769,6 +775,7 @@ import {
   createSandboxConfig,
   parseSandboxConflict,
   updateSandboxConfigById,
+  putPlatformSandboxConfig,
   querySandboxTemplates,
   listConfigSkills,
   type SandboxCheckItem,
@@ -791,6 +798,12 @@ const props = defineProps<{
   visible: boolean
   record: SandboxConfigRecord | null
   presetType?: string
+  /**
+   * Edit the single platform default (PUT /sandbox-configs/platform) instead of
+   * a workspace config. The row's name is reserved, so the form collects only
+   * a display name and the save path differs.
+   */
+  platform?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -799,6 +812,15 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const isPlatform = computed(() => props.platform === true)
+const drawerTitle = computed(() => {
+  if (isPlatform.value) {
+    return props.record
+      ? t('settings.sandbox.platform.editTitle')
+      : t('settings.sandbox.platform.createTitle')
+  }
+  return props.record ? t('settings.sandbox.editTitle') : t('settings.sandbox.createTitle')
+})
 const deploymentCapabilities = useDeploymentCapabilitiesStore()
 const dockerBackendEnabled = computed(() =>
   deploymentCapabilities.isSupported('settings.sandbox.docker'),
@@ -1604,6 +1626,11 @@ function close() {
 }
 
 function validateName(): boolean {
+  // The platform row keeps a reserved name; only its display name is user input.
+  if (isPlatform.value) {
+    nameError.value = ''
+    return true
+  }
   if (!name.value.trim()) {
     nameError.value = t('settings.sandbox.configNameRequired')
     return false
@@ -1662,11 +1689,17 @@ async function save() {
   saving.value = true
   conflict.value = null
   try {
-    const payload = { name: trimmed, description: description.value, config: collectPayload() }
+    const config = collectPayload()
     const existing = effectiveRecord.value
-    const res = existing
-      ? await updateSandboxConfigById(existing.id, payload)
-      : await createSandboxConfig(payload)
+    let res: { data?: SandboxConfigRecord }
+    if (isPlatform.value) {
+      res = await putPlatformSandboxConfig({ description: description.value, config })
+    } else {
+      const payload = { name: trimmed, description: description.value, config }
+      res = existing
+        ? await updateSandboxConfigById(existing.id, payload)
+        : await createSandboxConfig(payload)
+    }
     MessagePlugin.success(t('common.saveSuccess'))
     // The list behind the drawer refreshes either way, so closing here is only
     // about whether the wizard has anything left to offer.

@@ -20,26 +20,54 @@ const hostSkillTargetName = "本机"
 
 // requireSkillTarget is the existence check every skill entry point runs
 // before doing work. Lite accepts only the host target; the standard edition
-// never accepts it.
+// never accepts it. The platform sentinel names the platform default config.
 func (s *TenantSkillService) requireSkillTarget(ctx context.Context, tenantID uint64, configID string) error {
+	if _, _, err := s.SkillTargetTenant(ctx, tenantID, configID); err != nil {
+		return err
+	}
+	return nil
+}
+
+// SkillTargetTenant resolves the tenant that owns the skill rows for one
+// config: installs made against the platform default config live under the
+// platform pseudo-tenant, so one install is the ready set of every workspace
+// and the image is built once. Everything else keeps the caller's workspace.
+//
+// It doubles as the existence check (requireSkillTarget), and reports whether
+// the target is the platform config so handlers can demand the system-admin
+// gate for platform writes without a second lookup.
+func (s *TenantSkillService) SkillTargetTenant(
+	ctx context.Context, tenantID uint64, configID string,
+) (uint64, bool, error) {
 	notFound := apperrors.NewNotFoundError("sandbox config not found")
 	if s.host.Desktop {
 		if !sandbox.IsHostSkillTarget(configID) || !s.host.SkillsAvailable() {
-			return notFound
+			return tenantID, false, notFound
 		}
-		return nil
+		return tenantID, false, nil
 	}
 	if sandbox.IsHostSkillTarget(configID) {
-		return notFound
+		return tenantID, false, notFound
 	}
-	cfg, err := s.configs.GetByID(ctx, tenantID, configID)
+	var (
+		cfg *types.TenantSandboxConfigEntity
+		err error
+	)
+	if types.IsSandboxPlatformConfigID(configID) {
+		cfg, err = s.configs.GetPlatform(ctx)
+	} else {
+		cfg, err = s.configs.GetByID(ctx, tenantID, configID)
+	}
 	if err != nil {
-		return err
+		return tenantID, false, err
 	}
 	if cfg == nil {
-		return notFound
+		return tenantID, false, notFound
 	}
-	return nil
+	if types.IsSandboxPlatformRow(cfg) {
+		return types.PlatformSandboxTenantID, true, nil
+	}
+	return tenantID, false, nil
 }
 
 type hostInstallRun struct {

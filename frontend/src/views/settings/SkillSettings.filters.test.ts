@@ -40,6 +40,8 @@ async function fixture(initial: SkillCatalogItem[], host = false) {
     'vue-i18n': { useI18n: () => ({ t: (key: string) => key, te: () => false }) },
     'tdesign-vue-next': { MessagePlugin: { error: assert.fail } },
     '@/stores/ui': { useUIStore: () => ({}) },
+    // The page limits platform-default installs to system admins.
+    '@/stores/auth': { useAuthStore: () => ({ isSystemAdmin: true }) },
     '@/stores/deploymentCapabilities': {
       useDeploymentCapabilitiesStore: () => ({
         ensureLoaded: async () => {},
@@ -55,6 +57,9 @@ async function fixture(initial: SkillCatalogItem[], host = false) {
     },
     '@/api/skill': { listSkillCatalog: async () => ({ data: catalog }) },
     '@/api/system': { listSandboxConfigs: async () => ({ data: [] }) },
+    // Mirrors the deployment customisation in settingsAccess: workspace sandbox
+    // configs are hidden, so the platform row is the only install target.
+    '@/config/settingsAccess': { workspaceSandboxEnabled: false },
     '@/utils/resourceListSearch': { matchesResourceQuery },
     '@/utils/skillTarget': skillTarget,
     '@/utils/skillUpgrade': skillUpgrade,

@@ -2221,6 +2221,16 @@ func (r *installConfigRepo) Create(context.Context, *types.TenantSandboxConfigEn
 	return nil
 }
 
+func (r *installConfigRepo) GetPlatform(
+	context.Context,
+) (*types.TenantSandboxConfigEntity, error) {
+	if r.entity != nil && r.entity.TenantID == types.PlatformSandboxTenantID {
+		cp := *r.entity
+		return &cp, nil
+	}
+	return nil, nil
+}
+
 func (r *installConfigRepo) GetByID(
 	_ context.Context, tenantID uint64, id string,
 ) (*types.TenantSandboxConfigEntity, error) {
@@ -2715,7 +2725,7 @@ func (r *installSkillRepo) CreateCatalog(_ context.Context, e *types.TenantSkill
 	return nil
 }
 
-func (r *installSkillRepo) GetCatalog(_ context.Context, _ uint64, catalogID string) (*types.TenantSkillCatalogEntity, error) {
+func (r *installSkillRepo) GetCatalog(_ context.Context, catalogID string) (*types.TenantSkillCatalogEntity, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	stored := r.catalogs[catalogID]
@@ -2726,11 +2736,11 @@ func (r *installSkillRepo) GetCatalog(_ context.Context, _ uint64, catalogID str
 	return &cp, nil
 }
 
-func (r *installSkillRepo) GetCatalogByName(_ context.Context, tenantID uint64, name string) (*types.TenantSkillCatalogEntity, error) {
+func (r *installSkillRepo) GetCatalogByName(_ context.Context, name string) (*types.TenantSkillCatalogEntity, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for _, row := range r.catalogs {
-		if row.TenantID == tenantID && row.Name == name {
+		if row.Name == name {
 			cp := *row
 			return &cp, nil
 		}
@@ -2738,15 +2748,13 @@ func (r *installSkillRepo) GetCatalogByName(_ context.Context, tenantID uint64, 
 	return nil, nil
 }
 
-func (r *installSkillRepo) ListCatalogsByTenant(_ context.Context, tenantID uint64) ([]*types.TenantSkillCatalogEntity, error) {
+func (r *installSkillRepo) ListCatalogs(_ context.Context) ([]*types.TenantSkillCatalogEntity, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	var out []*types.TenantSkillCatalogEntity
 	for _, row := range r.catalogs {
-		if row.TenantID == tenantID {
-			cp := *row
-			out = append(out, &cp)
-		}
+		cp := *row
+		out = append(out, &cp)
 	}
 	return out, nil
 }
@@ -2765,22 +2773,42 @@ func (r *installSkillRepo) UpdateCatalog(_ context.Context, e *types.TenantSkill
 	return nil
 }
 
-func (r *installSkillRepo) DeleteCatalog(_ context.Context, _ uint64, catalogID string) error {
+func (r *installSkillRepo) DeleteCatalog(_ context.Context, catalogID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.catalogs, catalogID)
 	return nil
 }
 
-func (r *installSkillRepo) ListSkillsByCatalog(_ context.Context, tenantID uint64, catalogID string) ([]*types.TenantSkillEntity, error) {
+func (r *installSkillRepo) ListSkillsByCatalog(_ context.Context, catalogID string) ([]*types.TenantSkillEntity, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	var out []*types.TenantSkillEntity
 	for _, row := range r.skills {
-		if row.TenantID == tenantID && row.CatalogID == catalogID {
+		if row.CatalogID == catalogID {
 			cp := *row
 			out = append(out, &cp)
 		}
+	}
+	return out, nil
+}
+
+func (r *installSkillRepo) CountInstallsByCatalogWorkspace(
+	_ context.Context,
+) (map[string]map[uint64]int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	out := map[string]map[uint64]int{}
+	for _, row := range r.skills {
+		if row.CatalogID == "" {
+			continue
+		}
+		byTenant := out[row.CatalogID]
+		if byTenant == nil {
+			byTenant = map[uint64]int{}
+			out[row.CatalogID] = byTenant
+		}
+		byTenant[row.TenantID]++
 	}
 	return out, nil
 }

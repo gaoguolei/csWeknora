@@ -1559,6 +1559,60 @@ func (s *userService) Logout(ctx context.Context, tokenString string) error {
 	return s.tokenRepo.RevokeTokensByUserID(ctx, userID)
 }
 
+// LogoutSession revokes only the tokens the client presents: the access
+// token and, when supplied, its paired refresh token. Other device
+// sessions of the same user stay signed in — which is the point of the
+// per-session flow. Both JWTs are signature-verified and ownership-checked
+// (the route is public, so an arbitrary string must never reach the
+// revoke path), and revocation is idempotent: rows already revoked or
+// cleaned up by the expired-token sweep count as success.
+func (s *userService) LogoutSession(ctx context.Context, accessTokenString, refreshTokenString string) error {
+	userID, err := userIDFromSignedToken(accessTokenString)
+	if err != nil {
+		return err
+	}
+	if err := s.revokeTokenForUser(ctx, accessTokenString, userID); err != nil {
+		return err
+	}
+
+	refreshTokenString = strings.TrimSpace(refreshTokenString)
+	if refreshTokenString == "" {
+		return nil
+	}
+	// The refresh JWT must carry the same user_id as the access token; the
+	// stored row is then located by value, never by the claim alone.
+	refreshUserID, err := userIDFromSignedToken(refreshTokenString)
+	if err != nil {
+		return errors.New("invalid refresh token")
+	}
+	if refreshUserID != userID {
+		return errors.New("refresh token does not belong to the logged-in user")
+	}
+	return s.revokeTokenForUser(ctx, refreshTokenString, userID)
+}
+
+// revokeTokenForUser marks the stored row for tokenString as revoked when
+// it exists and belongs to userID. A missing row (never issued, or already
+// deleted by DeleteExpiredTokens) is a no-op so logout stays idempotent.
+func (s *userService) revokeTokenForUser(ctx context.Context, tokenString, userID string) error {
+	record, err := s.tokenRepo.GetTokenByValue(ctx, tokenString)
+	if err != nil {
+		if errors.Is(err, apprepo.ErrTokenNotFound) {
+			return nil
+		}
+		return err
+	}
+	if record.UserID != userID {
+		return errors.New("token does not belong to the logged-in user")
+	}
+	if record.IsRevoked {
+		return nil
+	}
+	record.IsRevoked = true
+	record.UpdatedAt = time.Now()
+	return s.tokenRepo.UpdateToken(ctx, record)
+}
+
 // RevokeToken revokes a token
 func (s *userService) RevokeToken(ctx context.Context, tokenString string) error {
 	tokenRecord, err := s.tokenRepo.GetTokenByValue(ctx, tokenString)

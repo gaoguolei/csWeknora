@@ -89,7 +89,7 @@ func TestListCatalogShowsInstallsWhoseCatalogWasDeleted(t *testing.T) {
 		ID: "sk-1", TenantID: 7, SandboxConfigID: "cfg-a", CatalogID: "cat-gone",
 		Name: "pdf", Status: types.SkillStatusReady, Enabled: true,
 	}))
-	require.NoError(t, repo.DeleteCatalog(ctx, 7, "cat-gone"))
+	require.NoError(t, repo.DeleteCatalog(ctx, "cat-gone"))
 
 	svc := NewTenantSkillService(repo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, HostSandboxManager{})
 	list, err := svc.ListCatalog(ctx, 7)
@@ -100,7 +100,12 @@ func TestListCatalogShowsInstallsWhoseCatalogWasDeleted(t *testing.T) {
 	require.Equal(t, "sk-1", list[0].Installations[0].SkillID)
 }
 
-func TestDeleteCatalogRefusesWhileARemovalIsInFlight(t *testing.T) {
+// Deleting a catalog skill is now a platform-wide force removal: it does not
+// refuse because a sandbox still carries the skill, it uninstalls the skill and
+// then drops the definition and its archive. The removal runs async (as every
+// sandbox uninstall does), so this asserts the part DeleteCatalog completes
+// synchronously: the definition is gone and no error is returned.
+func TestDeleteCatalogUninstallsAndDropsDefinitionWhileInstalled(t *testing.T) {
 	repo := catalogTestRepo(t, "file:catalog-removing?mode=memory&cache=shared")
 	ctx := context.Background()
 	require.NoError(t, repo.CreateCatalog(ctx, &types.TenantSkillCatalogEntity{
@@ -108,15 +113,17 @@ func TestDeleteCatalogRefusesWhileARemovalIsInFlight(t *testing.T) {
 	}))
 	require.NoError(t, repo.CreateSkill(ctx, &types.TenantSkillEntity{
 		ID: "sk-1", TenantID: 7, SandboxConfigID: "cfg-a", CatalogID: "cat-pdf",
-		Name: "pdf", Status: types.SkillStatusRemoving, Enabled: true,
+		Name: "pdf", Status: types.SkillStatusReady, Enabled: true,
 	}))
 
-	svc := NewTenantSkillService(repo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, HostSandboxManager{})
-	err := svc.DeleteCatalog(ctx, 7, "cat-pdf")
-	require.Error(t, err)
-	appErr, ok := apperrors.IsAppError(err)
-	require.True(t, ok)
-	require.Equal(t, 409, appErr.HTTPCode)
+	svc := NewTenantSkillService(
+		repo, &installConfigRepo{}, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		HostSandboxManager{})
+	require.NoError(t, svc.DeleteCatalog(ctx, 7, "cat-pdf"))
+
+	cat, err := svc.skills.GetCatalog(ctx, "cat-pdf")
+	require.NoError(t, err)
+	require.Nil(t, cat, "a live install no longer keeps the definition alive")
 }
 
 func TestInstallSkillStoresTheArchiveOnTheCatalog(t *testing.T) {
@@ -130,7 +137,7 @@ func TestInstallSkillStoresTheArchiveOnTheCatalog(t *testing.T) {
 	id, err := fx.svc.InstallSkill(ctx, 7, "cfg-1", archive)
 	require.NoError(t, err)
 
-	cat, err := fx.skillRepo.GetCatalogByName(ctx, 7, "pdf-tools")
+	cat, err := fx.skillRepo.GetCatalogByName(ctx, "pdf-tools")
 	require.NoError(t, err)
 	require.NotNil(t, cat)
 	require.NotEmpty(t, cat.BundleRef)
@@ -162,7 +169,7 @@ func TestRemovingLastSandboxInstallKeepsTheCatalogArchive(t *testing.T) {
 
 	require.NoError(t, fx.svc.runRemove(ctx, 7, "cfg-1", id))
 
-	cat, err := fx.skillRepo.GetCatalogByName(ctx, 7, "pdf-tools")
+	cat, err := fx.skillRepo.GetCatalogByName(ctx, "pdf-tools")
 	require.NoError(t, err)
 	require.NotNil(t, cat)
 	files, err := fx.svc.ListCatalogFiles(ctx, 7, cat.ID)
@@ -269,7 +276,7 @@ func TestRegisterCatalogKeepsThePreviousZipWhenTheRowFailsToCommit(t *testing.T)
 	require.Empty(t, fx.deletedBundles,
 		"the stored definition still names the previous archive, so it must survive")
 
-	stored, err := fx.skillRepo.GetCatalog(ctx, 7, cat.ID)
+	stored, err := fx.skillRepo.GetCatalog(ctx, cat.ID)
 	require.NoError(t, err)
 	require.Equal(t, firstRef, stored.BundleRef)
 	require.NotEmpty(t, fx.storedBundles[firstRef],
@@ -376,7 +383,7 @@ func TestRegisterCatalogDoesNotMoveTheDefinitionWhenPinFails(t *testing.T) {
 	_, err = fx.svc.RegisterCatalogFromArchive(ctx, 7, second)
 	require.Error(t, err)
 
-	stored, err := fx.skillRepo.GetCatalog(ctx, 7, catalogID)
+	stored, err := fx.skillRepo.GetCatalog(ctx, catalogID)
 	require.NoError(t, err)
 	require.Equal(t, firstRef, stored.BundleRef,
 		"the definition must keep naming v1 when the install could not be pinned")
@@ -510,7 +517,7 @@ func TestReinstallOfAnInstallStillOnTheReplacedArchiveLeavesTheCatalogAlone(t *t
 			require.NoError(t, err)
 			fx.awaitSkillSettled(t, skillID)
 
-			cat, err := fx.skillRepo.GetCatalog(ctx, 7, catalogID)
+			cat, err := fx.skillRepo.GetCatalog(ctx, catalogID)
 			require.NoError(t, err)
 			require.Equal(t, secondBundle.SHA256, cat.BundleSHA256, "the definition stays on v2")
 			require.Equal(t, secondRef, cat.BundleRef)
@@ -575,7 +582,7 @@ func TestInstallCatalogToConfigsLeavesTheDefinitionUntouched(t *testing.T) {
 		"scripts/extract.py": "print('v1')\n",
 	}))
 	require.NoError(t, err)
-	registered, err := fx.skillRepo.GetCatalog(ctx, 7, cat.ID)
+	registered, err := fx.skillRepo.GetCatalog(ctx, cat.ID)
 	require.NoError(t, err)
 	savedBefore := fx.savedBundles
 	fx.svc.now = func() time.Time { return registered.UpdatedAt.Add(time.Hour) }
@@ -584,7 +591,7 @@ func TestInstallCatalogToConfigsLeavesTheDefinitionUntouched(t *testing.T) {
 	require.NoError(t, err)
 	fx.awaitSkillSettled(t, result.Installs["cfg-1"])
 
-	after, err := fx.skillRepo.GetCatalog(ctx, 7, cat.ID)
+	after, err := fx.skillRepo.GetCatalog(ctx, cat.ID)
 	require.NoError(t, err)
 	require.Equal(t, registered.UpdatedAt, after.UpdatedAt)
 	require.Equal(t, registered.BundleRef, after.BundleRef)
@@ -609,11 +616,83 @@ func TestStoredArchiveThatNoLongerMatchesTheCatalogIsRefused(t *testing.T) {
 	_, err = fx.svc.RegisterCatalogFromArchive(ctx, 7, second)
 	require.NoError(t, err)
 
-	_, err = fx.svc.storedArchiveKeepsItsPin(ctx, 7, nil, firstBundle)
+	_, err = fx.svc.storedArchiveKeepsItsPin(ctx, nil, firstBundle)
 
 	var appErr *apperrors.AppError
 	require.ErrorAs(t, err, &appErr)
 	require.Equal(t, apperrors.ErrConflict, appErr.Code)
+}
+
+// A definition registered by one workspace is listed for every other one, and
+// an install made elsewhere is summarised rather than named: its sandbox config
+// is not this workspace's to show. That summary is also what explains a refused
+// delete.
+func TestListCatalogReportsInstallsInOtherWorkspaces(t *testing.T) {
+	repo := catalogTestRepo(t, "file:catalog-shared?mode=memory&cache=shared")
+	ctx := context.Background()
+	require.NoError(t, repo.CreateCatalog(ctx, &types.TenantSkillCatalogEntity{
+		ID: "cat-pdf", TenantID: 8, Name: "pdf", Description: "extract",
+	}))
+	require.NoError(t, repo.CreateSkill(ctx, &types.TenantSkillEntity{
+		ID: "sk-mine", TenantID: 7, SandboxConfigID: "cfg-a", CatalogID: "cat-pdf",
+		Name: "pdf", Status: types.SkillStatusReady, Enabled: true,
+	}))
+	require.NoError(t, repo.CreateSkill(ctx, &types.TenantSkillEntity{
+		ID: "sk-theirs", TenantID: 9, SandboxConfigID: "cfg-b", CatalogID: "cat-pdf",
+		Name: "pdf", Status: types.SkillStatusReady, Enabled: true,
+	}))
+
+	svc := NewTenantSkillService(
+		repo, &installConfigRepo{}, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		HostSandboxManager{})
+	list, err := svc.ListCatalog(ctx, 7)
+	require.NoError(t, err)
+	require.Len(t, list, 1, "a definition registered elsewhere is still listed here")
+	require.Len(t, list[0].Installations, 1, "only this workspace's sandboxes are named")
+	require.Equal(t, "sk-mine", list[0].Installations[0].SkillID)
+	require.Equal(t, 1, list[0].OtherInstallations)
+
+	// A definition shared with another workspace's sandbox is force-deleted, not
+	// refused: the platform-wide delete uninstalls it everywhere and drops it.
+	require.NoError(t, svc.DeleteCatalog(ctx, 7, "cat-pdf"))
+	cat, err := svc.skills.GetCatalog(ctx, "cat-pdf")
+	require.NoError(t, err)
+	require.Nil(t, cat)
+}
+
+// An install made on the shared platform default is visible to every workspace,
+// so it must render here with the operator's display name (not the reserved
+// lookup name) and must not also be tallied as an "other workspace" install.
+func TestListCatalogNamesPlatformInstallAcrossWorkspaces(t *testing.T) {
+	repo := catalogTestRepo(t, "file:catalog-platform?mode=memory&cache=shared")
+	ctx := context.Background()
+	require.NoError(t, repo.CreateCatalog(ctx, &types.TenantSkillCatalogEntity{
+		ID: "cat-pdf", TenantID: 8, Name: "pdf", Description: "extract",
+	}))
+	require.NoError(t, repo.CreateSkill(ctx, &types.TenantSkillEntity{
+		ID: "sk-platform", TenantID: types.PlatformSandboxTenantID,
+		SandboxConfigID: "cfg-platform", CatalogID: "cat-pdf",
+		Name: "pdf", Status: types.SkillStatusReady, Enabled: true,
+	}))
+
+	cfgRepo := &installConfigRepo{entity: &types.TenantSandboxConfigEntity{
+		ID: "cfg-platform", TenantID: types.PlatformSandboxTenantID,
+		Name: types.SandboxPlatformConfigName, Description: "Shared Docker",
+		SandboxType: "docker",
+	}}
+	svc := NewTenantSkillService(
+		repo, cfgRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		HostSandboxManager{})
+	list, err := svc.ListCatalog(ctx, 7)
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	require.Len(t, list[0].Installations, 1, "a platform install is visible to every workspace")
+	inst := list[0].Installations[0]
+	require.True(t, inst.IsPlatform)
+	require.Equal(t, "Shared Docker", inst.SandboxConfigName,
+		"the reserved name is replaced by the operator's display name")
+	require.Equal(t, 0, list[0].OtherInstallations,
+		"the shared default is not also counted as another workspace")
 }
 
 func (f *installFixture) awaitSkillSettled(t *testing.T, skillID string) {
@@ -626,7 +705,7 @@ func (f *installFixture) awaitSkillSettled(t *testing.T, skillID string) {
 
 func (f *installFixture) catalogSHAFor(t *testing.T, catalogID string) string {
 	t.Helper()
-	cat, err := f.skillRepo.GetCatalog(context.Background(), 7, catalogID)
+	cat, err := f.skillRepo.GetCatalog(context.Background(), catalogID)
 	require.NoError(t, err)
 	require.NotNil(t, cat)
 	return cat.BundleSHA256
@@ -634,7 +713,7 @@ func (f *installFixture) catalogSHAFor(t *testing.T, catalogID string) string {
 
 func (f *installFixture) catalogRefFor(t *testing.T, catalogID string) string {
 	t.Helper()
-	cat, err := f.skillRepo.GetCatalog(context.Background(), 7, catalogID)
+	cat, err := f.skillRepo.GetCatalog(context.Background(), catalogID)
 	require.NoError(t, err)
 	require.NotNil(t, cat)
 	return cat.BundleRef

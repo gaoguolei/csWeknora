@@ -25,6 +25,10 @@ type sandboxConfigService interface {
 	WorkspaceScriptsDisabled(context.Context, uint64) (bool, error)
 	SetWorkspaceScriptsDisabled(context.Context, uint64, bool) error
 	QueryTemplates(context.Context, uint64, service.SandboxTemplateQueryInput) (*service.SandboxTemplateCatalog, error)
+	// Platform default config: read is open to every workspace, write only
+	// happens through the system-admin gated platform route.
+	GetPlatformConfig(context.Context) (*types.TenantSandboxConfigEntity, error)
+	UpsertPlatformConfig(context.Context, service.CreateSandboxConfigInput) (*types.TenantSandboxConfigEntity, error)
 }
 
 type sandboxTemplateQueryRequest struct {
@@ -102,6 +106,14 @@ type sandboxConfigRequest struct {
 	Config      *types.TenantSandboxConfig `json:"config"`
 }
 
+// platformSandboxConfigRequest is the PUT /sandbox-configs/platform body. It
+// has no name: the platform row keeps its reserved name so every guard and
+// listing keeps recognising it as the platform default.
+type platformSandboxConfigRequest struct {
+	Description string                     `json:"description,omitempty"`
+	Config      *types.TenantSandboxConfig `json:"config"`
+}
+
 // sandboxConfigResponse is the only outward projection of stored configs, so a
 // new read path cannot accidentally return decrypted credentials.
 type sandboxConfigResponse struct {
@@ -112,6 +124,9 @@ type sandboxConfigResponse struct {
 	Config      *types.TenantSandboxConfig `json:"config"`
 	CreatedAt   time.Time                  `json:"created_at"`
 	UpdatedAt   time.Time                  `json:"updated_at"`
+	// IsPlatform marks the platform default config wherever it appears in a
+	// listing, so the UI can render it read-only for non-system admins.
+	IsPlatform bool `json:"is_platform,omitempty"`
 }
 
 func sandboxConfigTenantID(c *gin.Context) uint64 {
@@ -130,6 +145,7 @@ func toSandboxConfigResponse(e *types.TenantSandboxConfigEntity) sandboxConfigRe
 		Config:      types.SandboxConfigForResponse(e.Config, true),
 		CreatedAt:   e.CreatedAt,
 		UpdatedAt:   e.UpdatedAt,
+		IsPlatform:  types.IsSandboxPlatformRow(e),
 	}
 }
 
@@ -267,9 +283,27 @@ func (h *SandboxConfigHandler) List(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	data := make([]sandboxConfigResponse, 0, len(configs))
+	data := make([]sandboxConfigResponse, 0, len(configs)+1)
+	seen := make(map[string]struct{}, len(configs)+1)
 	for _, cfg := range configs {
-		data = append(data, toSandboxConfigResponse(cfg))
+		resp := toSandboxConfigResponse(cfg)
+		data = append(data, resp)
+		seen[resp.ID] = struct{}{}
+	}
+	// The platform default is visible to every workspace (masked): agents in
+	// any workspace can point at it, so its listing has to show it too. When
+	// the caller's own tenant *is* the platform pseudo-tenant (a global
+	// operator managing platform skills), ListByTenant already returned that
+	// row, so appending it again would render it twice — skip the duplicate.
+	platform, err := h.service.GetPlatformConfig(ctx)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	if platform != nil {
+		if _, dup := seen[platform.ID]; !dup {
+			data = append(data, toSandboxConfigResponse(platform))
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"success":                    true,
@@ -456,4 +490,74 @@ func (h *SandboxConfigHandler) Inventory(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": inv})
+}
+
+// GetPlatform godoc
+// @Summary      Get platform default sandbox config
+// @Description  Retrieve the platform default sandbox config with credentials masked. Visible to every workspace.
+// @Tags         SandboxConfig
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}   "Platform sandbox config"
+// @Failure      401  {object}  map[string]interface{}   "Unauthorized"
+// @Failure      404  {object}  apperrors.AppError       "Platform sandbox config not configured"
+// @Security     Bearer
+// @Security     ApiKeyAuth
+// @Router       /sandbox-configs/platform [get]
+func (h *SandboxConfigHandler) GetPlatform(c *gin.Context) {
+	if h.liteHidden(c, false) {
+		return
+	}
+	cfg, err := h.service.GetPlatformConfig(c.Request.Context())
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	if cfg == nil {
+		c.Error(apperrors.NewNotFoundError("platform sandbox config not found"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": toSandboxConfigResponse(cfg)})
+}
+
+// PutPlatform godoc
+// @Summary      Configure platform default sandbox
+// @Description  Create or replace the platform default sandbox config. System admin only.
+// @Tags         SandboxConfig
+// @Accept       json
+// @Produce      json
+// @Param        request  body      platformSandboxConfigRequest  true  "Platform sandbox config"
+// @Success      200      {object}  map[string]interface{}  "Platform sandbox config"
+// @Failure      400      {object}  apperrors.AppError      "Invalid request or validation failure"
+// @Failure      401      {object}  map[string]interface{}  "Unauthorized"
+// @Failure      403      {object}  apperrors.AppError      "System admin required"
+// @Failure      423      {object}  map[string]interface{}  "Sandbox config is being modified by another request"
+// @Security     Bearer
+// @Security     ApiKeyAuth
+// @Router       /sandbox-configs/platform [put]
+func (h *SandboxConfigHandler) PutPlatform(c *gin.Context) {
+	if h.liteHidden(c, false) {
+		return
+	}
+	var req platformSandboxConfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.Error(apperrors.NewBadRequestError(err.Error()))
+		return
+	}
+	saved, err := h.service.UpsertPlatformConfig(c.Request.Context(),
+		service.CreateSandboxConfigInput{
+			Description: req.Description,
+			Config:      req.Config,
+		})
+	if err != nil {
+		if respondSandboxConfigRefusal(c, err) {
+			return
+		}
+		respondSandboxConfigServiceError(c, err)
+		return
+	}
+	if saved == nil {
+		c.Error(apperrors.NewNotFoundError("platform sandbox config not found"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": toSandboxConfigResponse(saved)})
 }

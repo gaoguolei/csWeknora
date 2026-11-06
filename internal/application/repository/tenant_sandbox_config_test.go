@@ -56,6 +56,46 @@ func TestSandboxConfigRepoIsolatesTenants(t *testing.T) {
 	require.Equal(t, "cfg-a", list[0].ID)
 }
 
+func TestSandboxConfigRepoExposesPlatformRowToEveryTenant(t *testing.T) {
+	repo, _ := newSandboxConfigTestRepo(t)
+	ctx := context.Background()
+
+	require.NoError(t, repo.Create(ctx, &types.TenantSandboxConfigEntity{
+		ID:          "platform-cfg",
+		TenantID:    types.PlatformSandboxTenantID,
+		Name:        types.SandboxPlatformConfigName,
+		Description: "Shared",
+		SandboxType: "e2b",
+		Config:      &types.TenantSandboxConfig{SandboxType: "e2b"},
+	}))
+
+	// Any workspace resolves the platform row by ID, which is what agents that
+	// point at it rely on.
+	got, err := repo.GetByID(ctx, 7, "platform-cfg")
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	require.Equal(t, types.PlatformSandboxTenantID, got.TenantID)
+
+	platform, err := repo.GetPlatform(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, platform)
+	require.Equal(t, "platform-cfg", platform.ID)
+
+	// Workspace listings stay their own: the handler appends the platform row
+	// exactly once, so a listing must not leak it as a workspace config.
+	list, err := repo.ListByTenant(ctx, 7)
+	require.NoError(t, err)
+	require.Empty(t, list)
+}
+
+func TestSandboxConfigRepoGetPlatformAbsentReturnsNil(t *testing.T) {
+	repo, _ := newSandboxConfigTestRepo(t)
+
+	platform, err := repo.GetPlatform(context.Background())
+	require.NoError(t, err)
+	require.Nil(t, platform)
+}
+
 func TestSandboxConfigRepoRejectsDuplicateNameInTenant(t *testing.T) {
 	repo, _ := newSandboxConfigTestRepo(t)
 	ctx := context.Background()

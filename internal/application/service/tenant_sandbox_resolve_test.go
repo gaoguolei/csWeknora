@@ -78,6 +78,17 @@ func TestResolveKillSwitchBeatsNamedConfig(t *testing.T) {
 	require.Equal(t, sandbox.SandboxTypeDisabled, mgr.GetType())
 }
 
+// The workspace kill switch is a workspace policy, not a property of the named
+// config, so it must also stop the shared platform default.
+func TestResolveKillSwitchBeatsPlatformSentinel(t *testing.T) {
+	mgr, err := resolveTenantSandboxForConfig(
+		context.Background(), fakeResolver{typ: sandbox.SandboxTypeE2B}, stubHostManager{},
+		1, types.SandboxConfigIDPlatform, disabledPolicy{},
+	)
+	require.NoError(t, err)
+	require.Equal(t, sandbox.SandboxTypeDisabled, mgr.GetType())
+}
+
 // Lite opts into host by passing withLiteHostSandbox. Web never passes a
 // host-typed manager (the stub provider is nil), so the same empty config
 // stays disabled.
@@ -170,4 +181,41 @@ func TestResolveHostTargetWithoutInstallerIsTheChatHost(t *testing.T) {
 func TestHasNamedSandboxConfigExcludesHostTarget(t *testing.T) {
 	require.False(t, hasNamedSandboxConfig(sandbox.HostSkillTargetID))
 	require.True(t, hasNamedSandboxConfig("cfg-1"))
+	// The platform sentinel names a real config, so it must not be treated as
+	// "no sandbox": the resolver has to look the platform row up.
+	require.True(t, hasNamedSandboxConfig(types.SandboxConfigIDPlatform))
+}
+
+func TestPlatformSentinelLoaderReadsThePlatformRow(t *testing.T) {
+	repo := &fakeConfigRepo{entity: &types.TenantSandboxConfigEntity{
+		ID:          "platform-cfg",
+		TenantID:    types.PlatformSandboxTenantID,
+		Name:        types.SandboxPlatformConfigName,
+		SandboxType: "e2b",
+		Config:      &types.TenantSandboxConfig{SandboxType: "e2b"},
+	}}
+	loader := NewTenantSandboxConfigLoader(repo)
+
+	// A workspace of its own must resolve the shared row, not one of its own.
+	resolved, err := loader.Load(context.Background(), 7, types.SandboxConfigIDPlatform)
+	require.NoError(t, err)
+	require.True(t, resolved.Found)
+	require.Equal(t, "e2b", resolved.Config.SandboxType)
+}
+
+func TestPlatformSentinelLoaderWithoutPlatformRowIsNotFound(t *testing.T) {
+	repo := &fakeConfigRepo{entity: &types.TenantSandboxConfigEntity{
+		ID:          "workspace-cfg",
+		TenantID:    7,
+		Name:        "prod",
+		SandboxType: "e2b",
+		Config:      &types.TenantSandboxConfig{SandboxType: "e2b"},
+	}}
+	loader := NewTenantSandboxConfigLoader(repo)
+
+	// A workspace row must not stand in for an unconfigured platform default;
+	// the resolver reports ErrSandboxConfigNotFound instead of substituting.
+	resolved, err := loader.Load(context.Background(), 7, types.SandboxConfigIDPlatform)
+	require.NoError(t, err)
+	require.False(t, resolved.Found)
 }

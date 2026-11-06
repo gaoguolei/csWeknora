@@ -823,14 +823,20 @@ func (s *agentService) loadInstalledSkillBundle(
 	if cid == "" || s.db == nil {
 		return nil, fmt.Errorf("skill %s has no stored bundle; its files cannot be read", row.Name)
 	}
-	cat, err := repository.NewTenantSkillRepository(s.db).GetCatalog(ctx, tenantID, cid)
+	cat, err := repository.NewTenantSkillRepository(s.db).GetCatalog(ctx, cid)
 	if err != nil {
 		return nil, err
 	}
 	if cat == nil || strings.TrimSpace(cat.BundleRef) == "" {
 		return nil, fmt.Errorf("skill %s has no stored bundle; its files cannot be read", row.Name)
 	}
-	archive, err := s.readSkillBundle(ctx, tenantID, strings.TrimSpace(cat.BundleRef))
+	// The definition is shared, so its archive lives in the storage of the
+	// workspace that registered it, not necessarily the one running the sandbox.
+	owner := cat.TenantID
+	if owner == 0 {
+		owner = tenantID
+	}
+	archive, err := s.readSkillBundle(ctx, owner, strings.TrimSpace(cat.BundleRef))
 	if err != nil {
 		return nil, err
 	}

@@ -36,7 +36,10 @@ const (
 // sandboxSkillService is the skill surface the admin endpoints need. Reads and
 // writes are workspace-scoped by the service; the progress calls are not, which
 // is why every handler here resolves the skill for the caller's workspace first.
+// SkillTargetTenant maps the caller onto the tenant that owns the config's
+// install rows (the platform pseudo-tenant for the platform default config).
 type sandboxSkillService interface {
+	SkillTargetTenant(ctx context.Context, tenantID uint64, configID string) (uint64, bool, error)
 	ListSkills(ctx context.Context, tenantID uint64, configID string) ([]*types.TenantSkillEntity, error)
 	GetSkill(ctx context.Context, tenantID uint64, configID, skillID string) (*types.TenantSkillEntity, error)
 	ListSkillFiles(
@@ -184,6 +187,49 @@ func respondSkillServiceError(c *gin.Context, err error) {
 	_ = c.Error(err)
 }
 
+// skillTenantFor resolves the tenant that owns the path config's skill rows:
+// installs made against the platform default config live under the platform
+// pseudo-tenant, so one install is the ready set of every workspace. Every
+// route below passes the returned tenant to the service so row keys, progress
+// keys and run locks match how the install was recorded. The second value
+// reports whether the target is the platform config.
+func (h *SandboxSkillHandler) skillTenantFor(c *gin.Context) (uint64, bool, error) {
+	return h.service.SkillTargetTenant(c.Request.Context(), sandboxConfigTenantID(c), c.Param("id"))
+}
+
+// refusePlatformSkillWrite gates writes against the platform default config's
+// skill set to system admins: a workspace admin could otherwise rewrite the
+// ready set — and the admin skill secrets baked into the image every workspace
+// boots — for the whole platform.
+func refusePlatformSkillWrite(c *gin.Context, isPlatform bool) bool {
+	if !isPlatform || types.IsSystemAdminFromContext(c.Request.Context()) {
+		return false
+	}
+	_ = c.Error(apperrors.NewForbiddenError("平台默认沙箱的技能仅运营管理员可修改"))
+	return true
+}
+
+// refuseNonPlatformSkillRead is the dynamic half of the skill List/Get routes,
+// whose static guard is Viewer so every workspace can see the platform ready
+// set. Workspace configs keep the Admin+ posture they had before that gate was
+// relaxed, and API-key principals pass exactly like the role ladder they
+// cleared at the route guard.
+func refuseNonPlatformSkillRead(c *gin.Context, isPlatform bool) bool {
+	if isPlatform {
+		return false
+	}
+	ctx := c.Request.Context()
+	if _, ok := types.TenantAPIKeyScopeFromContext(ctx); ok {
+		return false
+	}
+	if types.IsSystemAdminFromContext(ctx) ||
+		types.CallerFromContext(ctx).Role.HasPermission(types.TenantRoleAdmin) {
+		return false
+	}
+	_ = c.Error(apperrors.NewForbiddenError("查看空间沙箱的技能列表需要空间管理员权限"))
+	return true
+}
+
 // List godoc
 // @Summary      List installed skills
 // @Description  List the agent skills installed onto one sandbox config's image.
@@ -197,7 +243,15 @@ func respondSkillServiceError(c *gin.Context, err error) {
 // @Security     ApiKeyAuth
 // @Router       /sandbox-configs/{id}/skills [get]
 func (h *SandboxSkillHandler) List(c *gin.Context) {
-	skills, err := h.service.ListSkills(c.Request.Context(), sandboxConfigTenantID(c), c.Param("id"))
+	tenantID, isPlatform, err := h.skillTenantFor(c)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	if refuseNonPlatformSkillRead(c, isPlatform) {
+		return
+	}
+	skills, err := h.service.ListSkills(c.Request.Context(), tenantID, c.Param("id"))
 	if err != nil {
 		_ = c.Error(err)
 		return
@@ -223,9 +277,21 @@ func (h *SandboxSkillHandler) List(c *gin.Context) {
 // @Security     ApiKeyAuth
 // @Router       /sandbox-configs/{id}/skills/{skillId} [get]
 func (h *SandboxSkillHandler) Get(c *gin.Context) {
-	skill, err := h.resolveSkill(c)
+	tenantID, isPlatform, err := h.skillTenantFor(c)
 	if err != nil {
 		_ = c.Error(err)
+		return
+	}
+	if refuseNonPlatformSkillRead(c, isPlatform) {
+		return
+	}
+	skill, err := h.service.GetSkill(c.Request.Context(), tenantID, c.Param("id"), c.Param("skillId"))
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	if skill == nil {
+		_ = c.Error(apperrors.NewNotFoundError("skill not found"))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": toSkillResponse(skill)})
@@ -245,8 +311,13 @@ func (h *SandboxSkillHandler) Get(c *gin.Context) {
 // @Security     ApiKeyAuth
 // @Router       /sandbox-configs/{id}/skills/{skillId}/files [get]
 func (h *SandboxSkillHandler) ListFiles(c *gin.Context) {
+	tenantID, _, err := h.skillTenantFor(c)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
 	files, err := h.service.ListSkillFiles(
-		c.Request.Context(), sandboxConfigTenantID(c), c.Param("id"), c.Param("skillId"),
+		c.Request.Context(), tenantID, c.Param("id"), c.Param("skillId"),
 	)
 	if err != nil {
 		_ = c.Error(err)
@@ -271,8 +342,13 @@ func (h *SandboxSkillHandler) ListFiles(c *gin.Context) {
 // @Security     ApiKeyAuth
 // @Router       /sandbox-configs/{id}/skills/{skillId}/files/content [get]
 func (h *SandboxSkillHandler) GetFile(c *gin.Context) {
+	tenantID, _, err := h.skillTenantFor(c)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
 	file, err := h.service.ReadSkillFile(
-		c.Request.Context(), sandboxConfigTenantID(c),
+		c.Request.Context(), tenantID,
 		c.Param("id"), c.Param("skillId"), c.Query("path"),
 	)
 	if err != nil {
@@ -344,8 +420,16 @@ func (h *SandboxSkillHandler) Upload(c *gin.Context) {
 		return
 	}
 
+	tenantID, isPlatform, err := h.skillTenantFor(c)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	if refusePlatformSkillWrite(c, isPlatform) {
+		return
+	}
 	skillID, err := h.service.InstallSkill(
-		c.Request.Context(), sandboxConfigTenantID(c), c.Param("id"), archive,
+		c.Request.Context(), tenantID, c.Param("id"), archive,
 	)
 	if err != nil {
 		respondSkillServiceError(c, err)
@@ -380,8 +464,16 @@ func (h *SandboxSkillHandler) installFromSource(c *gin.Context) {
 		return
 	}
 
+	tenantID, isPlatform, err := h.skillTenantFor(c)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	if refusePlatformSkillWrite(c, isPlatform) {
+		return
+	}
 	skillID, err := h.service.InstallSkillFromSource(
-		c.Request.Context(), sandboxConfigTenantID(c), c.Param("id"), source,
+		c.Request.Context(), tenantID, c.Param("id"), source,
 	)
 	if err != nil {
 		respondSkillServiceError(c, err)
@@ -412,8 +504,16 @@ func (h *SandboxSkillHandler) Reinstall(c *gin.Context) {
 		_ = c.Error(apperrors.NewBadRequestError("invalid reinstall instructions"))
 		return
 	}
+	tenantID, isPlatform, err := h.skillTenantFor(c)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	if refusePlatformSkillWrite(c, isPlatform) {
+		return
+	}
 	skillID, err := h.service.ReinstallSkill(
-		c.Request.Context(), sandboxConfigTenantID(c), c.Param("id"), c.Param("skillId"), req.Instructions,
+		c.Request.Context(), tenantID, c.Param("id"), c.Param("skillId"), req.Instructions,
 	)
 	if err != nil {
 		respondSkillServiceError(c, err)
@@ -437,8 +537,16 @@ func (h *SandboxSkillHandler) Reinstall(c *gin.Context) {
 // @Security     ApiKeyAuth
 // @Router       /sandbox-configs/{id}/skills/{skillId}/stop [post]
 func (h *SandboxSkillHandler) Stop(c *gin.Context) {
+	tenantID, isPlatform, err := h.skillTenantFor(c)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	if refusePlatformSkillWrite(c, isPlatform) {
+		return
+	}
 	skill, err := h.service.StopSkill(
-		c.Request.Context(), sandboxConfigTenantID(c), c.Param("id"), c.Param("skillId"),
+		c.Request.Context(), tenantID, c.Param("id"), c.Param("skillId"),
 	)
 	if err != nil {
 		respondSkillServiceError(c, err)
@@ -507,8 +615,15 @@ func (h *SandboxSkillHandler) Patch(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	tenantID := sandboxConfigTenantID(c)
 	configID, skillID := c.Param("id"), c.Param("skillId")
+	tenantID, isPlatform, err := h.skillTenantFor(c)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	if refusePlatformSkillWrite(c, isPlatform) {
+		return
+	}
 
 	// Both fields go down in one call so the request is all-or-nothing: two
 	// service calls could persist the toggle and then fail the values, which
@@ -546,8 +661,16 @@ func (h *SandboxSkillHandler) Patch(c *gin.Context) {
 // @Router       /sandbox-configs/{id}/skills/{skillId} [delete]
 func (h *SandboxSkillHandler) Delete(c *gin.Context) {
 	skillID := c.Param("skillId")
-	err := h.service.RemoveSkill(
-		c.Request.Context(), sandboxConfigTenantID(c), c.Param("id"), skillID,
+	tenantID, isPlatform, err := h.skillTenantFor(c)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	if refusePlatformSkillWrite(c, isPlatform) {
+		return
+	}
+	err = h.service.RemoveSkill(
+		c.Request.Context(), tenantID, c.Param("id"), skillID,
 	)
 	if err != nil {
 		_ = c.Error(err)
@@ -634,8 +757,12 @@ func terminalSkillEvent(skill *types.TenantSkillEntity) (skillInstallEvent, bool
 // @Router       /sandbox-configs/{id}/skills/{skillId}/install-events [get]
 func (h *SandboxSkillHandler) InstallEvents(c *gin.Context) {
 	ctx := c.Request.Context()
-	tenantID := sandboxConfigTenantID(c)
 	configID, skillID := c.Param("id"), c.Param("skillId")
+	tenantID, _, err := h.skillTenantFor(c)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
 
 	// The progress key is workspace-scoped, so this lookup is not what isolates
 	// the stream; it is what turns "this skill is not yours" into a 404 while a
@@ -862,10 +989,15 @@ func (h *SandboxSkillHandler) emitTranscript(
 	return c.Request.Context().Err() != nil
 }
 
-// resolveSkill loads the skill for the caller's workspace and config, and
+// resolveSkill loads the skill for the caller's workspace and config (mapped
+// through the platform tenant when the config is the platform default), and
 // returns the 404 every route renders when it is not reachable.
 func (h *SandboxSkillHandler) resolveSkill(c *gin.Context) (*types.TenantSkillEntity, error) {
-	skill, err := h.service.GetSkill(c.Request.Context(), sandboxConfigTenantID(c),
+	tenantID, _, err := h.skillTenantFor(c)
+	if err != nil {
+		return nil, err
+	}
+	skill, err := h.service.GetSkill(c.Request.Context(), tenantID,
 		c.Param("id"), c.Param("skillId"))
 	if err != nil {
 		return nil, err
@@ -902,9 +1034,14 @@ func setSandboxSkillSSEHeaders(c *gin.Context) {
 
 // InstallGuidance exposes only the guidance for this tenant/config/skill's current run.
 func (h *SandboxSkillHandler) InstallGuidance(c *gin.Context) {
+	tenantID, _, err := h.skillTenantFor(c)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
 	state, err := h.service.InstallGuidance(
 		c.Request.Context(),
-		sandboxConfigTenantID(c),
+		tenantID,
 		c.Param("id"),
 		c.Param("skillId"),
 	)
@@ -926,8 +1063,16 @@ func (h *SandboxSkillHandler) SteerInstall(c *gin.Context) {
 		_ = c.Error(apperrors.NewBadRequestError("invalid install guidance"))
 		return
 	}
+	tenantID, isPlatform, err := h.skillTenantFor(c)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	if refusePlatformSkillWrite(c, isPlatform) {
+		return
+	}
 	if err := h.service.SteerInstall(
-		c.Request.Context(), sandboxConfigTenantID(c), c.Param("id"), c.Param("skillId"),
+		c.Request.Context(), tenantID, c.Param("id"), c.Param("skillId"),
 		req.ExpectedMessageID, req.SteerID, req.Content,
 	); err != nil {
 		respondSkillServiceError(c, err)

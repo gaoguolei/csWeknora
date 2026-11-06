@@ -300,6 +300,19 @@ func (s *fakeSandboxConfigService) Get(
 	return nil, nil
 }
 
+func (s *fakeSandboxConfigService) GetPlatformConfig(
+	context.Context,
+) (*types.TenantSandboxConfigEntity, error) {
+	return nil, nil
+}
+
+func (s *fakeSandboxConfigService) UpsertPlatformConfig(
+	context.Context,
+	service.CreateSandboxConfigInput,
+) (*types.TenantSandboxConfigEntity, error) {
+	return nil, nil
+}
+
 func (s *fakeSandboxConfigService) Update(
 	context.Context,
 	uint64,

@@ -222,10 +222,13 @@ type sandboxConfigSkillStore interface {
 	MarkSnapshotState(ctx context.Context, tenantID uint64, id, state, snapshotID string) error
 	ListSkillsByConfig(ctx context.Context, tenantID uint64, configID string) ([]*types.TenantSkillEntity, error)
 	DeleteSkill(ctx context.Context, tenantID uint64, configID, skillID string) error
-	// The tenant-wide lists answer who else still reads an archive the
-	// deleted install rows had pinned.
+	// The lists below answer who else still reads an archive the deleted install
+	// rows had pinned. Skill definitions are shared by every workspace, so the
+	// catalog list spans all of them and the installs of one definition are
+	// looked up by that definition rather than by this workspace alone.
 	ListSkillsByTenant(ctx context.Context, tenantID uint64) ([]*types.TenantSkillEntity, error)
-	ListCatalogsByTenant(ctx context.Context, tenantID uint64) ([]*types.TenantSkillCatalogEntity, error)
+	ListCatalogs(ctx context.Context) ([]*types.TenantSkillCatalogEntity, error)
+	ListSkillsByCatalog(ctx context.Context, catalogID string) ([]*types.TenantSkillEntity, error)
 	DeleteSnapshotRowsByConfig(ctx context.Context, tenantID uint64, configID string) error
 	DeleteUserEnvVarsByConfig(ctx context.Context, tenantID uint64, configID string) error
 }
@@ -495,6 +498,12 @@ func (s *TenantSandboxConfigService) Create(
 	if name == "" {
 		return nil, ErrSandboxConfigNameRequired
 	}
+	// The reserved platform name belongs to the platform pseudo-tenant only;
+	// a workspace row with that name would impersonate the platform config in
+	// every name-based lookup.
+	if types.IsSandboxPlatformConfigName(name) && tenantID != types.PlatformSandboxTenantID {
+		return nil, apperrors.NewBadRequestError("该配置名为平台保留名称")
+	}
 	entity := &types.TenantSandboxConfigEntity{
 		ID:          uuid.New().String(),
 		TenantID:    tenantID,
@@ -522,11 +531,13 @@ func (s *TenantSandboxConfigService) List(
 	return filterPublicSandboxConfigs(list), nil
 }
 
-// Get returns one config, or nil when absent.
+// Get returns one config, or nil when absent. The platform sentinel ID
+// resolves to the platform default row so the detail, check and template
+// routes work for "platform" without the client knowing the row UUID.
 func (s *TenantSandboxConfigService) Get(
 	ctx context.Context, tenantID uint64, id string,
 ) (*types.TenantSandboxConfigEntity, error) {
-	entity, err := s.repo.GetByID(ctx, tenantID, id)
+	entity, err := s.getConfigEntity(ctx, tenantID, id)
 	if err != nil || entity == nil {
 		return nil, err
 	}
@@ -534,6 +545,51 @@ func (s *TenantSandboxConfigService) Get(
 		return nil, nil
 	}
 	return entity, nil
+}
+
+// getConfigEntity resolves a caller-supplied config ID: the platform sentinel
+// names the platform default row, anything else is a row UUID. GetByID's
+// cross-tenant visibility makes the UUID path work for platform rows too.
+func (s *TenantSandboxConfigService) getConfigEntity(
+	ctx context.Context, tenantID uint64, id string,
+) (*types.TenantSandboxConfigEntity, error) {
+	if types.IsSandboxPlatformConfigID(id) {
+		return s.repo.GetPlatform(ctx)
+	}
+	return s.repo.GetByID(ctx, tenantID, id)
+}
+
+// GetPlatformConfig returns the platform default sandbox config, or nil when
+// it has never been configured. Reads are open to every workspace (masked);
+// only the system-admin gated platform route may write it.
+func (s *TenantSandboxConfigService) GetPlatformConfig(
+	ctx context.Context,
+) (*types.TenantSandboxConfigEntity, error) {
+	return s.repo.GetPlatform(ctx)
+}
+
+// UpsertPlatformConfig creates or replaces the single platform default config.
+// in.Name is ignored: the row keeps the reserved platform name so listings and
+// guards keep recognising it. The caller must have passed the system-admin
+// gate; the writes below use the platform pseudo-tenant, never the caller's.
+func (s *TenantSandboxConfigService) UpsertPlatformConfig(
+	ctx context.Context, in CreateSandboxConfigInput,
+) (*types.TenantSandboxConfigEntity, error) {
+	existing, err := s.repo.GetPlatform(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return s.Create(ctx, types.PlatformSandboxTenantID, CreateSandboxConfigInput{
+			Name:        types.SandboxPlatformConfigName,
+			Description: in.Description,
+			Config:      in.Config,
+		})
+	}
+	return s.Update(ctx, types.PlatformSandboxTenantID, existing.ID, UpdateSandboxConfigInput{
+		Description: in.Description,
+		Config:      in.Config,
+	})
 }
 
 // QueryTemplates reads the provider's template catalog and, when asked,
@@ -549,7 +605,7 @@ func (s *TenantSandboxConfigService) QueryTemplates(
 
 	var existing *types.TenantSandboxConfig
 	if strings.TrimSpace(in.ConfigID) != "" {
-		entity, err := s.repo.GetByID(ctx, tenantID, in.ConfigID)
+		entity, err := s.getConfigEntity(ctx, tenantID, in.ConfigID)
 		if err != nil {
 			return nil, err
 		}
@@ -926,7 +982,7 @@ func templateStatusRank(status string) int {
 func (s *TenantSandboxConfigService) Inventory(
 	ctx context.Context, tenantID uint64, id string,
 ) (SandboxInventory, error) {
-	entity, err := s.repo.GetByID(ctx, tenantID, id)
+	entity, err := s.getConfigEntity(ctx, tenantID, id)
 	if err != nil {
 		return SandboxInventory{}, err
 	}
@@ -966,12 +1022,18 @@ func (s *TenantSandboxConfigService) listSandboxes(
 func (s *TenantSandboxConfigService) Update(
 	ctx context.Context, tenantID uint64, id string, in UpdateSandboxConfigInput,
 ) (*types.TenantSandboxConfigEntity, error) {
-	entity, err := s.repo.GetByID(ctx, tenantID, id)
+	entity, err := s.getConfigEntity(ctx, tenantID, id)
 	if err != nil || entity == nil {
 		return nil, err
 	}
 	if types.IsSandboxWorkspacePolicyRow(entity) {
 		return nil, apperrors.NewBadRequestError("workspace policy cannot be edited here")
+	}
+	// Cross-tenant GetByID visibility is for reads and resolution only: a
+	// workspace admin must not reach platform credentials through the /:id
+	// route. The platform route calls here with the platform pseudo-tenant.
+	if types.IsSandboxPlatformRow(entity) && tenantID != types.PlatformSandboxTenantID {
+		return nil, apperrors.NewForbiddenError("平台默认沙箱仅运营管理员可修改")
 	}
 	if in.Config != nil && strings.TrimSpace(in.Config.SandboxType) != "" {
 		if err := validateNamedSandboxBackend(in.Config); err != nil {
@@ -1048,7 +1110,7 @@ func (s *TenantSandboxConfigService) Update(
 func (s *TenantSandboxConfigService) Delete(
 	ctx context.Context, tenantID uint64, id string, force bool,
 ) error {
-	entity, err := s.repo.GetByID(ctx, tenantID, id)
+	entity, err := s.getConfigEntity(ctx, tenantID, id)
 	if err != nil {
 		return err
 	}
@@ -1059,6 +1121,9 @@ func (s *TenantSandboxConfigService) Delete(
 	}
 	if types.IsSandboxWorkspacePolicyRow(entity) {
 		return apperrors.NewBadRequestError("workspace policy cannot be deleted here")
+	}
+	if types.IsSandboxPlatformRow(entity) && tenantID != types.PlatformSandboxTenantID {
+		return apperrors.NewForbiddenError("平台默认沙箱仅运营管理员可删除")
 	}
 	summaries, listErr := s.listSandboxes(ctx, entity.Config, tenantID, id)
 	if listErr != nil {
@@ -1296,9 +1361,17 @@ func (s *TenantSandboxConfigService) cleanupSkillMetadata(
 	}
 	var pinned []string
 	seen := map[string]struct{}{}
+	catalogIDs := make([]string, 0, 1)
+	seenCatalog := map[string]struct{}{}
 	for _, skill := range skills {
 		if skill == nil {
 			continue
+		}
+		if cid := strings.TrimSpace(skill.CatalogID); cid != "" {
+			if _, dup := seenCatalog[cid]; !dup {
+				seenCatalog[cid] = struct{}{}
+				catalogIDs = append(catalogIDs, cid)
+			}
 		}
 		if ref := strings.TrimSpace(skill.BundleRef); ref != "" {
 			if _, dup := seen[ref]; !dup {
@@ -1313,7 +1386,7 @@ func (s *TenantSandboxConfigService) cleanupSkillMetadata(
 	}
 	// After the rows are gone, never before: each ref is named by the very row
 	// being deleted, so asking first would always find a reader.
-	s.releasePinnedBundles(ctx, tenantID, pinned)
+	s.releasePinnedBundles(ctx, tenantID, pinned, catalogIDs)
 	if err := s.skills.DeleteSnapshotRowsByConfig(ctx, tenantID, configID); err != nil {
 		logger.Warnf(ctx, "[sandbox] delete snapshot ledger for config %s failed: %v",
 			configID, err)
@@ -1337,30 +1410,45 @@ func (s *TenantSandboxConfigService) cleanupSkillMetadata(
 // The pin is not exclusive, which is why this cannot just delete what the rows
 // named. Sibling configs installed from the same archive pin the same object,
 // and a definition may have been rolled back onto it, so the bytes go only once
-// no catalog and no surviving install names them. A list that cannot be read
-// keeps the archive: a leaked one costs storage, a deleted one costs some other
-// sandbox its files.
+// no catalog and no surviving install names them. When a definition is
+// involved, its installs are looked up in every workspace: the archive it owned
+// may be pinned by a sandbox this workspace cannot see. A list that cannot be
+// read keeps the archive: a leaked one costs storage, a deleted one costs some
+// other sandbox its files.
 func (s *TenantSandboxConfigService) releasePinnedBundles(
-	ctx context.Context, tenantID uint64, refs []string,
+	ctx context.Context, tenantID uint64, refs []string, catalogIDs []string,
 ) {
 	if len(refs) == 0 || s.files == nil || s.skills == nil {
 		return
 	}
-	catalogs, err := s.skills.ListCatalogsByTenant(ctx, tenantID)
+	catalogs, err := s.skills.ListCatalogs(ctx)
 	if err != nil {
 		logger.Warnf(ctx, "[sandbox] list catalogs before releasing skill archives failed: %v", err)
 		return
+	}
+	held := make(map[string]struct{}, len(catalogs)+len(refs))
+	for _, cat := range catalogs {
+		if cat != nil {
+			held[strings.TrimSpace(cat.BundleRef)] = struct{}{}
+		}
+	}
+	for _, cid := range catalogIDs {
+		rows, listErr := s.skills.ListSkillsByCatalog(ctx, cid)
+		if listErr != nil {
+			logger.Warnf(ctx, "[sandbox] list installs of catalog %s before releasing skill archives failed: %v",
+				cid, listErr)
+			return
+		}
+		for _, row := range rows {
+			if row != nil {
+				held[strings.TrimSpace(row.BundleRef)] = struct{}{}
+			}
+		}
 	}
 	installs, err := s.skills.ListSkillsByTenant(ctx, tenantID)
 	if err != nil {
 		logger.Warnf(ctx, "[sandbox] list installs before releasing skill archives failed: %v", err)
 		return
-	}
-	held := make(map[string]struct{}, len(catalogs)+len(installs))
-	for _, cat := range catalogs {
-		if cat != nil {
-			held[strings.TrimSpace(cat.BundleRef)] = struct{}{}
-		}
 	}
 	for _, row := range installs {
 		if row != nil {

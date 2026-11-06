@@ -74,7 +74,7 @@
                     :aria-label="$t('settings.sandbox.skillFiles')" @click="openCatalogFiles(item)">
                     <folder-icon size="14px" />
                   </button>
-                  <button v-if="canDelete(item)" type="button" class="skill-card__icon-btn skill-card__icon-btn--danger"
+                  <button type="button" class="skill-card__icon-btn skill-card__icon-btn--danger"
                     :disabled="deletingId === item.id" :title="$t('settings.skills.deleteCatalog')"
                     :aria-label="$t('settings.skills.deleteCatalog')" @click="askDelete(item)">
                     <delete-icon size="14px" />
@@ -146,7 +146,7 @@
                           class="skill-install-panel__item skill-install-panel__item--available"
                           :title="sandboxMetaLine(cfg)" @click="openInstallTo(item, cfg)">
                           <SandboxBackendBadge :type="cfg.sandbox_type" size="xs" />
-                          <span class="skill-install-panel__name">{{ cfg.name }}</span>
+                          <span class="skill-install-panel__name">{{ configLabel(cfg) }}</span>
                           <span class="skill-install-panel__add">
                             <t-icon name="add" size="12px" />
                             {{ $t('settings.skills.installAction') }}
@@ -163,6 +163,9 @@
                   <span class="skill-card__chip-text">{{ upgradeLabel(view) }}</span>
                 </button>
               </div>
+              <p v-if="(item.other_install_count ?? 0) > 0" class="skill-card__shared">
+                {{ skillText('otherWorkspaceInstalls', { count: item.other_install_count }) }}
+              </p>
             </div>
           </div>
         </article>
@@ -273,7 +276,11 @@
                 <span class="sandbox-pick__main">
                   <SandboxBackendBadge :type="row.cfg.sandbox_type" size="sm" />
                   <span class="sandbox-pick__text">
-                    <span class="sandbox-pick__name">{{ row.cfg.name }}</span>
+                    <span class="sandbox-pick__name">{{ configLabel(row.cfg) }}
+                      <t-tag v-if="row.cfg.is_platform" theme="primary" variant="light" size="small">
+                        {{ $t('settings.sandbox.platform.badge') }}
+                      </t-tag>
+                    </span>
                     <span class="sandbox-pick__meta">{{ pickRowMeta(row) }}</span>
                   </span>
                 </span>
@@ -282,7 +289,11 @@
                 <span class="sandbox-pick__main">
                   <SandboxBackendBadge :type="row.cfg.sandbox_type" size="sm" />
                   <span class="sandbox-pick__text">
-                    <span class="sandbox-pick__name">{{ row.cfg.name }}</span>
+                    <span class="sandbox-pick__name">{{ configLabel(row.cfg) }}
+                      <t-tag v-if="row.cfg.is_platform" theme="primary" variant="light" size="small">
+                        {{ $t('settings.sandbox.platform.badge') }}
+                      </t-tag>
+                    </span>
                     <span class="sandbox-pick__meta">{{ sandboxPickStatus(row) }}</span>
                   </span>
                 </span>
@@ -329,7 +340,11 @@
               <span class="sandbox-pick__main">
                 <SandboxBackendBadge :type="row.cfg.sandbox_type" size="sm" />
                 <span class="sandbox-pick__text">
-                  <span class="sandbox-pick__name">{{ row.cfg.name }}</span>
+                  <span class="sandbox-pick__name">{{ configLabel(row.cfg) }}
+                    <t-tag v-if="row.cfg.is_platform" theme="primary" variant="light" size="small">
+                      {{ $t('settings.sandbox.platform.badge') }}
+                    </t-tag>
+                  </span>
                   <span class="sandbox-pick__meta">{{ pickRowMeta(row) }}</span>
                 </span>
               </span>
@@ -338,7 +353,11 @@
               <span class="sandbox-pick__main">
                 <SandboxBackendBadge :type="row.cfg.sandbox_type" size="sm" />
                 <span class="sandbox-pick__text">
-                  <span class="sandbox-pick__name">{{ row.cfg.name }}</span>
+                  <span class="sandbox-pick__name">{{ configLabel(row.cfg) }}
+                    <t-tag v-if="row.cfg.is_platform" theme="primary" variant="light" size="small">
+                      {{ $t('settings.sandbox.platform.badge') }}
+                    </t-tag>
+                  </span>
                   <span class="sandbox-pick__meta">{{ sandboxPickStatus(row) }}</span>
                 </span>
               </span>
@@ -397,6 +416,8 @@ import { useConfigSkillInstallProgress } from '@/composables/useConfigSkillInsta
 import { matchesResourceQuery } from '@/utils/resourceListSearch'
 import { SKILL_ICON } from '@/types/mention'
 import { useUIStore } from '@/stores/ui'
+import { useAuthStore } from '@/stores/auth'
+import { workspaceSandboxEnabled } from '@/config/settingsAccess'
 import { useDeploymentCapabilitiesStore } from '@/stores/deploymentCapabilities'
 import { MAX_SKILL_BUNDLE_SIZE_BYTES, MAX_SKILL_BUNDLE_SIZE_MB } from '@/utils'
 import {
@@ -433,6 +454,10 @@ const { t, te, locale } = useI18n()
 const uiStore = useUIStore()
 const deploymentCapabilities = useDeploymentCapabilitiesStore()
 const confirmDelete = useConfirmDelete()
+const authStore = useAuthStore()
+// The platform row is written through SystemAdmin-gated routes; install rows
+// it owns are the ones every workspace sees.
+const canEditPlatform = computed(() => authStore.isSystemAdmin)
 const hostOnly = computed(() => hostSkillsOnly(
   deploymentCapabilities.isSupported('settings.sandbox.remote'),
   deploymentCapabilities.isSupported('settings.sandbox.host'),
@@ -498,11 +523,31 @@ const {
 let pollTimer: number | null = null
 let focusTimer: number | null = null
 
-const skillConfigs = computed(() =>
-  hostOnly.value
-    ? [hostRecord.value]
-    : records.value.filter((record) => isNamedSandboxBackend(record.sandbox_type)),
-)
+const skillConfigs = computed(() => {
+  if (hostOnly.value) return [hostRecord.value]
+  const named = records.value.filter((record) => isNamedSandboxBackend(record.sandbox_type))
+  // 部署定制：空间专用沙箱已屏蔽，技能只装到平台默认沙箱，装一次全空间共用。
+  if (!workspaceSandboxEnabled) {
+    return named.filter((record) => record.is_platform === true)
+  }
+  // Platform first: it is the shared default, and a skill installed there is
+  // immediately available to every workspace.
+  return named.sort(
+    (a, b) => Number(b.is_platform === true) - Number(a.is_platform === true),
+  )
+})
+
+// The platform row keeps a reserved name; everything user-facing shows the
+// display name the operator typed into its description instead.
+function configLabel(cfg: SandboxConfigRecord | null | undefined): string {
+  if (!cfg) return ''
+  if (cfg.is_platform !== true) return cfg.name
+  return cfg.description?.trim() || t('settings.sandbox.platform.cardTitle')
+}
+
+function platformLocked(cfg: SandboxConfigRecord): boolean {
+  return cfg.is_platform === true && !canEditPlatform.value
+}
 
 const addBusy = computed(() => uploading.value || addingFromSource.value)
 const maxSkillBundleMB = MAX_SKILL_BUNDLE_SIZE_MB
@@ -575,15 +620,11 @@ const installDrawerDesc = computed(() => {
 const manageDesc = computed(() => {
   const record = manageRecord.value
   if (!record) return ''
-  return skillText('manageDrawerDesc', { name: record.name })
+  return skillText('manageDrawerDesc', { name: configLabel(record) })
 })
 
 function liveInstalls(item: SkillCatalogItem): SkillCatalogInstall[] {
   return (item.installations || []).filter((inst) => inst.status && inst.status !== 'removed')
-}
-
-function canDelete(item: SkillCatalogItem): boolean {
-  return liveInstalls(item).length === 0
 }
 
 function targetsFor(item: SkillCatalogItem): SandboxConfigRecord[] {
@@ -670,7 +711,7 @@ function sandboxPickRows(
       return {
         cfg,
         install,
-        selectable: !busy && (!ready || upgradable),
+        selectable: !busy && (!ready || upgradable) && !platformLocked(cfg),
         busy,
         ready,
         upgradable,
@@ -881,8 +922,8 @@ function installSummaryTooltip(item: SkillCatalogItem, view: ReturnType<typeof i
     const meta = sandboxMetaLine(cfg)
     lines.push(
       meta
-        ? `${cfg.name} · ${t('settings.skills.installPanelAvailable')} · ${meta}`
-        : `${cfg.name} · ${t('settings.skills.installPanelAvailable')}`,
+        ? `${configLabel(cfg)} · ${t('settings.skills.installPanelAvailable')} · ${meta}`
+        : `${configLabel(cfg)} · ${t('settings.skills.installPanelAvailable')}`,
     )
   }
   if (lines.length === 0) return skillText('installToSandbox')
@@ -936,6 +977,10 @@ function installEntryClass(item: SkillCatalogItem, inst: SkillCatalogInstall): s
 
 function installTargetName(inst: { sandbox_config_id: string; sandbox_config_name?: string }): string {
   if (isHostSkillTarget(inst.sandbox_config_id)) return t('settings.skills.hostTarget')
+  // The server echoes the stored row name, which for the platform config is
+  // the reserved lookup name. The loaded record knows the display name.
+  const cfg = recordFor(inst.sandbox_config_id)
+  if (cfg) return configLabel(cfg)
   return inst.sandbox_config_name || inst.sandbox_config_id
 }
 
@@ -959,10 +1004,6 @@ function openCatalogFiles(item: SkillCatalogItem) {
 }
 
 function askDelete(item: SkillCatalogItem) {
-  if (!canDelete(item)) {
-    MessagePlugin.warning(skillText('deleteCatalogBlocked'))
-    return
-  }
   confirmDelete({
     body: skillText('deleteCatalogConfirm', { name: item.name }),
     onConfirm: () => removeCatalog(item),
@@ -1230,10 +1271,6 @@ async function confirmInstall() {
 }
 
 async function removeCatalog(item: SkillCatalogItem) {
-  if (!canDelete(item)) {
-    MessagePlugin.warning(t('settings.skills.deleteCatalogBlocked'))
-    return
-  }
   deletingId.value = item.id
   try {
     await deleteSkillCatalog(item.id)
@@ -1476,8 +1513,6 @@ onUnmounted(() => {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   gap: 12px;
   align-items: stretch;
-  // 列表自身可滚动（配合上面 .skill-settings 的 flex 列）；
-  // align-content: start 避免行高被拉满整个容器。
   grid-auto-rows: max-content;
   flex: 1;
   min-height: 0;
@@ -1508,7 +1543,8 @@ onUnmounted(() => {
   background: var(--td-bg-color-container);
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
   min-width: 0;
-  height: 100%;
+  // 同行等高由 .skill-list 的 align-items: stretch 负责；这里不能再写
+  // height: 100%，否则卡片高度会脱离内容，底部安装状态那一行会被 overflow 裁掉。
 
   &:hover:not(.skill-card--add, .skill-card--focused) {
     border-color: color-mix(in srgb, var(--td-brand-color) 40%, var(--td-component-stroke));
@@ -1536,7 +1572,6 @@ onUnmounted(() => {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    height: 100%;
     min-height: 88px;
     padding: 12px;
     border-style: dashed;
@@ -1733,6 +1768,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   min-width: 0;
+  // 底部 chip 行不参与压缩，卡片被压时先裁简介文字。
+  flex-shrink: 0;
   margin-top: auto;
   padding-top: 6px;
   border-top: 1px solid var(--td-component-stroke);
@@ -1741,6 +1778,14 @@ onUnmounted(() => {
 .skill-card__installs-label {
   font-size: var(--app-text-sm);
   line-height: 18px;
+  color: var(--td-text-color-placeholder);
+}
+
+.skill-card__shared {
+  flex-shrink: 0;
+  margin: 6px 0 0;
+  font-size: var(--app-text-xs);
+  line-height: 16px;
   color: var(--td-text-color-placeholder);
 }
 

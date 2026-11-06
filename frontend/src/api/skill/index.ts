@@ -32,6 +32,9 @@ export interface SkillCatalogItem {
   created_at: string;
   updated_at: string;
   installations: SkillCatalogInstall[];
+  // Installs of this definition that live in other workspaces. The catalog is
+  // shared platform-wide, so the current workspace never sees those rows.
+  other_install_count?: number;
 }
 
 export interface SkillCatalogRegisterResult {
